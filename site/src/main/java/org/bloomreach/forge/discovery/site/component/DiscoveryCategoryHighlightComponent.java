@@ -6,7 +6,6 @@ import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.parameters.ParametersInfo;
-import org.hippoecm.hst.core.request.HstRequestContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,15 +35,11 @@ public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryCompon
             }
         }
 
-        if (categories.isEmpty()) {
-            HstRequestContext ctx = request.getRequestContext();
-            if (ctx != null && ctx.isChannelManagerPreviewRequest()) {
-                request.setAttribute("brxdis_warning",
-                        "No categories configured. Select Category Documents in component properties.");
-            }
+        if (categories.isEmpty() && isEditMode(request)) {
+            request.setAttribute("brxdis_warning",
+                    "No categories configured. Select Category Documents in component properties.");
         }
 
-        request.setModel("categories", categories);
-        request.setAttribute("categories", categories);
+        setModelAndAttribute(request, "categories", categories);
     }
 }

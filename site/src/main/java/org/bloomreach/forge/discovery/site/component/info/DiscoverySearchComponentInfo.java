@@ -5,7 +5,7 @@ import org.hippoecm.hst.core.parameters.FieldGroupList;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"pageSize", "defaultSort", "catalogName"}, titleKey = "search.group")
+    @FieldGroup(value = {"pageSize", "defaultSort", "catalogName", "bandName"}, titleKey = "search.group")
 })
 public interface DiscoverySearchComponentInfo {
 
@@ -17,4 +17,7 @@ public interface DiscoverySearchComponentInfo {
 
     @Parameter(name = "catalogName", displayName = "Catalog name (blank = products)", defaultValue = "")
     String getCatalogName();
+
+    @Parameter(name = "bandName", displayName = "Data band name", defaultValue = "default")
+    String getBandName();
 }

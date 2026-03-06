@@ -27,8 +27,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         DiscoveryProductDetailComponentInfo info = getComponentParametersInfo(request);
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
                 DiscoveryProductDetailBean.class);
-        request.setAttribute("document", document);
-        request.setModel("document", document);
+        setModelAndAttribute(request, "document", document);
 
         String pid = getPublicRequestParameter(request, info.getProductUrlParam());
 
@@ -43,25 +42,21 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         }
 
         if (pid == null || pid.isBlank()) {
-            HstRequestContext ctx = request.getRequestContext();
-            boolean cmsRequest = ctx != null && ctx.isChannelManagerPreviewRequest();
-            if (cmsRequest) {
+            if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
                     "No product ID resolved. Select a 'Product Detail Document' in component properties, " +
                     "or ensure the page content bean has a '" + info.getProductPidProperty() + "' property, " +
                     "or pass '?pid=' in the URL.");
             }
-            request.setModel("product", null);
-            request.setAttribute("product", null);
+            setModelAndAttribute(request, "product", null);
             return;
         }
 
-        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
+        HstDiscoveryService svc = getDiscoveryService();
 
         Optional<ProductSummary> found = svc.fetchProduct(request, pid);
         ProductSummary product = found.orElse(null);
-        request.setModel("product", product);
-        request.setAttribute("product", product);
+        setModelAndAttribute(request, "product", product);
 
         log.debug("PDP pid='{}' product={}", pid, product != null ? product.id() : "null");
     }

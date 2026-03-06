@@ -23,14 +23,26 @@ public class DiscoveryFacetComponent extends AbstractDiscoveryComponent {
         super.doBeforeRender(request, response);
         DiscoveryDataSourceComponentInfo info = getComponentParametersInfo(request);
         boolean isCategory = "category".equals(info.getDataSource());
+        String band = info.getBandName();
         Optional<SearchResult> result = isCategory
-                ? DiscoveryRequestCache.getCategoryResult(request)
-                : DiscoveryRequestCache.getSearchResult(request);
+                ? DiscoveryRequestCache.getCategoryResult(request, band)
+                : DiscoveryRequestCache.getSearchResult(request, band);
 
-        warnIfMissingDataSource(request, result.isEmpty(), isCategory);
-
+        boolean bandConnected = isCategory
+                ? DiscoveryRequestCache.isCategoryBandPresent(request, band)
+                : DiscoveryRequestCache.isSearchBandPresent(request, band);
+        if (!bandConnected) {
+            Class<?> dataComponentClass = isCategory
+                    ? DiscoveryCategoryComponent.class
+                    : DiscoverySearchComponent.class;
+            bandConnected = isBandConfiguredOnPage(request, band, dataComponentClass);
+        }
+        boolean editMode = isEditMode(request);
+        warnIfMissingDataSource(request, !bandConnected, isCategory, band);
         Map<?, ?> facets = result.map(SearchResult::facets).orElse(Map.of());
-        request.setModel("facets", facets);
-        request.setAttribute("facets", facets);
+        setModelAndAttribute(request, "facets", facets);
+        setModelAndAttribute(request, "dataBand", band);
+        setModelAndAttribute(request, "bandConnected", bandConnected);
+        setModelAndAttribute(request, "editMode", editMode);
     }
 }

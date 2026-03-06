@@ -136,6 +136,30 @@ class HstDiscoveryServiceTest {
         verify(client, times(1)).search(any(), any());
     }
 
+    @Test
+    void search_withNamedBand_storesCacheUnderBandKey() {
+        when(client.search(any(SearchQuery.class), eq(validConfig))).thenReturn(searchResult);
+
+        SearchResult r1 = service.search(request, 12, null, null, "band-a");
+        SearchResult r2 = service.search(request, 12, null, null, "band-b");
+
+        // Two different bands → two client calls (independent caches)
+        verify(client, times(2)).search(any(), any());
+        assertSame(searchResult, r1);
+        assertSame(searchResult, r2);
+    }
+
+    @Test
+    void search_withNamedBand_cacheHitOnSameBand() {
+        when(client.search(any(SearchQuery.class), eq(validConfig))).thenReturn(searchResult);
+
+        service.search(request, 12, null, null, "band-a");
+        service.search(request, 12, null, null, "band-a");
+
+        // Same band → cache hit on second call
+        verify(client, times(1)).search(any(), any());
+    }
+
     // ── browse ─────────────────────────────────────────────────────────────────
 
     @Test
@@ -164,6 +188,28 @@ class HstDiscoveryServiceTest {
         assertEquals("cat-123", captor.getValue().categoryId());
         assertEquals(24, captor.getValue().pageSize());
         assertEquals("price asc", captor.getValue().sort());
+    }
+
+    @Test
+    void browse_withNamedBand_storesCacheUnderBandKey() {
+        SearchResult catResult = new SearchResult(List.of(), 5L, 0, 10, Map.of());
+        when(client.category(any(CategoryQuery.class), eq(validConfig))).thenReturn(catResult);
+
+        service.browse(request, "cat-1", 10, null, "band-a");
+        service.browse(request, "cat-1", 10, null, "band-b");
+
+        verify(client, times(2)).category(any(), any());
+    }
+
+    @Test
+    void browse_withNamedBand_cacheHitOnSameBand() {
+        when(client.category(any(CategoryQuery.class), eq(validConfig)))
+                .thenReturn(new SearchResult(List.of(), 5L, 0, 10, Map.of()));
+
+        service.browse(request, "cat-1", 10, null, "band-a");
+        service.browse(request, "cat-1", 10, null, "band-a");
+
+        verify(client, times(1)).category(any(), any());
     }
 
     // ── recommend ──────────────────────────────────────────────────────────────

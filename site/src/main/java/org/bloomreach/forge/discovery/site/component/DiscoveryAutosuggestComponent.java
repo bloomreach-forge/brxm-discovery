@@ -27,22 +27,19 @@ public class DiscoveryAutosuggestComponent extends AbstractDiscoveryComponent {
         }
 
         if (query == null || query.isBlank()) {
-            request.setModel("query", "");
+            setModelAndAttribute(request, "query", "");
             request.setModel("autosuggestResult", null);
-            request.setAttribute("query", "");
             return;
         }
 
-        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
+        HstDiscoveryService svc = getDiscoveryService();
         String catalogViews = info.getCatalogViews();
         AutosuggestResult result = (catalogViews != null && !catalogViews.isBlank())
                 ? svc.autosuggest(request, query, info.getLimit(), catalogViews)
                 : svc.autosuggest(request, query, info.getLimit());
 
-        request.setModel("query", query);
-        request.setModel("autosuggestResult", result);
-        request.setAttribute("query", query);
-        request.setAttribute("autosuggestResult", result);
+        setModelAndAttribute(request, "query", query);
+        setModelAndAttribute(request, "autosuggestResult", result);
 
         log.debug("Discovery autosuggest '{}' → {} query suggestions, {} product suggestions",
                 query, result.querySuggestions().size(), result.productSuggestions().size());

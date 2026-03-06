@@ -8,7 +8,6 @@ import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.parameters.ParametersInfo;
-import org.hippoecm.hst.core.request.HstRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,31 +28,31 @@ public class DiscoveryProductHighlightComponent extends AbstractDiscoveryCompone
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         DiscoveryProductHighlightComponentInfo info = getComponentParametersInfo(request);
-        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
+        HstDiscoveryService svc = getDiscoveryService();
 
-        List<ProductSummary> products = new ArrayList<>();
+        List<DiscoveryProductDetailBean> productBeans = new ArrayList<>(4);
+        List<ProductSummary> products = new ArrayList<>(4);
         for (String path : new String[]{
                 info.getDocument1(), info.getDocument2(),
                 info.getDocument3(), info.getDocument4()}) {
-            if (path != null && !path.isBlank()) {
-                DiscoveryProductDetailBean bean = getHippoBeanForPath(
-                        request, path, DiscoveryProductDetailBean.class);
-                if (bean != null && bean.getProductId() != null && !bean.getProductId().isBlank()) {
-                    svc.fetchProduct(request, bean.getProductId()).ifPresent(products::add);
-                }
-            }
+            DiscoveryProductDetailBean bean = (path != null && !path.isBlank())
+                    ? getHippoBeanForPath(request, path, DiscoveryProductDetailBean.class)
+                    : null;
+            productBeans.add(bean);
+            ProductSummary product = (bean != null && bean.getProductId() != null && !bean.getProductId().isBlank())
+                    ? svc.fetchProduct(request, bean.getProductId()).orElse(null)
+                    : null;
+            products.add(product);
         }
 
-        if (products.isEmpty()) {
-            HstRequestContext ctx = request.getRequestContext();
-            if (ctx != null && ctx.isChannelManagerPreviewRequest()) {
-                request.setAttribute("brxdis_warning",
-                        "No products configured. Select Product Detail Documents in component properties.");
-            }
+        boolean anyProduct = products.stream().anyMatch(p -> p != null);
+        if (!anyProduct && isEditMode(request)) {
+            request.setAttribute("brxdis_warning",
+                    "No products configured. Select Product Detail Documents in component properties.");
         }
 
-        request.setModel("products", products);
-        request.setAttribute("products", products);
-        log.debug("ProductHighlight returned {} products", products.size());
+        setModelAndAttribute(request, "products", products);
+        setModelAndAttribute(request, "productBeans", productBeans);
+        log.debug("ProductHighlight returned {} of 4 products", products.stream().filter(p -> p != null).count());
     }
 }

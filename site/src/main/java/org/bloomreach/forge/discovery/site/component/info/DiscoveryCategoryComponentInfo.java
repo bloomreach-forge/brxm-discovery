@@ -6,7 +6,7 @@ import org.hippoecm.hst.core.parameters.JcrPath;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"document", "pageSize", "defaultSort"}, titleKey = "category.group")
+    @FieldGroup(value = {"document", "pageSize", "defaultSort", "bandName"}, titleKey = "category.group")
 })
 public interface DiscoveryCategoryComponentInfo {
 
@@ -24,4 +24,7 @@ public interface DiscoveryCategoryComponentInfo {
 
     @Parameter(name = "defaultSort", displayName = "Default sort order", defaultValue = "")
     String getDefaultSort();
+
+    @Parameter(name = "bandName", displayName = "Data band name", defaultValue = "default")
+    String getBandName();
 }

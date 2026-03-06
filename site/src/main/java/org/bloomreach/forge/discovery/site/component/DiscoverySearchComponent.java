@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchComponentInfo;
+import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 
@@ -20,6 +21,14 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         DiscoverySearchComponentInfo info = getComponentParametersInfo(request);
+        String band = info.getBandName();
+
+        // Signal to view components (ProductGrid, Facets) that a search data source is wired
+        // to this band — must happen before any early return so view components never show a
+        // false "missing data source" warning just because no query has been typed yet.
+        DiscoveryRequestCache.markSearchBandPresent(request, band);
+
+        setModelAndAttribute(request, "dataBand", band);
 
         String searchTerm = getPublicRequestParameter(request, "q");
         if (searchTerm != null) {
@@ -27,22 +36,18 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
         }
 
         if (searchTerm == null || searchTerm.isBlank()) {
-            request.setModel("query", "");
+            setModelAndAttribute(request, "query", "");
             request.setModel("searchResult", null);
-            request.setAttribute("query", "");
             return;
         }
 
-        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
+        HstDiscoveryService svc = getDiscoveryService();
         String catalogName = info.getCatalogName();
-        SearchResult result = (catalogName != null && !catalogName.isBlank())
-                ? svc.search(request, info.getPageSize(), info.getDefaultSort(), catalogName)
-                : svc.search(request, info.getPageSize(), info.getDefaultSort());
+        SearchResult result = svc.search(request, info.getPageSize(), info.getDefaultSort(),
+                (catalogName != null && !catalogName.isBlank()) ? catalogName : null, band);
 
-        request.setModel("query", searchTerm);
-        request.setModel("searchResult", result);
-        request.setAttribute("query", searchTerm);
-        request.setAttribute("searchResult", result);
+        setModelAndAttribute(request, "query", searchTerm);
+        setModelAndAttribute(request, "searchResult", result);
 
         log.debug("Discovery search '{}' → {} results (page {})",
                 searchTerm, result.total(), result.page());

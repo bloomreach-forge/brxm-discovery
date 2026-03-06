@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
+import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstComponentException;
@@ -24,6 +25,12 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         DiscoveryCategoryComponentInfo info = getComponentParametersInfo(request);
+        String band = info.getBandName();
+
+        // Signal to view components (ProductGrid, Facets) that a category data source is wired
+        // to this band — must happen before any early return so view components never show a
+        // false "missing data source" warning just because no category is configured yet.
+        DiscoveryRequestCache.markCategoryBandPresent(request, band);
 
         // 1. Category document (editor-configured via Channel Manager)
         DiscoveryCategoryBean document = getHippoBeanForPath(
@@ -36,26 +43,22 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
 
         // 2. Null guard — nothing configured; return empty to avoid invalid API call
         if (categoryId == null || categoryId.isBlank()) {
-            boolean cmsRequest = request.getRequestContext().isChannelManagerPreviewRequest();
-            if (cmsRequest) {
+            if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
                         "No category configured. Attach a Category Document to this component " +
                         "or pass a '?categoryId=' URL parameter.");
             }
-            request.setModel("categoryId", "");
-            request.setModel("categoryResult", emptyResult());
-            request.setAttribute("categoryId", "");
-            request.setAttribute("categoryResult", emptyResult());
+            setModelAndAttribute(request, "categoryId", "");
+            setModelAndAttribute(request, "categoryResult", emptyResult());
             return;
         }
 
-        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
-        SearchResult result = svc.browse(request, categoryId, info.getPageSize(), info.getDefaultSort());
+        HstDiscoveryService svc = getDiscoveryService();
+        SearchResult result = svc.browse(request, categoryId, info.getPageSize(), info.getDefaultSort(), band);
 
-        request.setModel("categoryId", categoryId);
-        request.setModel("categoryResult", result);
-        request.setAttribute("categoryId", categoryId);
-        request.setAttribute("categoryResult", result);
+        setModelAndAttribute(request, "categoryId", categoryId);
+        setModelAndAttribute(request, "categoryResult", result);
+        setModelAndAttribute(request, "dataBand", band);
 
         log.debug("Category '{}' returned {} results (page {})",
                 categoryId, result.total(), result.page());

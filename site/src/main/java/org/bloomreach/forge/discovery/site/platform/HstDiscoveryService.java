@@ -69,6 +69,11 @@ public class HstDiscoveryService {
 
     public SearchResult search(HstRequest request, int componentPageSize, String componentSort,
                                String catalogName) {
+        return search(request, componentPageSize, componentSort, catalogName, "default");
+    }
+
+    public SearchResult search(HstRequest request, int componentPageSize, String componentSort,
+                               String catalogName, String band) {
         DiscoveryConfig config = configFor(request.getRequestContext());
         String brUid2 = cookieValue(request, "_br_uid_2");
         String url = pageUrl(request);
@@ -76,11 +81,11 @@ public class HstDiscoveryService {
         SearchQuery query = QueryParamParser.toSearchQuery(
                 paramProvider(request), config, componentPageSize, componentSort, catalogName,
                 brUid2, refUrl, url);
-        return DiscoveryRequestCache.getSearchResult(request)
+        return DiscoveryRequestCache.getSearchResult(request, band)
                 .orElseGet(() -> {
                     SearchResult fresh = client.search(query, config);
                     fresh = applyEnrichment(fresh);
-                    DiscoveryRequestCache.putSearchResult(request, fresh);
+                    DiscoveryRequestCache.putSearchResult(request, band, fresh);
                     if (pixelService != null) {
                         pixelService.fireSearchEvent(query, fresh, config);
                     }
@@ -94,6 +99,11 @@ public class HstDiscoveryService {
 
     public SearchResult browse(HstRequest request, String categoryId,
                                int componentPageSize, String componentSort) {
+        return browse(request, categoryId, componentPageSize, componentSort, "default");
+    }
+
+    public SearchResult browse(HstRequest request, String categoryId,
+                               int componentPageSize, String componentSort, String band) {
         DiscoveryConfig config = configFor(request.getRequestContext());
         String brUid2 = cookieValue(request, "_br_uid_2");
         String url = pageUrl(request);
@@ -101,11 +111,11 @@ public class HstDiscoveryService {
         CategoryQuery query = QueryParamParser.toCategoryQuery(
                 categoryId, paramProvider(request), config, componentPageSize, componentSort,
                 brUid2, refUrl, url);
-        return DiscoveryRequestCache.getCategoryResult(request)
+        return DiscoveryRequestCache.getCategoryResult(request, band)
                 .orElseGet(() -> {
                     SearchResult fresh = client.category(query, config);
                     fresh = applyEnrichment(fresh);
-                    DiscoveryRequestCache.putCategoryResult(request, fresh);
+                    DiscoveryRequestCache.putCategoryResult(request, band, fresh);
                     if (pixelService != null) {
                         pixelService.fireCategoryEvent(query, fresh, config);
                     }

@@ -21,20 +21,63 @@ public final class DiscoveryRequestCache {
 
     private DiscoveryRequestCache() {}
 
+    // ── Band-aware overloads ──────────────────────────────────────────────────
+
+    public static Optional<SearchResult> getSearchResult(HstRequest request, String band) {
+        return Optional.ofNullable((SearchResult) ctx(request).getAttribute(ATTR + ".searchResult." + band));
+    }
+
+    public static void putSearchResult(HstRequest request, String band, SearchResult result) {
+        ctx(request).setAttribute(ATTR + ".searchResult." + band, result);
+    }
+
+    public static Optional<SearchResult> getCategoryResult(HstRequest request, String band) {
+        return Optional.ofNullable((SearchResult) ctx(request).getAttribute(ATTR + ".categoryResult." + band));
+    }
+
+    public static void putCategoryResult(HstRequest request, String band, SearchResult result) {
+        ctx(request).setAttribute(ATTR + ".categoryResult." + band, result);
+    }
+
+    // ── Band-presence markers (set by data components before any early return) ──
+    //
+    // View components use these to distinguish "band not wired up on this page" (show warning)
+    // from "band connected but no results yet, e.g. no query typed" (silent empty state).
+    // Search and category markers are kept separate so a category component on the same page
+    // cannot satisfy a view component that expects a search data source and vice-versa.
+
+    public static void markSearchBandPresent(HstRequest request, String band) {
+        ctx(request).setAttribute(ATTR + ".band.search." + band, Boolean.TRUE);
+    }
+
+    public static boolean isSearchBandPresent(HstRequest request, String band) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".band.search." + band));
+    }
+
+    public static void markCategoryBandPresent(HstRequest request, String band) {
+        ctx(request).setAttribute(ATTR + ".band.category." + band, Boolean.TRUE);
+    }
+
+    public static boolean isCategoryBandPresent(HstRequest request, String band) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".band.category." + band));
+    }
+
+    // ── No-band overloads delegate to "default" band (backward compat) ────────
+
     public static Optional<SearchResult> getSearchResult(HstRequest request) {
-        return Optional.ofNullable((SearchResult) ctx(request).getAttribute(ATTR + ".searchResult"));
+        return getSearchResult(request, "default");
     }
 
     public static void putSearchResult(HstRequest request, SearchResult result) {
-        ctx(request).setAttribute(ATTR + ".searchResult", result);
+        putSearchResult(request, "default", result);
     }
 
     public static Optional<SearchResult> getCategoryResult(HstRequest request) {
-        return Optional.ofNullable((SearchResult) ctx(request).getAttribute(ATTR + ".categoryResult"));
+        return getCategoryResult(request, "default");
     }
 
     public static void putCategoryResult(HstRequest request, SearchResult result) {
-        ctx(request).setAttribute(ATTR + ".categoryResult", result);
+        putCategoryResult(request, "default", result);
     }
 
     @SuppressWarnings("unchecked")

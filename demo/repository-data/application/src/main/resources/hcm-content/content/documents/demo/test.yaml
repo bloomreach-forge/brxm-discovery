@@ -63,19 +63,18 @@
       brxdis:categoryId: '117016'
       brxdis:displayName: Demo Category
       hippo:availability: []
-      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-06T17:48:45.848Z
+      hippostdpubwf:lastModificationDate: 2026-03-06T20:09:12.966Z
       hippostdpubwf:lastModifiedBy: admin
     /cat[2]:
       jcr:primaryType: brxdis:categoryDocument
       jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
       jcr:uuid: 8b853816-0d17-4506-91ea-7b5bf0b2f5c0
-      brxdis:categoryId: '116791'
+      brxdis:categoryId: '117016'
       brxdis:displayName: Demo Category
       hippo:availability: [preview]
       hippostd:retainable: false
@@ -83,7 +82,7 @@
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-06T11:45:37.101Z
+      hippostdpubwf:lastModificationDate: 2026-03-06T20:09:11.686Z
       hippostdpubwf:lastModifiedBy: admin
     /cat[3]:
       jcr:primaryType: brxdis:categoryDocument
@@ -114,13 +113,12 @@
       brxdis:displayName: Wine
       brxdis:productId: '21557'
       hippo:availability: []
-      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-06T17:57:18.731Z
+      hippostdpubwf:lastModificationDate: 2026-03-06T20:11:43.269Z
       hippostdpubwf:lastModifiedBy: admin
     /product[2]:
       jcr:primaryType: brxdis:productDetailDocument

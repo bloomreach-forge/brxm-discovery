@@ -21,6 +21,7 @@
 .brxdis-prodhighlight__cta{margin:.25rem 1rem 1rem;padding:.5625rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.875rem;font-weight:500;text-align:center;text-decoration:none;display:block;transition:background .15s}
 .brxdis-prodhighlight__cta:hover{background:#1d4ed8;color:#fff}
 .brxdis-prodhighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:1px dashed #e5e7eb;border-radius:8px}
+.brxdis-prodhighlight__slot{display:flex;align-items:center;justify-content:center;min-height:220px;border:2px dashed #d1d5db;border-radius:12px;color:#9ca3af;font-size:.875rem;background:#f9fafb}
 </style>
 </@hst.headContribution>
 
@@ -34,40 +35,92 @@
   </#if>
 
   <#-- @ftlvariable name="products" type="java.util.List" -->
-  <#if products?? && products?has_content>
+  <#-- @ftlvariable name="productBeans" type="java.util.List" -->
+  <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
+  <#assign inEditMode = editMode?? && editMode>
+
+  <#if inEditMode>
+    <#-- Edit mode: render all 4 slots with per-product manageContent -->
     <div class="brxdis-prodhighlight__grid" role="list">
       <#list products as product>
-        <article class="brxdis-prodhighlight__card" role="listitem">
-          <div class="brxdis-prodhighlight__img">
-            <#if product.imageUrl()?has_content>
-              <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
-            <#else>
-              <div class="brxdis-prodhighlight__placeholder">&#127873;</div>
-            </#if>
-          </div>
-          <div class="brxdis-prodhighlight__body">
-            <#if product.attributes()["brand"]??>
-              <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
-            </#if>
-            <h3 class="brxdis-prodhighlight__name">
-              <a href="${product.url()!"/product?pid=${product.id()}"}">${product.title()!"Untitled"}</a>
-            </h3>
-            <#if product.attributes()["description"]??>
-              <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
-            </#if>
-            <#if product.price()??>
-              <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
-            </#if>
-          </div>
-          <a class="brxdis-prodhighlight__cta"
-             href="${product.url()!"/product?pid=${product.id()}"}">View Product</a>
-        </article>
+        <#assign slotNum = product?index + 1>
+        <#assign bean = productBeans[product?index]>
+        <#if bean??>
+          <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
+              rootPath="brxdis/products" defaultPath="brxdis/products"/>
+        <#else>
+          <@hst.manageContent parameterName="document${slotNum}"
+              rootPath="brxdis/products" defaultPath="brxdis/products"/>
+        </#if>
+        <#if product??>
+          <article class="brxdis-prodhighlight__card" role="listitem">
+            <div class="brxdis-prodhighlight__img">
+              <#if product.imageUrl()?has_content>
+                <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
+              <#else>
+                <div class="brxdis-prodhighlight__placeholder">&#127873;</div>
+              </#if>
+            </div>
+            <div class="brxdis-prodhighlight__body">
+              <#if product.attributes()["brand"]??>
+                <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
+              </#if>
+              <h3 class="brxdis-prodhighlight__name">
+                <a href="${product.url()!"/product?pid=${product.id()}"}">${product.title()!"Untitled"}</a>
+              </h3>
+              <#if product.attributes()["description"]??>
+                <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
+              </#if>
+              <#if product.price()??>
+                <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
+              </#if>
+            </div>
+            <a class="brxdis-prodhighlight__cta"
+               href="${product.url()!"/product?pid=${product.id()}"}">View Product</a>
+          </article>
+        <#else>
+          <div class="brxdis-prodhighlight__slot">&#43; Product ${slotNum}</div>
+        </#if>
       </#list>
     </div>
-  <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-  <#elseif editMode>
-    <div class="brxdis-prodhighlight__empty">&#128736; Select <strong>Product Detail Documents</strong> in component properties to feature products.</div>
   <#else>
-    <div class="brxdis-prodhighlight__empty">No featured products available.</div>
+    <#-- Delivery mode: only render non-null products -->
+    <#assign anyProduct = false>
+    <#list products as p><#if p??><#assign anyProduct = true></#if></#list>
+    <#if anyProduct>
+      <div class="brxdis-prodhighlight__grid" role="list">
+        <#list products as product>
+          <#if product??>
+            <article class="brxdis-prodhighlight__card" role="listitem">
+              <div class="brxdis-prodhighlight__img">
+                <#if product.imageUrl()?has_content>
+                  <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
+                <#else>
+                  <div class="brxdis-prodhighlight__placeholder">&#127873;</div>
+                </#if>
+              </div>
+              <div class="brxdis-prodhighlight__body">
+                <#if product.attributes()["brand"]??>
+                  <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
+                </#if>
+                <h3 class="brxdis-prodhighlight__name">
+                  <a href="${product.url()!"/product?pid=${product.id()}"}">${product.title()!"Untitled"}</a>
+                </h3>
+                <#if product.attributes()["description"]??>
+                  <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
+                </#if>
+                <#if product.price()??>
+                  <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
+                </#if>
+              </div>
+              <a class="brxdis-prodhighlight__cta"
+                 href="${product.url()!"/product?pid=${product.id()}"}">View Product</a>
+            </article>
+          </#if>
+        </#list>
+      </div>
+    <#else>
+      <div class="brxdis-prodhighlight__empty">No featured products available.</div>
+    </#if>
   </#if>
 </section>

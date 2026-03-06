@@ -30,7 +30,7 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         DiscoveryRecommendationComponentInfo info = getComponentParametersInfo(request);
-        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
+        HstDiscoveryService svc = getDiscoveryService();
         final String documentPath = info.getDocument();
 
         // Resolve the recommendation document (component param wins, then URL-path content bean)
@@ -46,10 +46,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
 
         // Nothing configured — return empty rather than fire an invalid API call
         if (widgetId == null || widgetId.isBlank()) {
-            request.setModel("products", List.of());
-            request.setModel("widgetId", "");
-            request.setAttribute("products", List.of());
-            request.setAttribute("widgetId", "");
+            setModelAndAttribute(request, "products", List.of());
+            setModelAndAttribute(request, "widgetId", "");
             return;
         }
 
@@ -79,17 +77,15 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         // 5. null — guard in HstDiscoveryService handles gracefully
 
         String contextPageType = getPublicRequestParameter(request, CONTEXT_PAGE_TYPE_PARAM);
-        int    limit           = parseIntOrDefault(getPublicRequestParameter(request, LIMIT_PARAM), info.getLimit());
+        int    limit           = getPublicRequestParameterAsInt(request, LIMIT_PARAM, info.getLimit());
         String fields          = getPublicRequestParameter(request, FIELDS_PARAM);
         String filter          = getPublicRequestParameter(request, FILTER_PARAM);
 
         List<ProductSummary> products = svc.recommend(
                 request, widgetId, null, contextProductId, contextPageType, limit, fields, filter);
 
-        request.setModel("products", products);
-        request.setModel("widgetId", widgetId);
-        request.setAttribute("products", products);
-        request.setAttribute("widgetId", widgetId);
+        setModelAndAttribute(request, "products", products);
+        setModelAndAttribute(request, "widgetId", widgetId);
 
         log.debug("Recommendations widget '{}' returned {} products", widgetId, products.size());
     }

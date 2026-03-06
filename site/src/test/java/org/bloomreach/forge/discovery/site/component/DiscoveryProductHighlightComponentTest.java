@@ -29,18 +29,19 @@ class DiscoveryProductHighlightComponentTest {
     @Mock HstDiscoveryService discoveryService;
 
     @Test
-    void noDocs_setsEmptyList() {
+    void noDocs_setsAllNullSlots() {
         new TestableProductHighlightComponent(discoveryService).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
         verify(request).setAttribute(eq("products"), captor.capture());
-        assertTrue(captor.getValue().isEmpty());
+        assertEquals(4, captor.getValue().size());
+        assertTrue(captor.getValue().stream().allMatch(p -> p == null));
         verifyNoInteractions(discoveryService);
     }
 
     @Test
-    void oneDoc_fetchesProduct() {
+    void oneDoc_fetchesProductInFirstSlot() {
         ProductSummary product = new ProductSummary("p1", "Product", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("p1"))).thenReturn(Optional.of(product));
 
@@ -49,12 +50,13 @@ class DiscoveryProductHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
         verify(request).setAttribute(eq("products"), captor.capture());
-        assertEquals(1, captor.getValue().size());
+        assertEquals(4, captor.getValue().size());
         assertSame(product, captor.getValue().get(0));
+        assertTrue(captor.getValue().subList(1, 4).stream().allMatch(p -> p == null));
     }
 
     @Test
-    void multipleDocsSamePid_fetchesEach() {
+    void multipleDocsSamePid_fetchesEachInAlignedSlots() {
         ProductSummary p1 = new ProductSummary("p1", "P1", null, null, null, null, Map.of());
         ProductSummary p2 = new ProductSummary("p2", "P2", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("p1"))).thenReturn(Optional.of(p1));
@@ -65,11 +67,14 @@ class DiscoveryProductHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
         verify(request).setAttribute(eq("products"), captor.capture());
-        assertEquals(2, captor.getValue().size());
+        assertEquals(4, captor.getValue().size());
+        assertEquals(2, captor.getValue().stream().filter(p -> p != null).count());
+        assertSame(p1, captor.getValue().get(0));
+        assertSame(p2, captor.getValue().get(1));
     }
 
     @Test
-    void productNotFound_skipped() {
+    void productNotFound_slotIsNull() {
         when(discoveryService.fetchProduct(eq(request), eq("missing"))).thenReturn(Optional.empty());
 
         new TestableProductHighlightComponent(discoveryService, "missing").doBeforeRender(request, response);
@@ -77,7 +82,8 @@ class DiscoveryProductHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
         verify(request).setAttribute(eq("products"), captor.capture());
-        assertTrue(captor.getValue().isEmpty());
+        assertEquals(4, captor.getValue().size());
+        assertTrue(captor.getValue().stream().allMatch(p -> p == null));
     }
 
     // ── testable subclass ──────────────────────────────────────────────────────

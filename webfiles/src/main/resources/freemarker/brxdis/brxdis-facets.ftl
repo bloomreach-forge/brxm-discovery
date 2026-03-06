@@ -31,6 +31,21 @@
 </#if>
 
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
+<#-- @ftlvariable name="dataBand" type="java.lang.String" -->
+<#-- @ftlvariable name="bandConnected" type="java.lang.Boolean" -->
+<#if editMode?? && editMode>
+  <#assign _band = dataBand!"default">
+  <#if bandConnected?? && bandConnected>
+    <#assign _facetCount = facets?size>
+    <div style="display:inline-block;margin-bottom:.5rem;background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
+      &#10003; Band: <strong>${_band}</strong> &middot; ${_facetCount} filter group<#if _facetCount != 1>s</#if>
+    </div>
+  <#elseif _band != "default">
+    <div style="display:inline-block;margin-bottom:.5rem;background:#dbeafe;border:1px solid #bfdbfe;color:#1e40af;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
+      Band: <strong>${_band}</strong>
+    </div>
+  </#if>
+</#if>
 <#if facets?has_content>
   <#assign sr = hstRequest.requestContext.servletRequest>
 
@@ -100,7 +115,13 @@
 
   </nav>
 <#elseif editMode>
-  <div style="border:2px dashed #e5e7eb;padding:1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center">
-    &#128736; <strong>Facets</strong> &mdash; facet filters will appear here once the parent search or category component returns results.
-  </div>
+  <#if bandConnected?? && bandConnected>
+    <div style="border:2px dashed #e5e7eb;padding:1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center">
+      &#128270; <strong>Facets</strong> &mdash; connected to band <strong>${dataBand!"default"}</strong>. Filters will appear here once a search query or category is active.
+    </div>
+  <#else>
+    <div style="border:2px dashed #e5e7eb;padding:1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center">
+      &#128736; <strong>Facets</strong> &mdash; no data source connected. Add a Discovery Search or Category component with a matching band name.
+    </div>
+  </#if>
 </#if>
