@@ -2,7 +2,6 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
@@ -24,8 +23,6 @@ public interface DiscoveryClient {
     List<ProductSummary> recommend(RecQuery query, DiscoveryConfig config);
 
     Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryConfig config);
-
-    List<WidgetInfo> listWidgets(DiscoveryConfig config);
 
     String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryConfig config);
 

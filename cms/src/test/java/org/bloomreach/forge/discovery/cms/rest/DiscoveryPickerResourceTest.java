@@ -1,8 +1,10 @@
 package org.bloomreach.forge.discovery.cms.rest;
 
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerCategoryDto;
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
 import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,7 +66,7 @@ class DiscoveryPickerResourceTest {
     void search_delegatesToHttpGatewayAndParsesResult() {
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
-        PickerSearchResponse resp = resource.search(CONFIG_PATH, "shirt", 0, 12);
+        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "shirt", 0, 12);
 
         assertEquals(1, resp.items().size());
         assertEquals("p1", resp.items().get(0).id());
@@ -88,7 +90,7 @@ class DiscoveryPickerResourceTest {
     void search_emptyResults_returnsZeroItems() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        PickerSearchResponse resp = resource.search(CONFIG_PATH, "*", 0, 12);
+        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "*", 0, 12);
 
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
@@ -153,7 +155,7 @@ class DiscoveryPickerResourceTest {
 
     @Test
     void items_returnsEmptyResponseWhenIdsBlank() {
-        PickerSearchResponse resp = resource.items(CONFIG_PATH, "");
+        PickerSearchResponseDto resp = resource.items(CONFIG_PATH, "");
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
         verifyNoInteractions(session);
@@ -161,7 +163,7 @@ class DiscoveryPickerResourceTest {
 
     @Test
     void items_returnsEmptyResponseWhenIdsNull() {
-        PickerSearchResponse resp = resource.items(CONFIG_PATH, null);
+        PickerSearchResponseDto resp = resource.items(CONFIG_PATH, null);
         assertEquals(0, resp.items().size());
         verifyNoInteractions(session);
     }
@@ -170,7 +172,7 @@ class DiscoveryPickerResourceTest {
     void items_buildsSearchQueryWithPidFilter() {
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
-        PickerSearchResponse resp = resource.items(CONFIG_PATH, "p1");
+        PickerSearchResponseDto resp = resource.items(CONFIG_PATH, "p1");
 
         assertEquals(1, resp.items().size());
         verify(httpGateway).apply(argThat(url -> url.contains("fq=pid")));
@@ -194,49 +196,14 @@ class DiscoveryPickerResourceTest {
         }));
     }
 
-    // ---- widgets() ------------------------------------------------------
-
-    @Test
-    void widgets_urlUsesBaseUriWithAccountIdOnly() {
-        when(httpGateway.apply(anyString())).thenReturn("{\"response\":{\"widgets\":[]}}");
-
-        resource.widgets(CONFIG_PATH);
-
-        // Matches DiscoveryClientImpl.listWidgets() — only account_id, no domain_key/auth_key
-        verify(httpGateway).apply(argThat(url ->
-                url.startsWith(BASE_URI) &&
-                url.contains("account_id=acc1") &&
-                !url.contains("domain_key")));
-    }
-
-    @Test
-    void widgets_returnsAvailableWidgets() {
-        String widgetsJson = """
-                {"response":{"widgets":[
-                  {"id":"w1","name":"Widget 1","type":"item","enabled":true,"description":"desc1"},
-                  {"id":"w2","name":"Widget 2","type":"keyword","enabled":false,"description":null}
-                ]}}
-                """;
-        when(httpGateway.apply(contains("merchant/widgets"))).thenReturn(widgetsJson);
-
-        List<WidgetInfo> result = resource.widgets(CONFIG_PATH);
-
-        assertEquals(2, result.size());
-        assertEquals("w1", result.get(0).id());
-        assertEquals("item", result.get(0).type());
-        assertTrue(result.get(0).enabled());
-        assertEquals("w2", result.get(1).id());
-        assertFalse(result.get(1).enabled());
-    }
-
     // ---- categories() ---------------------------------------------------
 
     @Test
     void categories_returnsListFromCategoryMap() {
         String json = """
                 {"category_map":{
-                  "cat1":{"name":"Shirts"},
-                  "cat2":{"name":"Pants"}
+                  "cat1":"Shirts",
+                  "cat2":"Pants"
                 }}
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
@@ -272,7 +239,7 @@ class DiscoveryPickerResourceTest {
     void categories_fallsBackToKeyWhenNameAbsent() {
         String json = """
                 {"category_map":{
-                  "cat_no_name":{}
+                  "cat_no_name":""
                 }}
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
@@ -281,7 +248,41 @@ class DiscoveryPickerResourceTest {
 
         assertEquals(1, result.size());
         assertEquals("cat_no_name", result.get(0).id());
-        assertEquals("cat_no_name", result.get(0).name());
+        assertEquals("", result.get(0).name());
+    }
+
+    // ---- widgets() ------------------------------------------------------
+
+    @Test
+    void widgets_urlUsesAccountIdAndDomainKey() {
+        when(httpGateway.apply(anyString())).thenReturn("{\"response\":{\"widgets\":[]}}");
+
+        resource.listWidgets(CONFIG_PATH);
+
+        verify(httpGateway).apply(argThat(url ->
+                url.contains("/api/v1/merchant/widgets")
+                && url.contains("account_id=acc1")
+                && url.contains("domain_key=domain1")));
+    }
+
+    @Test
+    void widgets_returnsAvailableWidgets() {
+        String json = """
+                {"response":{"widgets":[
+                  {"id":"w1","name":"Homepage Recs","type":"item","enabled":true,"description":"Homepage widget"}
+                ]}}
+                """;
+        when(httpGateway.apply(anyString())).thenReturn(json);
+
+        List<PickerWidgetDto> result = resource.listWidgets(CONFIG_PATH);
+
+        assertEquals(1, result.size());
+        PickerWidgetDto w = result.get(0);
+        assertEquals("w1", w.id());
+        assertEquals("Homepage Recs", w.name());
+        assertEquals("item", w.type());
+        assertTrue(w.enabled());
+        assertEquals("Homepage widget", w.description());
     }
 
     // ---- JSON parsing ---------------------------------------------------
@@ -295,7 +296,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        PickerSearchResponse resp = resource.search(CONFIG_PATH, "*", 0, 12);
+        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "*", 0, 12);
 
         assertNull(resp.items().get(0).price());
     }
@@ -304,7 +305,7 @@ class DiscoveryPickerResourceTest {
     void search_missingResponseNode_returnsEmptyList() {
         when(httpGateway.apply(anyString())).thenReturn("{}");
 
-        PickerSearchResponse resp = resource.search(CONFIG_PATH, "*", 0, 12);
+        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "*", 0, 12);
 
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());

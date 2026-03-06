@@ -6,7 +6,8 @@ import org.hippoecm.hst.core.parameters.JcrPath;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"document", "contextProductId", "contextProductPidProperty", "limit"},
+    @FieldGroup(value = {"document", "contextProductId", "contextProductPidProperty", "limit",
+                         "showPrice", "showDescription"},
                 titleKey = "recommendation.group")
 })
 public interface DiscoveryRecommendationComponentInfo {
@@ -32,4 +33,10 @@ public interface DiscoveryRecommendationComponentInfo {
 
     @Parameter(name = "limit", displayName = "Maximum products", defaultValue = "8")
     int getLimit();
+
+    @Parameter(name = "showPrice", displayName = "Show price", defaultValue = "true")
+    boolean isShowPrice();
+
+    @Parameter(name = "showDescription", displayName = "Show description", defaultValue = "false")
+    boolean isShowDescription();
 }

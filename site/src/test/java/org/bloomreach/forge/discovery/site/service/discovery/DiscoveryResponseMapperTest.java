@@ -2,7 +2,6 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -276,60 +275,6 @@ class DiscoveryResponseMapperTest {
 
         assertEquals(1, result.size());
         assertEquals("9790", result.get(0).id());
-    }
-
-    // ── toWidgetList ────────────────────────────────────────────────────────────
-
-    @Test
-    void toWidgetList_parsesResponse() throws Exception {
-        stubResource("""
-                {
-                  "response": {
-                    "widgets": [
-                      {"id":"w1","name":"Widget One","type":"item","enabled":true,"description":"An item widget"}
-                    ]
-                  }
-                }
-                """);
-
-        List<WidgetInfo> result = mapper.toWidgetList(resource);
-
-        assertEquals(1, result.size());
-        assertEquals("w1",           result.get(0).id());
-        assertEquals("Widget One",   result.get(0).name());
-        assertEquals("item",         result.get(0).type());
-        assertTrue(result.get(0).enabled());
-        assertEquals("An item widget", result.get(0).description());
-    }
-
-    @Test
-    void toWidgetList_ignoresUnknownFields() throws Exception {
-        stubResource("""
-                {
-                  "response": {
-                    "meta": {"length": 2},
-                    "widgets": [
-                      {"id":"w1","name":"Similar","type":"mlt","enabled":true,"description":"",
-                       "merchant_id":"6413","configs":{"results":10},"last_modified_epoch":1750195691885}
-                    ]
-                  }
-                }
-                """);
-
-        List<WidgetInfo> result = mapper.toWidgetList(resource);
-
-        assertEquals(1, result.size());
-        assertEquals("w1", result.get(0).id());
-        assertEquals("mlt", result.get(0).type());
-    }
-
-    @Test
-    void toWidgetList_nullResponse_returnsEmpty() throws Exception {
-        stubResource("{}");
-
-        List<WidgetInfo> result = mapper.toWidgetList(resource);
-
-        assertTrue(result.isEmpty());
     }
 
     // ── toAutosuggestResult ─────────────────────────────────────────────────

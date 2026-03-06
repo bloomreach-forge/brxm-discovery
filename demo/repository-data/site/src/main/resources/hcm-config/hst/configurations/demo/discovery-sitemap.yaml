@@ -18,3 +18,9 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:sitemap/product:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/product-detail-page
+    /hst:hst/hst:configurations/demo/hst:sitemap/category-highlight:
+      jcr:primaryType: hst:sitemapitem
+      hst:componentconfigurationid: hst:pages/category-highlight-page
+    /hst:hst/hst:configurations/demo/hst:sitemap/product-highlight:
+      jcr:primaryType: hst:sitemapitem
+      hst:componentconfigurationid: hst:pages/product-highlight-page

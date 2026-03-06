@@ -42,3 +42,19 @@ definitions:
         hst:label: Discovery Product Detail
         hst:template: brxdis-product-detail
         hst:xtype: hst.Item
+      /category-highlight:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryHighlightComponent
+        hst:label: Discovery Category Highlight
+        hst:template: brxdis-category-highlight
+        hst:xtype: hst.Item
+        hst:parameternames: [document1, document2, document3, document4]
+        hst:parametervalues: ['', '', '', '']
+      /product-highlight:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductHighlightComponent
+        hst:label: Discovery Product Highlight
+        hst:template: brxdis-product-highlight
+        hst:xtype: hst.Item
+        hst:parameternames: [document1, document2, document3, document4]
+        hst:parametervalues: ['', '', '', '']

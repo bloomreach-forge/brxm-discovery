@@ -11,9 +11,6 @@ import org.bloomreach.forge.discovery.site.service.discovery.dto.FacetValueDto;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.ProductDoc;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.RecommendationResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.SearchApiResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.dto.WidgetDto;
-import org.bloomreach.forge.discovery.site.service.discovery.dto.WidgetListResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.Facet;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.FacetValue;
@@ -50,14 +47,6 @@ public class DiscoveryResponseMapper {
             return List.of();
         }
         return dto.response().docs().stream().map(this::toProductSummary).toList();
-    }
-
-    public List<WidgetInfo> toWidgetList(Resource resource) {
-        WidgetListResponse dto = parse(resource, WidgetListResponse.class);
-        if (dto.response() == null || dto.response().widgets() == null) {
-            return List.of();
-        }
-        return dto.response().widgets().stream().map(this::toWidgetInfo).toList();
     }
 
     public AutosuggestResult toAutosuggestResult(Resource resource) {
@@ -109,10 +98,6 @@ public class DiscoveryResponseMapper {
         if (value != null && !value.isBlank()) {
             map.put(key, value);
         }
-    }
-
-    private WidgetInfo toWidgetInfo(WidgetDto dto) {
-        return new WidgetInfo(dto.id(), dto.name(), dto.type(), dto.enabled(), dto.description());
     }
 
     private Map<String, Facet> toFacets(FacetCounts facetCounts) {

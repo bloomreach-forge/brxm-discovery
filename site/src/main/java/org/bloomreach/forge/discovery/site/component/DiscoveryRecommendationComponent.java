@@ -36,6 +36,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         // Resolve the recommendation document (component param wins, then URL-path content bean)
         DiscoveryRecommendationBean document = getHippoBeanForPath(request, documentPath, DiscoveryRecommendationBean.class);
         request.setAttribute("document", document);
+        request.setAttribute("showPrice", info.isShowPrice());
+        request.setAttribute("showDescription", info.isShowDescription());
 
         // Widget ID: document field → URL request param
         String widgetId = document != null && document.getWidgetId() != null && !document.getWidgetId().isBlank()

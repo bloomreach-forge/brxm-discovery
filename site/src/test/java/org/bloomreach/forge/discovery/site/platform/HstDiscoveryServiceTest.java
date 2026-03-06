@@ -5,10 +5,7 @@ import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryCon
 import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetService;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
-import java.util.Optional;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
@@ -39,7 +36,6 @@ import static org.mockito.Mockito.*;
 class HstDiscoveryServiceTest {
 
     @Mock DiscoveryClient client;
-    @Mock DiscoveryWidgetService widgetService;
     @Mock DiscoveryConfigProvider configProvider;
     @Mock DiscoveryPixelService pixelService;
     @Mock HstRequest request;
@@ -57,7 +53,7 @@ class HstDiscoveryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HstDiscoveryService(client, widgetService, configProvider, pixelService, null);
+        service = new HstDiscoveryService(client, configProvider, pixelService, null);
 
         validConfig = new DiscoveryConfig(
                 "acct", "domain", "key", null,
@@ -173,12 +169,10 @@ class HstDiscoveryServiceTest {
     // ── recommend ──────────────────────────────────────────────────────────────
 
     @Test
-    void recommend_withWidgetId_looksUpTypeFromWidgetService() {
-        WidgetInfo widget = new WidgetInfo("w-123", "My Widget", "keyword", true, null);
-        when(widgetService.findWidget("w-123", validConfig)).thenReturn(Optional.of(widget));
+    void recommend_withWidgetIdAndType_passesBothToClient() {
         when(client.recommend(any(RecQuery.class), eq(validConfig))).thenReturn(List.of());
 
-        service.recommend(request, "w-123", null, null, null, 8, null, null);
+        service.recommend(request, "w-123", "keyword", null, null, 8, null, null);
 
         ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
         verify(client).recommend(captor.capture(), any());
@@ -187,65 +181,19 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
-    void recommend_nullWidgetId_withType_resolvesFromWidgetService() {
-        WidgetInfo widget = new WidgetInfo("resolved-id", "My Widget", "keyword", true, null);
-        when(widgetService.findByType("keyword", validConfig)).thenReturn(List.of(widget));
+    void recommend_nullWidgetId_usesEmptyString() {
         when(client.recommend(any(RecQuery.class), eq(validConfig))).thenReturn(List.of());
 
         service.recommend(request, null, "keyword", null, null, 8, null, null);
 
         ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
         verify(client).recommend(captor.capture(), any());
-        assertEquals("resolved-id", captor.getValue().widgetId());
-    }
-
-    @Test
-    void recommend_widgetResolution_prefersEnabledWidget() {
-        WidgetInfo disabled = new WidgetInfo("w1", "Disabled", "keyword", false, null);
-        WidgetInfo enabled = new WidgetInfo("w2", "Enabled", "keyword", true, null);
-        when(widgetService.findByType("keyword", validConfig)).thenReturn(List.of(disabled, enabled));
-        when(client.recommend(any(RecQuery.class), any())).thenReturn(List.of());
-
-        service.recommend(request, null, "keyword", null, null, 8, null, null);
-
-        ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
-        verify(client).recommend(captor.capture(), any());
-        assertEquals("w2", captor.getValue().widgetId());
-    }
-
-    @Test
-    void recommend_widgetResolution_fallsBackToFirstIfNoneEnabled() {
-        WidgetInfo w1 = new WidgetInfo("w1", "First", "keyword", false, null);
-        WidgetInfo w2 = new WidgetInfo("w2", "Second", "keyword", false, null);
-        when(widgetService.findByType("keyword", validConfig)).thenReturn(List.of(w1, w2));
-        when(client.recommend(any(RecQuery.class), any())).thenReturn(List.of());
-
-        service.recommend(request, null, "keyword", null, null, 8, null, null);
-
-        ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
-        verify(client).recommend(captor.capture(), any());
-        assertEquals("w1", captor.getValue().widgetId());
-    }
-
-    @Test
-    void recommend_widgetServiceThrows_proceedsWithNullWidgetId() {
-        when(widgetService.findByType(any(), any())).thenThrow(new RuntimeException("service down"));
-        when(client.recommend(any(RecQuery.class), any())).thenReturn(List.of());
-
-        assertDoesNotThrow(() -> service.recommend(request, null, "keyword", null, null, 8, null, null));
-
-        ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
-        verify(client).recommend(captor.capture(), any());
-        // widgetId falls back to empty string when resolution fails
         assertEquals("", captor.getValue().widgetId());
     }
 
     @Test
     void recommend_itemWidget_withoutContextPid_returnsEmpty() {
-        WidgetInfo widget = new WidgetInfo("w-item", "Item Widget", "item", true, null);
-        when(widgetService.findWidget("w-item", validConfig)).thenReturn(Optional.of(widget));
-
-        List<ProductSummary> result = service.recommend(request, "w-item", null, null, null, 8, null, null);
+        List<ProductSummary> result = service.recommend(request, "w-item", "item", null, null, 8, null, null);
 
         assertTrue(result.isEmpty());
         verify(client, never()).recommend(any(), any());
@@ -311,7 +259,7 @@ class HstDiscoveryServiceTest {
     @Test
     void search_nullPixelService_doesNotThrow() {
         HstDiscoveryService noPixel = new HstDiscoveryService(
-                client, widgetService, configProvider, null, null);
+                client, configProvider, null, null);
         when(client.search(any(SearchQuery.class), eq(validConfig))).thenReturn(searchResult);
 
         assertDoesNotThrow(() -> noPixel.search(request));
@@ -321,7 +269,7 @@ class HstDiscoveryServiceTest {
     void search_appliesEnrichmentOnCacheMiss() {
         SoREnrichmentProvider enricher = mock(SoREnrichmentProvider.class);
         HstDiscoveryService enrichedService = new HstDiscoveryService(
-                client, widgetService, configProvider, pixelService, enricher);
+                client, configProvider, pixelService, enricher);
         List<ProductSummary> enrichedProducts = List.of(
                 new ProductSummary("e1", "Enriched", null, null, null, null, null));
         when(client.search(any(SearchQuery.class), eq(validConfig))).thenReturn(searchResult);

@@ -26,9 +26,9 @@
 </@hst.headContribution>
 
 <#if document??>
-  <@hst.manageContent hippobean=document parameterName="document" rootPath="test" defaultPath="test"/>
+  <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/widgets" defaultPath="brxdis/widgets"/>
 <#else>
-  <@hst.manageContent parameterName="document" rootPath="test" defaultPath="test"/>
+  <@hst.manageContent parameterName="document" rootPath="brxdis/widgets" defaultPath="brxdis/widgets"/>
 </#if>
 
 <section class="brxdis-recs">
@@ -60,7 +60,10 @@
             <h3 class="brxdis-recs__name">
               <a href="${product.url()!""}">${product.title()!"Untitled"}</a>
             </h3>
-            <#if product.price()??>
+            <#if (showDescription!false) && product.attributes()?? && product.attributes()["description"]??>
+              <p class="brxdis-recs__desc" style="font-size:.8rem;color:#6b7280;margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${product.attributes()["description"]}</p>
+            </#if>
+            <#if (showPrice!true) && product.price()??>
               <p class="brxdis-recs__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
             </#if>
           </div>

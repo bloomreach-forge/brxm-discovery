@@ -4,7 +4,6 @@ import org.bloomreach.forge.discovery.site.exception.RecommendationException;
 import org.bloomreach.forge.discovery.site.exception.SearchException;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
@@ -183,39 +182,6 @@ class DiscoveryClientTest {
                 .thenThrow(new ResourceException("CRISP failure"));
 
         assertThrows(RecommendationException.class, () -> client.recommend(query, v2Config));
-    }
-
-    // --- listWidgets ---
-
-    @Test
-    void listWidgets_usesSearchResourceSpaceAndMerchantPath() throws ResourceException {
-        var expected = List.of(new WidgetInfo("w1", "Widget 1", "item", true, null));
-        when(broker.resolve(eq("discoverySearchAPI"), contains("merchant/widgets"), nullable(ExchangeHint.class)))
-                .thenReturn(resource);
-        when(responseMapper.toWidgetList(resource)).thenReturn(expected);
-
-        List<WidgetInfo> result = client.listWidgets(config);
-
-        assertEquals(expected, result);
-    }
-
-    @Test
-    void listWidgets_pathIncludesAccountId() throws ResourceException {
-        when(broker.resolve(anyString(), contains("account_id=acct123"), nullable(ExchangeHint.class)))
-                .thenReturn(resource);
-        when(responseMapper.toWidgetList(resource)).thenReturn(List.of());
-
-        client.listWidgets(config);
-
-        verify(broker).resolve(anyString(), contains("account_id=acct123"), nullable(ExchangeHint.class));
-    }
-
-    @Test
-    void listWidgets_resourceException_wrapsInSearchException() throws ResourceException {
-        when(broker.resolve(anyString(), anyString(), nullable(ExchangeHint.class)))
-                .thenThrow(new ResourceException("CRISP failure"));
-
-        assertThrows(SearchException.class, () -> client.listWidgets(config));
     }
 
     // --- pixel path builders ---

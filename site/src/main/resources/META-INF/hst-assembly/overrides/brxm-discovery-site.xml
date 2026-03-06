@@ -39,12 +39,6 @@
         <constructor-arg ref="brxmdis.configReader"/>
     </bean>
 
-    <bean id="org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetService"
-          class="org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetServiceImpl"
-          lazy-init="true">
-        <constructor-arg ref="brxmdis.discoveryClient"/>
-    </bean>
-
     <!-- Config cache: lazy JCR reads, JVM-lifetime entries, JCR-driven invalidation -->
     <bean id="brxmdis.configProvider"
           class="org.bloomreach.forge.discovery.site.service.discovery.config.CachingDiscoveryConfigProvider">
@@ -64,7 +58,6 @@
           class="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
           lazy-init="true">
         <constructor-arg ref="brxmdis.discoveryClient"/>
-        <constructor-arg ref="org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetService"/>
         <constructor-arg ref="brxmdis.configProvider"/>
         <constructor-arg ref="brxmdis.pixelService"/>
         <constructor-arg><null/></constructor-arg><!-- SoREnrichmentProvider: integrator overrides -->

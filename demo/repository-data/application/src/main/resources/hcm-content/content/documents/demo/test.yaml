@@ -31,11 +31,12 @@
       brxdis:displayName: PDP Similar Items
       brxdis:widgetId: 4le608d9
       hippo:availability: [preview]
+      hippostd:retainable: false
       hippostd:state: unpublished
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
-      hippostdpubwf:lastModifiedBy: ''
+      hippostdpubwf:lastModificationDate: 2026-03-06T13:30:51.770Z
+      hippostdpubwf:lastModifiedBy: admin
     /fee[3]:
       jcr:primaryType: brxdis:recommendationDocument
       jcr:mixinTypes: ['mix:referenceable']
@@ -48,25 +49,58 @@
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-05T21:05:42.182Z
+      hippostdpubwf:lastModificationDate: 2026-03-06T18:06:52.421Z
       hippostdpubwf:lastModifiedBy: admin
   /cat:
     jcr:primaryType: hippo:handle
-    jcr:mixinTypes: ['mix:referenceable']
+    jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
     jcr:uuid: b09ad4f7-b4fc-4ca8-b529-25429ae6b898
-    /cat:
+    hippo:versionHistory: 96b86417-0125-4aea-8a33-318c2bb6b9b1
+    /cat[1]:
       jcr:primaryType: brxdis:categoryDocument
       jcr:mixinTypes: ['mix:referenceable']
       jcr:uuid: 0554678c-b85c-4541-a87b-cf2cf25b8813
-      brxdis:categoryId: '116791'
+      brxdis:categoryId: '117016'
       brxdis:displayName: Demo Category
       hippo:availability: []
-      hippostd:holder: holder
+      hippostd:holder: admin
+      hippostd:retainable: false
       hippostd:state: draft
+      hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
-      hippostdpubwf:lastModifiedBy: ''
+      hippostdpubwf:lastModificationDate: 2026-03-06T17:48:45.848Z
+      hippostdpubwf:lastModifiedBy: admin
+    /cat[2]:
+      jcr:primaryType: brxdis:categoryDocument
+      jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
+      jcr:uuid: 8b853816-0d17-4506-91ea-7b5bf0b2f5c0
+      brxdis:categoryId: '116791'
+      brxdis:displayName: Demo Category
+      hippo:availability: [preview]
+      hippostd:retainable: false
+      hippostd:state: unpublished
+      hippostd:transferable: false
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2026-03-06T11:45:37.101Z
+      hippostdpubwf:lastModifiedBy: admin
+    /cat[3]:
+      jcr:primaryType: brxdis:categoryDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: a9a1543b-3625-4087-9ecb-5e26aa53fc87
+      brxdis:categoryId: '116791'
+      brxdis:displayName: Demo Category
+      hippo:availability: [live]
+      hippostd:retainable: false
+      hippostd:state: published
+      hippostd:transferable: false
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2026-03-06T11:45:37.101Z
+      hippostdpubwf:lastModifiedBy: admin
+      hippostdpubwf:publicationDate: 2026-03-06T11:45:40.395Z
+      hippostdpubwf:publishedBy: admin
   /product:
     jcr:primaryType: hippo:handle
     jcr:mixinTypes: ['hippo:named', 'hippo:versionInfo', 'mix:referenceable']
@@ -80,12 +114,13 @@
       brxdis:displayName: Wine
       brxdis:productId: '21557'
       hippo:availability: []
+      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-05T21:13:13.597Z
+      hippostdpubwf:lastModificationDate: 2026-03-06T17:57:18.731Z
       hippostdpubwf:lastModifiedBy: admin
     /product[2]:
       jcr:primaryType: brxdis:productDetailDocument

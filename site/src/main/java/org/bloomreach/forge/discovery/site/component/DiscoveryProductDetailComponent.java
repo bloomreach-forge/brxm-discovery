@@ -27,6 +27,8 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         DiscoveryProductDetailComponentInfo info = getComponentParametersInfo(request);
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
                 DiscoveryProductDetailBean.class);
+        request.setAttribute("document", document);
+        request.setModel("document", document);
 
         String pid = getPublicRequestParameter(request, info.getProductUrlParam());
 

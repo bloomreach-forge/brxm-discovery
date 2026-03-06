@@ -129,6 +129,8 @@ class DiscoveryRecommendationComponentTest {
                 @Override public String getContextProductId() { return ""; }
                 @Override public String getContextProductPidProperty() { return ""; }
                 @Override public int getLimit() { return componentLimit; }
+                @Override public boolean isShowPrice() { return true; }
+                @Override public boolean isShowDescription() { return false; }
             };
         }
 

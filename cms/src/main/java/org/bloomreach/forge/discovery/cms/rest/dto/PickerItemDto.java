@@ -1,4 +1,4 @@
-package org.bloomreach.forge.discovery.cms.rest;
+package org.bloomreach.forge.discovery.cms.rest.dto;
 
 public record PickerItemDto(
         String id,

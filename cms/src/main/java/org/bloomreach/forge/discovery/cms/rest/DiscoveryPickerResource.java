@@ -13,14 +13,19 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerCategoryDto;
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerItemDto;
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
+import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
 import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.Arrays;
@@ -41,7 +46,7 @@ import java.util.function.Function;
  *   <li>{@code GET /search}     — full-text product search</li>
  *   <li>{@code GET /items}      — look up specific products by PID</li>
  *   <li>{@code GET /categories} — list browsable categories</li>
- *   <li>{@code GET /widgets}    — list available Discovery widgets</li>
+ *   <li>{@code GET /widgets}    — list available recommendation widgets</li>
  * </ul>
  *
  * <p>All endpoints require a {@code configPath} query param pointing to a
@@ -77,7 +82,7 @@ public class DiscoveryPickerResource {
 
     @GET
     @Path("/search")
-    public PickerSearchResponse search(
+    public PickerSearchResponseDto search(
             @QueryParam("configPath") String configPath,
             @QueryParam("q") @DefaultValue("*") String q,
             @QueryParam("page") @DefaultValue("0") int page,
@@ -100,12 +105,12 @@ public class DiscoveryPickerResource {
      */
     @GET
     @Path("/items")
-    public PickerSearchResponse items(
+    public PickerSearchResponseDto items(
             @QueryParam("configPath") String configPath,
             @QueryParam("ids") String ids) {
 
         if (ids == null || ids.isBlank()) {
-            return new PickerSearchResponse(List.of(), 0L, 0, 0);
+            return new PickerSearchResponseDto(List.of(), 0L, 0, 0);
         }
         List<String> pidList = Arrays.stream(ids.split(","))
                 .map(String::trim)
@@ -113,7 +118,7 @@ public class DiscoveryPickerResource {
                 .limit(MAX_PAGE_SIZE)
                 .toList();
         if (pidList.isEmpty()) {
-            return new PickerSearchResponse(List.of(), 0L, 0, 0);
+            return new PickerSearchResponseDto(List.of(), 0L, 0, 0);
         }
 
         DiscoveryConfig config = resolveConfig(configPath);
@@ -134,28 +139,22 @@ public class DiscoveryPickerResource {
      * @param configPath JCR path to the {@code brxdis:discoveryConfig} node
      */
     @GET
+    @Path("/widgets")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<PickerWidgetDto> listWidgets(@QueryParam("configPath") String configPath) {
+        DiscoveryConfig config = resolveConfig(configPath);
+        String url = buildWidgetsUrl(config);
+        String json = httpGateway.apply(url);
+        return parseWidgetsResponse(json);
+    }
+
+    @GET
     @Path("/categories")
     public List<PickerCategoryDto> categories(@QueryParam("configPath") String configPath) {
         DiscoveryConfig config = resolveConfig(configPath);
         String url = buildCategoryUrl(config, requestUrl(), brUid2());
         String json = httpGateway.apply(url);
         return parseCategoryMapResponse(json);
-    }
-
-    /**
-     * Returns available Discovery widgets for the given account.
-     * Matches {@code DiscoveryClientImpl.listWidgets()} — only {@code account_id} is sent.
-     */
-    @GET
-    @Path("/widgets")
-    public List<WidgetInfo> widgets(@QueryParam("configPath") String configPath) {
-        DiscoveryConfig config = resolveConfig(configPath);
-        String url = UriBuilder.fromUri(config.baseUri())
-                .path(WIDGETS_PATH)
-                .queryParam("account_id", config.accountId())
-                .build().toString();
-        String json = httpGateway.apply(url);
-        return parseWidgetsResponse(json);
     }
 
     private static String buildSearchUrl(SearchQuery query, DiscoveryConfig config,
@@ -256,7 +255,7 @@ public class DiscoveryPickerResource {
         }
     }
 
-    private static PickerSearchResponse parseSearchResponse(String json, int page, int pageSize) {
+    private static PickerSearchResponseDto parseSearchResponse(String json, int page, int pageSize) {
         try {
             JsonNode root = MAPPER.readTree(json);
             JsonNode response = root.path("response");
@@ -273,9 +272,39 @@ public class DiscoveryPickerResource {
                         doc.path("url").asText(null),
                         price));
             }
-            return new PickerSearchResponse(items, total, page, pageSize);
+            return new PickerSearchResponseDto(items, total, page, pageSize);
         } catch (IOException e) {
             throw new InternalServerErrorException("Failed to parse Discovery API response", e);
+        }
+    }
+
+    private String buildWidgetsUrl(DiscoveryConfig config) {
+        StringBuilder sb = new StringBuilder(config.baseUri())
+                .append(WIDGETS_PATH)
+                .append("?account_id=").append(encode(config.accountId()))
+                .append("&domain_key=").append(encode(config.domainKey()));
+        if (config.authKey() != null && !config.authKey().isBlank()) {
+            sb.append("&auth_key=").append(encode(config.authKey()));
+        }
+        return sb.toString();
+    }
+
+    private static List<PickerWidgetDto> parseWidgetsResponse(String json) {
+        try {
+            JsonNode root = MAPPER.readTree(json);
+            JsonNode widgets = root.path("response").path("widgets");
+            List<PickerWidgetDto> result = new ArrayList<>();
+            for (JsonNode w : widgets) {
+                result.add(new PickerWidgetDto(
+                        w.path("id").asText(null),
+                        w.path("name").asText(null),
+                        w.path("type").asText(null),
+                        w.path("enabled").asBoolean(false),
+                        w.path("description").asText(null)));
+            }
+            return result;
+        } catch (IOException e) {
+            return List.of();
         }
     }
 
@@ -286,7 +315,7 @@ public class DiscoveryPickerResource {
             List<PickerCategoryDto> result = new ArrayList<>();
             categoryMap.fields().forEachRemaining(entry -> {
                 String id   = entry.getKey();
-                String name = entry.getValue().path("name").asText(id);
+                String name = entry.getValue().asText(id);
                 result.add(new PickerCategoryDto(id, name));
             });
             return result;
@@ -295,24 +324,8 @@ public class DiscoveryPickerResource {
         }
     }
 
-    private static List<WidgetInfo> parseWidgetsResponse(String json) {
-        try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode widgets = root.path("response").path("widgets");
-            List<WidgetInfo> result = new ArrayList<>();
-            for (JsonNode w : widgets) {
-                result.add(new WidgetInfo(
-                        w.path("id").asText(null),
-                        w.path("name").asText(null),
-                        w.path("type").asText(null),
-                        w.path("enabled").asBoolean(false),
-                        w.path("description").asText(null)
-                ));
-            }
-            return result;
-        } catch (IOException e) {
-            throw new InternalServerErrorException("Failed to parse widgets response", e);
-        }
+    private static String encode(String value) {
+        return value == null ? "" : URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private record CachedConfig(DiscoveryConfig config, long timestamp) {

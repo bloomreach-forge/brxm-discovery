@@ -6,108 +6,27 @@
   <title>Select Widget</title>
   <link rel="stylesheet" href="picker-dialog.css"/>
   <style>
-    /* ---- Toolbar ------------------------------------------------------ */
-    #toolbar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      border-bottom: 1px solid #e8e8e8;
-      background: #fafafa;
-      flex-shrink: 0;
-    }
-
-    #filter-input {
-      flex: 1;
-      padding: 6px 10px;
-      border: 1px solid #d0d0d0;
-      border-radius: 4px;
-      font-size: 13px;
-      color: #333;
-    }
-    #filter-input:focus {
-      outline: none;
-      border-color: #0070d9;
-      box-shadow: 0 0 0 2px rgba(0, 112, 217, 0.15);
-    }
-
-    #result-count {
-      font-size: 11px;
-      color: #999;
-      white-space: nowrap;
-    }
-
-    /* ---- Table scroll area -------------------------------------------- */
-    #table-scroll {
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    #widget-table { width: 100%; border-collapse: collapse; }
-    #widget-table th {
-      text-align: left;
-      padding: 8px 14px;
-      font-size: 10px;
-      font-weight: 700;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: #f5f5f5;
-      border-bottom: 1px solid #e8e8e8;
-      position: sticky;
-      top: 0;
-    }
-    #widget-table td {
-      padding: 10px 14px;
-      font-size: 12px;
-      border-bottom: 1px solid #f2f2f2;
-      vertical-align: middle;
-    }
-    .widget-row { cursor: pointer; }
-    .widget-row:hover { background: #f0f7ff; }
-    .widget-row.selected { background: #ddeeff; }
-
-    .td-name { font-weight: 500; color: #111; }
-    .td-type { color: #777; font-size: 11px; }
-    .td-id   {
-      font-family: ui-monospace, "SF Mono", Menlo, monospace;
-      font-size: 11px;
-      color: #555;
-    }
-    .td-desc {
-      max-width: 220px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #888;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 3px;
-      font-size: 10px;
-      font-weight: 600;
-    }
-    .badge-enabled  { background: #e6f4ea; color: #1b6e2a; }
-    .badge-disabled { background: #fce8ea; color: #b92333; }
+    /* Force the dialog iframe to expand to a usable size.
+       Inline styles are measured synchronously; external CSS may arrive
+       after the CMS snapshots the iframe dimensions for auto-sizing. */
+    html, body { width: 100%; height: 100%; min-width: 700px; min-height: 460px; }
   </style>
 </head>
 <body>
 
-<div id="toolbar">
-  <input id="filter-input" type="search" placeholder="Filter by name, type or ID&hellip;" autocomplete="off"/>
-  <span id="result-count"></span>
+<div id="toolbar" class="toolbar">
+  <input id="filter-input" class="search-input" type="search" placeholder="Filter by name, type or ID&hellip;" autocomplete="off"/>
+  <span id="result-count" class="result-count"></span>
 </div>
 
-<div id="table-scroll">
-  <table id="widget-table">
+<div id="table-scroll" class="table-scroll">
+  <table id="widget-table" class="picker-table">
     <thead>
       <tr>
         <th>Name</th>
         <th>Type</th>
         <th>ID</th>
-        <th>Enabled</th>
+        <th>Status</th>
         <th>Description</th>
       </tr>
     </thead>
@@ -120,6 +39,9 @@
 <script src="ui-extension.min.js"></script>
 <script src="picker-utils.js"></script>
 <script>
+  stretchDialogIframe();
+  syncBodyToViewport();
+
   (function () {
     "use strict";
 
@@ -128,10 +50,10 @@
     var currentValue = "";
     var widgetsAll   = [];
 
-    var filterInput  = document.getElementById("filter-input");
-    var resultCount  = document.getElementById("result-count");
-    var widgetBody   = document.getElementById("widget-body");
-    var footer       = document.getElementById("footer");
+    var filterInput = document.getElementById("filter-input");
+    var resultCount = document.getElementById("result-count");
+    var widgetBody  = document.getElementById("widget-body");
+    var footer      = document.getElementById("footer");
 
     /* ---- Bootstrap ---------------------------------------------------- */
     UiExtension.register().then(function (registeredUi) {
@@ -199,41 +121,48 @@
     function renderTable(widgets) {
       widgetBody.replaceChildren();
       if (!widgets.length) {
-        widgetBody.innerHTML =
-          '<tr class="empty-row"><td colspan="5">No widgets found.</td></tr>';
+        var tr = document.createElement("tr");
+        var td = document.createElement("td");
+        td.colSpan     = 5;
+        td.className   = "empty-cell";
+        td.textContent = "No widgets found.";
+        tr.appendChild(td);
+        widgetBody.appendChild(tr);
         return;
       }
       widgets.forEach(function (w) {
         var tr = document.createElement("tr");
-        tr.className = "widget-row" + (w.id === currentValue ? " selected" : "");
+        tr.className = "picker-row" + (w.id === currentValue ? " selected" : "");
 
         var tdName = document.createElement("td");
-        tdName.className = "td-name";
+        tdName.className   = "td-name";
         tdName.textContent = w.name || "";
 
         var tdType = document.createElement("td");
-        tdType.className = "td-type";
-        tdType.textContent = w.type || "";
+        var pill = document.createElement("span");
+        pill.className   = "type-pill " + typePillClass(w.type);
+        pill.textContent = w.type || "\u2014";
+        tdType.appendChild(pill);
 
         var tdId = document.createElement("td");
-        tdId.className = "td-id";
+        tdId.className   = "td-id";
         tdId.textContent = w.id || "";
 
-        var tdBadge = document.createElement("td");
+        var tdStatus = document.createElement("td");
         var badge = document.createElement("span");
-        badge.className = w.enabled ? "badge badge-enabled" : "badge badge-disabled";
-        badge.textContent = w.enabled ? "Yes" : "No";
-        tdBadge.appendChild(badge);
+        badge.className   = "badge " + (w.enabled ? "badge-enabled" : "badge-disabled");
+        badge.textContent = w.enabled ? "Enabled" : "Disabled";
+        tdStatus.appendChild(badge);
 
         var tdDesc = document.createElement("td");
-        tdDesc.className = "td-desc";
-        tdDesc.title = w.description || "";
+        tdDesc.className   = "td-desc";
+        tdDesc.title       = w.description || "";
         tdDesc.textContent = w.description || "";
 
         tr.appendChild(tdName);
         tr.appendChild(tdType);
         tr.appendChild(tdId);
-        tr.appendChild(tdBadge);
+        tr.appendChild(tdStatus);
         tr.appendChild(tdDesc);
 
         tr.addEventListener("click", function () {
@@ -242,6 +171,17 @@
 
         widgetBody.appendChild(tr);
       });
+    }
+
+    function typePillClass(type) {
+      var map = {
+        item:     "type-item",
+        category: "type-category",
+        keyword:  "type-keyword",
+        recs:     "type-recs",
+        mlt:      "type-mlt"
+      };
+      return map[(type || "").toLowerCase()] || "type-default";
     }
   }());
 </script>

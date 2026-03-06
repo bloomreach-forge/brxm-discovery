@@ -8,7 +8,8 @@ definitions:
         jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
         /hipposysedit:nodetype:
           jcr:primaryType: hippo:handle
-          jcr:mixinTypes: ['mix:referenceable']
+          jcr:mixinTypes: ['hippo:named', 'mix:referenceable']
+          hippo:name: Discovery Category Document
           /hipposysedit:nodetype:
             jcr:primaryType: hipposysedit:nodetype
             jcr:mixinTypes: ['hipposysedit:remodel']
@@ -76,7 +77,8 @@ definitions:
         jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
         /hipposysedit:nodetype:
           jcr:primaryType: hippo:handle
-          jcr:mixinTypes: ['mix:referenceable']
+          jcr:mixinTypes: ['hippo:named', 'mix:referenceable']
+          hippo:name: Discovery Product Detail Document
           /hipposysedit:nodetype:
             jcr:primaryType: hipposysedit:nodetype
             jcr:mixinTypes: ['hipposysedit:remodel']
@@ -144,7 +146,8 @@ definitions:
         jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
         /hipposysedit:nodetype:
           jcr:primaryType: hippo:handle
-          jcr:mixinTypes: ['mix:referenceable']
+          jcr:mixinTypes: ['hippo:named', 'mix:referenceable']
+          hippo:name: Discovery Recommendation Document
           /hipposysedit:nodetype:
             jcr:primaryType: hipposysedit:nodetype
             jcr:mixinTypes: ['hipposysedit:remodel']

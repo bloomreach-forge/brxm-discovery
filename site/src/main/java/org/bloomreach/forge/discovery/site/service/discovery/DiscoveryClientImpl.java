@@ -4,7 +4,6 @@ import org.bloomreach.forge.discovery.site.exception.RecommendationException;
 import org.bloomreach.forge.discovery.site.exception.SearchException;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.WidgetInfo;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
@@ -22,8 +21,6 @@ import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,7 +43,6 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     private static final String SEARCH_PATH = "/api/v1/core/";
     private static final String CATEGORY_PATH = "/api/v1/core/";
     private static final String RECS_PATH = "/api/v2/widgets";
-    private static final String WIDGETS_PATH = "/api/v1/merchant/widgets";
     private static final String PIXEL_PATH = "/api/v1/pixel/";
     private static final String DEFAULT_FIELDS = "pid,title,brand,price,sale_price,thumb_image,url,description";
     private static final int PIXEL_MAX_SKUS = 20;
@@ -153,19 +149,6 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         } catch (ResourceException e) {
             log.warn("Discovery fetchProduct failed for pid '{}': {}", pid, e.getMessage());
             throw new SearchException("fetchProduct request failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public List<WidgetInfo> listWidgets(DiscoveryConfig config) {
-        String path = WIDGETS_PATH + "?account_id=" + URLEncoder.encode(config.accountId(), StandardCharsets.UTF_8);
-        log.debug("Fetching widgets: {}", path);
-        try {
-            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, getHint());
-            return responseMapper.toWidgetList(resource);
-        } catch (ResourceException e) {
-            log.error("Failed to fetch widgets: {}", e.getMessage());
-            throw new SearchException("Widget listing failed: " + e.getMessage(), e);
         }
     }
 

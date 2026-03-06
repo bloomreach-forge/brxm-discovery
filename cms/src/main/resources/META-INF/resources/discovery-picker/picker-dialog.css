@@ -1,45 +1,275 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Discovery Picker — Shared Dialog Design System
+   Used by: product-picker-dialog, category-picker-dialog, widget-picker-dialog
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Design Tokens ────────────────────────────────────────────────────────── */
+:root {
+  --accent:        #1558d6;
+  --accent-dark:   #1049b8;
+  --accent-subtle: #edf2ff;
+  --accent-ring:   rgba(21, 88, 214, 0.18);
+
+  --bg:            #f5f7fb;
+  --surface:       #ffffff;
+  --surface-lift:  #f8fafc;
+
+  --border:        #dde3ed;
+  --border-soft:   #eef1f7;
+
+  --text:          #1a1f2e;
+  --text-muted:    #64748b;
+  --text-faint:    #9eaabb;
+
+  --row-hover:     #f4f7fe;
+  --row-selected:  #e8f0fe;
+
+  --error:         #dc2626;
+
+  --radius-sm:     4px;
+  --radius:        6px;
+
+  --font:          'Outfit', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:     'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+html { height: 100%; background: var(--bg); }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font);
   font-size: 13px;
-  color: #333;
+  color: var(--text);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
-#footer {
+/* ── Toolbar (top search/filter bar) ─────────────────────────────────────── */
+.toolbar {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 16px;
-  border-top: 1px solid #e8e8e8;
-  background: #fafafa;
-  font-size: 11px;
-  color: #999;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  min-height: 36px;
 }
-#footer.error { color: #c0392b; }
 
+/* ── Search / Filter Input ────────────────────────────────────────────────── */
+.search-input {
+  flex: 1;
+  padding: 7px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.search-input::placeholder { color: var(--text-faint); }
+.search-input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* ── Result Count Label ───────────────────────────────────────────────────── */
+.result-count {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn:hover:not(:disabled) { background: var(--row-hover); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+/* ── Table Scroll Wrapper ─────────────────────────────────────────────────── */
+.table-scroll {
+  overflow-y: auto;
+  flex: 1;
+  background: var(--surface);
+}
+
+/* ── Shared Table (category + widget pickers) ─────────────────────────────── */
+.picker-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.picker-table thead th {
+  text-align: left;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.65px;
+  background: var(--surface-lift);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.picker-table tbody td {
+  padding: 9px 16px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+
+.picker-row { cursor: pointer; transition: background 0.08s; }
+.picker-row:hover    { background: var(--row-hover); }
+.picker-row.selected {
+  background: var(--row-selected);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* ── Table Cell Variants ──────────────────────────────────────────────────── */
+.td-name  { font-weight: 500; color: var(--text); }
+.td-id    { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.td-muted { color: var(--text-muted); font-size: 12px; }
+.td-desc  {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-faint);
+  font-size: 11.5px;
+}
+
+/* ── Status Badges ────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.badge-enabled  { background: #dcfce7; color: #15803d; }
+.badge-disabled { background: #fee2e2; color: #b91c1c; }
+
+/* ── Widget Type Pills ────────────────────────────────────────────────────── */
+.type-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.type-item     { background: #dbeafe; color: #1d4ed8; }
+.type-category { background: #ffedd5; color: #c2410c; }
+.type-keyword  { background: #f3e8ff; color: #7c3aed; }
+.type-recs     { background: #dcfce7; color: #15803d; }
+.type-mlt      { background: #cffafe; color: #0e7490; }
+.type-default  { background: #f1f5f9; color: #475569; }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+/*
+ * Category + widget pickers call setStatusEl() directly on #footer, which
+ * sets className to "error" or "". The #footer ID rule ensures base layout
+ * styles survive those class resets; #footer.error adds the error colour.
+ */
+.footer, #footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 38px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+#footer.error { color: var(--error); }
+
+/* ── Spinner ──────────────────────────────────────────────────────────────── */
 .spinner {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 2px solid #ddd;
-  border-top-color: #0070d9;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.65s linear infinite;
   flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty-row td {
-  color: #bbb;
-  padding: 28px 14px;
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.page-btn {
+  padding: 3px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text);
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.page-btn:hover:not(:disabled) {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.page-btn:disabled { opacity: 0.35; cursor: default; }
+.page-info { font-size: 11.5px; color: var(--text-muted); }
+
+/* ── Empty States ─────────────────────────────────────────────────────────── */
+.empty-cell {
+  padding: 32px 16px !important;
   text-align: center;
+  color: var(--text-faint);
   font-style: italic;
+  font-size: 12px;
+}
+.empty-grid {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-style: italic;
+  font-size: 12px;
+  grid-column: 1 / -1;
 }

@@ -20,6 +20,12 @@
 </style>
 </@hst.headContribution>
 
+<#if document??>
+  <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/products" defaultPath="brxdis/products"/>
+<#else>
+  <@hst.manageContent parameterName="document" rootPath="brxdis/products" defaultPath="brxdis/products"/>
+</#if>
+
 <div class="brxdis-pdp">
   <#if product??>
     <#-- Product hero section -->
