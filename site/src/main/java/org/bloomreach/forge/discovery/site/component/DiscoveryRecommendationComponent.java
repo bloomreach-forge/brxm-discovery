@@ -1,0 +1,101 @@
+package org.bloomreach.forge.discovery.site.component;
+
+import org.bloomreach.forge.discovery.site.beans.DiscoveryRecommendationBean;
+import org.bloomreach.forge.discovery.site.component.info.DiscoveryRecommendationComponentInfo;
+import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.hippoecm.hst.content.beans.standard.HippoBean;
+import org.hippoecm.hst.core.component.HstComponentException;
+import org.hippoecm.hst.core.component.HstRequest;
+import org.hippoecm.hst.core.component.HstResponse;
+import org.hippoecm.hst.core.parameters.ParametersInfo;
+import org.hippoecm.hst.core.request.HstRequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+
+@ParametersInfo(type = DiscoveryRecommendationComponentInfo.class)
+public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent {
+
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryRecommendationComponent.class);
+    static final String WIDGET_ID_PARAM = "widgetId";
+    static final String CONTEXT_PRODUCT_PARAM = "contextProductId";
+    static final String CONTEXT_PAGE_TYPE_PARAM = "contextPageType";
+    static final String LIMIT_PARAM = "limit";
+    static final String FIELDS_PARAM = "fields";
+    static final String FILTER_PARAM = "filter";
+
+    @Override
+    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
+        super.doBeforeRender(request, response);
+        DiscoveryRecommendationComponentInfo info = getComponentParametersInfo(request);
+        HstDiscoveryService svc = lookupService(HstDiscoveryService.class);
+        final String documentPath = info.getDocument();
+
+        // Resolve the recommendation document (component param wins, then URL-path content bean)
+        DiscoveryRecommendationBean document = getHippoBeanForPath(request, documentPath, DiscoveryRecommendationBean.class);
+        request.setAttribute("document", document);
+
+        // Widget ID: document field → URL request param
+        String widgetId = document != null && document.getWidgetId() != null && !document.getWidgetId().isBlank()
+                ? document.getWidgetId()
+                : resolveWidgetId(request);
+
+        // Nothing configured — return empty rather than fire an invalid API call
+        if (widgetId == null || widgetId.isBlank()) {
+            request.setModel("products", List.of());
+            request.setModel("widgetId", "");
+            request.setAttribute("products", List.of());
+            request.setAttribute("widgetId", "");
+            return;
+        }
+
+        // 1. URL param (developer override / testing)
+        String contextProductId = getPublicRequestParameter(request, CONTEXT_PRODUCT_PARAM);
+
+        // 2. Component param (editor-set static PID via Channel Manager)
+        if (contextProductId == null || contextProductId.isBlank()) {
+            contextProductId = info.getContextProductId();
+        }
+
+        // 3. Page content bean property (PDP auto-detection, e.g. brxdis:pid)
+        if (contextProductId == null || contextProductId.isBlank()) {
+            HstRequestContext ctx = request.getRequestContext();
+            HippoBean pageBean = ctx != null ? ctx.getContentBean() : null;
+            if (pageBean != null && !(pageBean instanceof DiscoveryRecommendationBean)) {
+                String pidProp = info.getContextProductPidProperty();
+                if (pidProp != null && !pidProp.isBlank()) {
+                    contextProductId = pageBean.getSingleProperty(pidProp);
+                }
+            }
+        }
+        // 4. URL "pid" param — PDP page passes product ID this way
+        if (contextProductId == null || contextProductId.isBlank()) {
+            contextProductId = getPublicRequestParameter(request, "pid");
+        }
+        // 5. null — guard in HstDiscoveryService handles gracefully
+
+        String contextPageType = getPublicRequestParameter(request, CONTEXT_PAGE_TYPE_PARAM);
+        int    limit           = parseIntOrDefault(getPublicRequestParameter(request, LIMIT_PARAM), info.getLimit());
+        String fields          = getPublicRequestParameter(request, FIELDS_PARAM);
+        String filter          = getPublicRequestParameter(request, FILTER_PARAM);
+
+        List<ProductSummary> products = svc.recommend(
+                request, widgetId, null, contextProductId, contextPageType, limit, fields, filter);
+
+        request.setModel("products", products);
+        request.setModel("widgetId", widgetId);
+        request.setAttribute("products", products);
+        request.setAttribute("widgetId", widgetId);
+
+        log.debug("Recommendations widget '{}' returned {} products", widgetId, products.size());
+    }
+
+    /**
+     * Fallback widget ID from the URL request parameter.
+     */
+    String resolveWidgetId(HstRequest request) {
+        return getPublicRequestParameter(request, WIDGET_ID_PARAM);
+    }
+}

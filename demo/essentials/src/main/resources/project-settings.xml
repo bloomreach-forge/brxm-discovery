@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<project>
+    <applicationSubModule>application</applicationSubModule>
+    <cmsDependenciesModule>cms-dependencies</cmsDependenciesModule>
+    <cmsModule>cms</cmsModule>
+    <confirmParams>false</confirmParams>
+    <developmentSubModule>development</developmentSubModule>
+    <enterprise>true</enterprise>
+    <extraTemplates>true</extraTemplates>
+    <hstRoot>/hst:demo</hstRoot>
+    <projectNamespace>demo</projectNamespace>
+    <repositoryDataModule>repository-data</repositoryDataModule>
+    <selectedBeansPackage>org.bloomreach.forge.discovery.beans</selectedBeansPackage>
+    <selectedComponentsPackage>org.bloomreach.forge.discovery.components</selectedComponentsPackage>
+    <selectedProjectPackage>org.bloomreach.forge.discovery</selectedProjectPackage>
+    <selectedRestPackage>org.bloomreach.forge.discovery.rest</selectedRestPackage>
+    <setupDone>true</setupDone>
+    <siteContextPath>/site</siteContextPath>
+    <siteModule>site</siteModule>
+    <useSamples>true</useSamples>
+    <webfileBundleName>site</webfileBundleName>
+    <webfilesSubModule>webfiles</webfilesSubModule>
+</project>

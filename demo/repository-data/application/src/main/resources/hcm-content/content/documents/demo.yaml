@@ -1,0 +1,26 @@
+/content/documents/demo:
+  .meta:order-before: administration
+  jcr:primaryType: hippostd:folder
+  jcr:mixinTypes: ['hippo:named', 'hippotranslation:translated', 'mix:referenceable']
+  jcr:uuid: 1e107340-17a2-4e12-9698-70bf16e41a68
+  hippo:name: brXM Discovery Demo
+  hippostd:foldertype: [new-translated-folder, new-document]
+  hippostd:hasfolders: true
+  hippotranslation:id: 996bcac5-86cf-49b5-a7a3-16a74863e814
+  hippotranslation:locale: en
+  /new-arrivals:
+    jcr:primaryType: hippo:handle
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: c9d0e1f2-a3b4-5678-cdef-789012345678
+    /new-arrivals:
+      jcr:primaryType: brxdis:categoryDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: d0e1f2a3-b4c5-6789-defa-890123456789
+      brxdis:categoryId: ''
+      brxdis:displayName: New Arrivals
+      hippo:availability: [live, preview]
+      hippostd:state: published
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+      hippostdpubwf:lastModifiedBy: ''

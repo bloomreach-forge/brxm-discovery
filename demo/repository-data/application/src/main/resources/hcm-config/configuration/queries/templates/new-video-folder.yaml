@@ -1,0 +1,21 @@
+definitions:
+  config:
+    /hippo:configuration/hippo:queries/hippo:templates/new-video-folder:
+      jcr:primaryType: hippostd:templatequery
+      jcr:mixinTypes: ['hipposys:implementation']
+      hippostd:icon: addfolder_ico
+      hippostd:modify: [./_name, $name, './hippotranslation:id', $uuid, './hippotranslation:locale',
+        $inherited]
+      hipposys:classname: org.hippoecm.repository.impl.query.DirectPath
+      jcr:language: xpath
+      jcr:statement: /jcr:root/hippo:configuration/hippo:queries/hippo:templates/new-video-folder/hippostd:templates/node()
+      /hippostd:templates:
+        jcr:primaryType: hippostd:templates
+        /hippostd:folder:
+          jcr:primaryType: hippostd:folder
+          jcr:mixinTypes: ['hippotranslation:translated', 'mix:referenceable']
+          jcr:uuid: b8123832-91cd-4261-8fc0-b86f65cc7f43
+          hippostd:foldertype: [new-video-document, new-video-folder]
+          hippostd:hasfolders: false
+          hippotranslation:id: generated id
+          hippotranslation:locale: inherited locale

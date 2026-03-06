@@ -1,0 +1,47 @@
+definitions:
+  config:
+    /hst:hst/hst:configurations/hst:default/hst:templates/essentials-menu:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/essentials-menu.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/essentials-carousel:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/essentials-carousel.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/essentials-banner:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/essentials-banner.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/image-component:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/image-component.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/blog-author-posts:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/blog/blog-author-posts.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/blog-facet:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/facet/blog-facet.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/blog-list:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/blog/blog-list.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/eventslist-main-eventslist:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/eventslist-main-eventslist.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/newslist-main-newslist:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/newslist-main-newslist.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/list-component:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/list-component.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/essentials-openstreetmap:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/essentials-openstreetmap.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/search-box:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/search-box.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/seo:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/seo.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/contentpage-main:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/contentpage-main.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/video-component:
+      jcr:primaryType: hst:template
+      hst:renderpath: webfile:/freemarker/hstdefault/video-component.ftl

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Select Category</title>
+  <link rel="stylesheet" href="picker-dialog.css"/>
+  <style>
+    /* ---- Toolbar ------------------------------------------------------ */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e8e8e8;
+      background: #fafafa;
+      flex-shrink: 0;
+    }
+
+    #search-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #333;
+    }
+    #search-input:focus {
+      outline: none;
+      border-color: #0070d9;
+      box-shadow: 0 0 0 2px rgba(0, 112, 217, 0.15);
+    }
+
+    #result-count {
+      font-size: 11px;
+      color: #999;
+      white-space: nowrap;
+    }
+
+    /* ---- Table scroll area -------------------------------------------- */
+    #table-scroll {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    #category-table { width: 100%; border-collapse: collapse; }
+    #category-table th {
+      text-align: left;
+      padding: 8px 14px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e8e8e8;
+      position: sticky;
+      top: 0;
+    }
+    #category-table td {
+      padding: 10px 14px;
+      font-size: 12px;
+      border-bottom: 1px solid #f2f2f2;
+      vertical-align: middle;
+    }
+    .category-row { cursor: pointer; }
+    .category-row:hover { background: #f0f7ff; }
+    .category-row.selected { background: #ddeeff; }
+
+    .td-name { font-weight: 500; color: #111; }
+    .td-id   {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 11px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <input id="search-input" type="search" placeholder="Search categories&hellip;" autocomplete="off"/>
+  <span id="result-count"></span>
+</div>
+
+<div id="table-scroll">
+  <table id="category-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>ID</th>
+      </tr>
+    </thead>
+    <tbody id="category-body"></tbody>
+  </table>
+</div>
+
+<div id="footer"></div>
+
+<script src="ui-extension.min.js"></script>
+<script src="picker-utils.js"></script>
+<script>
+  (function () {
+    "use strict";
+
+    var ui           = null;
+    var configPath   = "";
+    var currentValue = "";
+    var categoriesAll = [];
+
+    var searchInput  = document.getElementById("search-input");
+    var resultCount  = document.getElementById("result-count");
+    var categoryBody = document.getElementById("category-body");
+    var footer       = document.getElementById("footer");
+
+    /* ---- Bootstrap ---------------------------------------------------- */
+    UiExtension.register().then(function (registeredUi) {
+      ui = registeredUi;
+      return ui.dialog.options();
+    })
+    .then(function (opts) {
+      var data = {};
+      try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
+      configPath   = data.configPath   || "";
+      currentValue = data.currentValue || "";
+      loadCategories();
+      searchInput.focus();
+    })
+    .catch(function (err) {
+      setStatusEl(footer, "error", "Failed to initialise: " + (err && err.message || err));
+    });
+
+    /* ---- Search input — filters in-memory ----------------------------- */
+    searchInput.addEventListener("input", function () {
+      applyFilter(searchInput.value);
+    });
+
+    function applyFilter(q) {
+      var lower = q.toLowerCase();
+      var filtered = lower
+        ? categoriesAll.filter(function (c) {
+            return (c.name || "").toLowerCase().indexOf(lower) >= 0 ||
+                   (c.id   || "").toLowerCase().indexOf(lower) >= 0;
+          })
+        : categoriesAll;
+      renderTable(filtered);
+      resultCount.textContent = lower
+        ? filtered.length + " of " + categoriesAll.length
+        : categoriesAll.length + " categor" + (categoriesAll.length === 1 ? "y" : "ies");
+    }
+
+    /* ---- Load (single fetch — Discovery uses q as category ID, not search text) --- */
+    function loadCategories() {
+      if (!configPath) {
+        setStatusEl(footer, "error", "No configPath configured on the uiExtension node.");
+        return;
+      }
+      setStatusEl(footer, "", "Loading\u2026", true);
+
+      var url = buildApiUrl(ui, "/discovery/picker/categories", { configPath: configPath });
+      fetch(url, { credentials: "include" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (categories) {
+          categoriesAll = categories || [];
+          renderTable(categoriesAll);
+          resultCount.textContent = categoriesAll.length + " categor" + (categoriesAll.length === 1 ? "y" : "ies");
+          setStatusEl(footer, "", "Click a row to select.");
+        })
+        .catch(function (err) {
+          setStatusEl(footer, "error", "Failed to load categories: " + err.message);
+        });
+    }
+
+    /* ---- Render -------------------------------------------------------- */
+    function renderTable(categories) {
+      categoryBody.replaceChildren();
+      if (!categories.length) {
+        categoryBody.innerHTML =
+          '<tr class="empty-row"><td colspan="2">No categories found.</td></tr>';
+        return;
+      }
+      categories.forEach(function (cat) {
+        var tr = document.createElement("tr");
+        tr.className = "category-row" + (cat.id === currentValue ? " selected" : "");
+
+        tr.innerHTML =
+          '<td class="td-name">' + esc(cat.name || cat.id || "") + '</td>' +
+          '<td class="td-id">'   + esc(cat.id   || "")           + '</td>';
+
+        tr.addEventListener("click", function () {
+          ui.dialog.close(cat.id);
+        });
+
+        categoryBody.appendChild(tr);
+      });
+    }
+  }());
+</script>
+</body>
+</html>

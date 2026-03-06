@@ -1,0 +1,6 @@
+definitions:
+  config:
+    /hst:hst/hst:configurations/demo/hst:workspace:
+      jcr:primaryType: hst:workspace
+      jcr:mixinTypes: ['dxphst:mergeable']
+      dxphst:treehash: E607E9CF61691278A4A7D2535E20548F

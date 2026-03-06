@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.bloomreach.forge.discovery</groupId>
+        <artifactId>brxm-discovery</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>brxm-discovery-hcm-site</artifactId>
+    <name>brXM Discovery Plugin - HCM Site</name>
+    <description>HST catalog bootstrap for the brXM Discovery plugin. Add to your site webapp dependencies.</description>
+
+</project>

@@ -1,0 +1,47 @@
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoverySearchAPI:
+      jcr:primaryType: crisp:resourceresolver
+      crisp:beandefinition: |
+        <beans xmlns="http://www.springframework.org/schema/beans"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans
+                                   http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+          <bean class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+            <property name="baseUri" value="${crisp.discoverySearchAPI.baseUri}"/>
+          </bean>
+        </beans>
+      crisp:propnames:
+        - crisp.discoverySearchAPI.baseUri
+      crisp:propvalues:
+        - 'https://core.dxpapi.com'
+    /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPathwaysAPI:
+      jcr:primaryType: crisp:resourceresolver
+      crisp:beandefinition: |
+        <beans xmlns="http://www.springframework.org/schema/beans"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans
+                                   http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+          <bean class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+            <property name="baseUri" value="${crisp.discoveryPathwaysAPI.baseUri}"/>
+          </bean>
+        </beans>
+      crisp:propnames:
+        - crisp.discoveryPathwaysAPI.baseUri
+      crisp:propvalues:
+        - 'https://pathways.dxpapi.com'
+    /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryAutosuggestAPI:
+      jcr:primaryType: crisp:resourceresolver
+      crisp:beandefinition: |
+        <beans xmlns="http://www.springframework.org/schema/beans"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans
+                                   http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+          <bean class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+            <property name="baseUri" value="${crisp.discoveryAutosuggestAPI.baseUri}"/>
+          </bean>
+        </beans>
+      crisp:propnames:
+        - crisp.discoveryAutosuggestAPI.baseUri
+      crisp:propvalues:
+        - 'https://suggest.dxpapi.com'

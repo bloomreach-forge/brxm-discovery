@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.onehippo.cms7</groupId>
+        <artifactId>hippo-cms7-project</artifactId>
+        <version>16.7.0</version>
+    </parent>
+
+    <groupId>org.bloomreach.forge.discovery</groupId>
+    <artifactId>brxm-discovery</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>brXM Discovery Plugin</name>
+    <description>Bloomreach Discovery integration for brXM</description>
+    <modules>
+        <module>cms</module>
+        <module>site</module>
+        <module>hcm-site</module>
+        <module>webfiles</module>
+    </modules>
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Internal modules -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>brxm-discovery-cms</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>brxm-discovery-site</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>brxm-discovery-hcm-site</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>brxm-discovery-webfiles</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- CRISP -->
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-addon-crisp-api</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- HST -->
+            <dependency>
+                <groupId>org.onehippo.cms7.hst</groupId>
+                <artifactId>hst-api</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.onehippo.cms7.hst</groupId>
+                <artifactId>hst-commons</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.onehippo.cms7.hst</groupId>
+                <artifactId>hst-client</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Repository -->
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-repository-api</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- CMS -->
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-cms-api</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- JAX-RS -->
+            <dependency>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
+                <version>${jakarta.ws.rs-api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- brXM Repository JAX-RS (RepositoryJaxrsService, CXFRepositoryJaxrsEndpoint) -->
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-repository-jaxrs</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- JCR -->
+            <dependency>
+                <groupId>javax.jcr</groupId>
+                <artifactId>jcr</artifactId>
+                <version>${javax.jcr.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Jackson -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson2.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson2.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+                <artifactId>jackson-jakarta-rs-json-provider</artifactId>
+                <version>${jackson2.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Logging -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j2.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Hippo Services (HippoServiceRegistry — needed for CRISP broker lookup) -->
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-services</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Guava -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- CRISP Mock -->
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-addon-crisp-mock</artifactId>
+                <version>${hippo.release.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <!-- Test -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <repositories>
+        <repository>
+            <id>bloomreach</id>
+            <name>Bloomreach Maven 2</name>
+            <url>https://maven.bloomreach.com/maven2/</url>
+        </repository>
+        <repository>
+            <id>bloomreach-enterprise</id>
+            <name>Bloomreach Enterprise Maven 2</name>
+            <url>https://maven.bloomreach.com/maven2-enterprise/</url>
+        </repository>
+    </repositories>
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+        
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

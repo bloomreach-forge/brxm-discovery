@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Select Product</title>
+  <link rel="stylesheet" href="picker-dialog.css"/>
+  <style>
+    /* ---- Search bar ---------------------------------------------------- */
+    #search-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e8e8e8;
+      background: #fafafa;
+      flex-shrink: 0;
+    }
+    #search-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #333;
+    }
+    #search-input:focus {
+      outline: none;
+      border-color: #0070d9;
+      box-shadow: 0 0 0 2px rgba(0, 112, 217, 0.15);
+    }
+    .btn {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #f0f0f0; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .btn-primary { background: #0070d9; color: #fff; border-color: #0070d9; }
+    .btn-primary:hover:not(:disabled) { background: #005ab0; border-color: #005ab0; }
+
+    /* ---- Product grid -------------------------------------------------- */
+    #grid-scroll { overflow-y: auto; flex: 1; }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .product-card {
+      background: #fff;
+      border: 2px solid #e8e8e8;
+      border-radius: 6px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .product-card:hover {
+      border-color: #0070d9;
+      box-shadow: 0 2px 10px rgba(0, 112, 217, 0.12);
+    }
+    .product-card.selected {
+      border-color: #0070d9;
+      background: #f0f7ff;
+    }
+    .product-card img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      background: #f5f5f5;
+      display: block;
+    }
+    .card-body { padding: 7px 9px 10px; }
+    .card-title {
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: #222;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .card-price { font-size: 11px; color: #0070d9; margin-top: 3px; font-weight: 500; }
+
+    /* ---- Footer -------------------------------------------------------- */
+    #footer {
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 38px;
+    }
+
+    #pagination {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-btn {
+      padding: 3px 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 11px;
+      color: #444;
+    }
+    .page-btn:hover:not(:disabled) { background: #f0f0f0; }
+    .page-btn:disabled { opacity: 0.4; cursor: default; }
+    .page-info { font-size: 11px; color: #888; }
+
+    #status { font-size: 11px; color: #999; display: flex; align-items: center; gap: 6px; }
+    #status.error { color: #c0392b; }
+
+    .empty-msg {
+      color: #bbb;
+      padding: 32px 16px;
+      text-align: center;
+      font-style: italic;
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+<body>
+
+<div id="search-bar">
+  <input id="search-input" type="search" placeholder="Search products&hellip;" autocomplete="off"/>
+  <button id="search-btn" class="btn btn-primary">Search</button>
+</div>
+
+<div id="grid-scroll">
+  <div id="grid"></div>
+</div>
+
+<div id="footer">
+  <div id="pagination" style="display:none"></div>
+  <div id="status"></div>
+</div>
+
+<script src="ui-extension.min.js"></script>
+<script src="picker-utils.js"></script>
+<script>
+  (function () {
+    "use strict";
+
+    var PAGE_SIZE    = 12;
+    var ui           = null;
+    var configPath   = "";
+    var currentValue = "";
+    var currentPage  = 0;
+    var lastQuery    = "*";
+
+    var searchInput  = document.getElementById("search-input");
+    var searchBtn    = document.getElementById("search-btn");
+    var grid         = document.getElementById("grid");
+    var pagination   = document.getElementById("pagination");
+    var status       = document.getElementById("status");
+
+    /* ---- Bootstrap ---------------------------------------------------- */
+    UiExtension.register().then(function (registeredUi) {
+      ui = registeredUi;
+      return ui.dialog.options();
+    })
+    .then(function (opts) {
+      var data = {};
+      try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
+      configPath   = data.configPath   || "";
+      currentValue = data.currentValue || "";
+      doSearch("*", 0);
+      searchInput.focus();
+    })
+    .catch(function (err) {
+      setStatusEl(status, "error", "Failed to initialise: " + (err && err.message || err));
+    });
+
+    /* ---- Events ------------------------------------------------------- */
+    searchBtn.addEventListener("click", function () {
+      lastQuery   = searchInput.value.trim() || "*";
+      currentPage = 0;
+      doSearch(lastQuery, 0);
+    });
+    searchInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") searchBtn.click();
+    });
+
+    /* ---- Search ------------------------------------------------------- */
+    function doSearch(q, page) {
+      if (!configPath) {
+        setStatusEl(status, "error", "No configPath configured on the uiExtension node.");
+        return;
+      }
+      setStatusEl(status, "", "Searching\u2026", true);
+      searchBtn.disabled = true;
+      pagination.style.display = "none";
+      grid.replaceChildren();
+
+      var url = buildApiUrl(ui, "/discovery/picker/search", {
+        configPath: configPath,
+        q:          q,
+        page:       page,
+        pageSize:   PAGE_SIZE
+      });
+
+      fetch(url, { credentials: "include" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          currentPage = page;
+          renderGrid(data.items || []);
+          renderPagination(data.total || 0);
+          setStatusEl(status, "", (data.total || 0) + " product(s) found.");
+        })
+        .catch(function (err) {
+          setStatusEl(status, "error", "Search failed: " + err.message);
+        })
+        .finally(function () {
+          searchBtn.disabled = false;
+        });
+    }
+
+    /* ---- Render grid -------------------------------------------------- */
+    function renderGrid(items) {
+      grid.replaceChildren();
+      if (!items.length) {
+        grid.innerHTML = '<p class="empty-msg">No products found.</p>';
+        return;
+      }
+      items.forEach(function (item) {
+        var card = document.createElement("div");
+        card.className = "product-card" + (item.id === currentValue ? " selected" : "");
+        card.title = item.title || item.id || "";
+
+        var imgSrc = item.imageUrl ||
+          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
+
+        card.innerHTML =
+          '<img src="' + escAttr(imgSrc) + '" alt="" loading="lazy"/>' +
+          '<div class="card-body">' +
+            '<div class="card-title">' + esc(item.title || item.id || "(no title)") + '</div>' +
+            (item.price ? '<div class="card-price">' + esc(item.price) + '</div>' : '') +
+          '</div>';
+
+        card.addEventListener("click", function () {
+          ui.dialog.close(item.id);
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    /* ---- Render pagination -------------------------------------------- */
+    function renderPagination(total) {
+      var totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+      if (totalPages <= 1) {
+        pagination.style.display = "none";
+        return;
+      }
+      pagination.style.display = "flex";
+      pagination.innerHTML =
+        '<button class="page-btn" id="prev-btn"' + (currentPage === 0 ? " disabled" : "") + '>&lsaquo; Prev</button>' +
+        '<span class="page-info">Page ' + (currentPage + 1) + ' / ' + totalPages + '</span>' +
+        '<button class="page-btn" id="next-btn"' + (currentPage >= totalPages - 1 ? " disabled" : "") + '>Next &rsaquo;</button>';
+
+      document.getElementById("prev-btn").addEventListener("click", function () {
+        doSearch(lastQuery, currentPage - 1);
+      });
+      document.getElementById("next-btn").addEventListener("click", function () {
+        doSearch(lastQuery, currentPage + 1);
+      });
+    }
+  }());
+</script>
+</body>
+</html>

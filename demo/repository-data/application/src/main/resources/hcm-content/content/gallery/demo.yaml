@@ -1,0 +1,7 @@
+/content/gallery/demo:
+  jcr:primaryType: hippogallery:stdImageGallery
+  jcr:mixinTypes: ['hippo:named', 'mix:referenceable']
+  jcr:uuid: 704174a6-318e-49d9-934a-ce5d940fa9e2
+  hippo:name: brXM Discovery Demo
+  hippostd:foldertype: [new-image-folder]
+  hippostd:gallerytype: ['hippogallery:imageset']

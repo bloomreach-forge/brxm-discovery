@@ -1,0 +1,7 @@
+group: hippo-cms
+
+project:
+  name: brxm-discovery-site
+  after: hippo-site-toolkit
+
+module: brxm-discovery-hcm-site

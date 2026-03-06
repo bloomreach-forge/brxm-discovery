@@ -1,0 +1,5 @@
+definitions:
+  namespace:
+    brxdis:
+      uri: 'http://www.bloomreach.com/forge/discovery/nt/1.0'
+      cnd: brxdis-types.cnd

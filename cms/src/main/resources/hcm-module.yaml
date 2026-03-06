@@ -1,0 +1,9 @@
+group:
+  name: brxm-discovery
+  after: hippo-cms
+
+project:
+  name: brxm-discovery
+
+module:
+  name: brxm-discovery-cms

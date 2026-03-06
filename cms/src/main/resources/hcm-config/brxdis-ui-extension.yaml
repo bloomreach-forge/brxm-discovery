@@ -1,0 +1,57 @@
+definitions:
+  config:
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Product Picker'
+
+      # URL of the picker iframe page.
+      # The file is served from META-INF/resources/discovery-picker/index.html
+      # in the brxm-discovery-cms jar (Servlet 3.0 static resource).
+      # Replace the host/port/context-path prefix to match your CMS deployment.
+      frontend:url: 'discovery-picker/index.html'
+
+      # Minimum height for the iframe when the picker is rendered inline.
+      frontend:initialHeightInPixels: 56
+
+      # Targets the document field extension point.
+      frontend:extensionPoint: 'document.field'
+
+      # JSON config passed verbatim to ui.extension.config in the picker JS.
+      # Set configPath to the JCR path of the discoveryConfig node.
+      # Defaults to the module config node bootstrapped by brxm-discovery-cms.
+      frontend:config: '{"configPath":"/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig"}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryWidgetPicker:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Widget Picker'
+      frontend:url: 'discovery-picker/widget-picker.html'
+      frontend:initialHeightInPixels: 56
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"configPath":"/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig"}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryPicker:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Category Picker'
+      frontend:url: 'discovery-picker/category-picker.html'
+      frontend:initialHeightInPixels: 56
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"configPath":"/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig"}'
+
+# ============================================================================
+# How to use the picker in a custom document type
+# ============================================================================
+# In your project's document-type YAML (editor:templates section) add an
+# OpenUiStringFieldPlugin field pointing to the 'discoveryProductPicker'
+# extension:
+#
+#   /my-product-id:
+#     jcr:primaryType: frontend:plugin
+#     caption: 'Product'
+#     field: 'myns:productId'
+#     plugin.class: 'org.hippoecm.frontend.editor.plugins.openui.OpenUiStringPlugin'
+#     ui.extension: discoveryProductPicker
+#     wicket.id: '${cluster.id}.field'
+#
+# The picker will call back with the selected product's 'id' (PID), which
+# brXM stores in the myns:productId String property.
+# ============================================================================

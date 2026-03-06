@@ -1,0 +1,209 @@
+definitions:
+  config:
+    /hippo:namespaces/brxdis:
+      jcr:primaryType: hipposysedit:namespace
+      jcr:mixinTypes: ['mix:referenceable']
+      /categoryDocument:
+        jcr:primaryType: hipposysedit:templatetype
+        jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
+        /hipposysedit:nodetype:
+          jcr:primaryType: hippo:handle
+          jcr:mixinTypes: ['mix:referenceable']
+          /hipposysedit:nodetype:
+            jcr:primaryType: hipposysedit:nodetype
+            jcr:mixinTypes: ['hipposysedit:remodel']
+            hipposysedit:supertype: ['hippo:document', 'hippostdpubwf:document']
+            hipposysedit:uri: 'http://www.bloomreach.com/forge/discovery/nt/1.0'
+            /displayName:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:displayName
+              hipposysedit:type: String
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+            /categoryId:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:categoryId
+              hipposysedit:type: OpenUiString
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+        /hipposysedit:prototypes:
+          jcr:primaryType: hipposysedit:prototypeset
+          /hipposysedit:prototype:
+            jcr:primaryType: brxdis:categoryDocument
+            hippostd:holder: holder
+            hippostd:state: draft
+            hippostdpubwf:createdBy: ''
+            hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+            hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+            hippostdpubwf:lastModifiedBy: ''
+            brxdis:displayName: ''
+            brxdis:categoryId: ''
+        /editor:templates:
+          jcr:primaryType: editor:templateset
+          /_default_:
+            jcr:primaryType: frontend:plugincluster
+            frontend:properties: ['mode']
+            frontend:references: ['wicket.model', 'engine', 'model.compareTo']
+            frontend:services: ['wicket.id']
+            type: brxdis:categoryDocument
+            /root:
+              jcr:primaryType: frontend:plugin
+              plugin.class: 'org.hippoecm.frontend.service.render.ListViewPlugin'
+              item: '${cluster.id}.field'
+            /displayName:
+              jcr:primaryType: frontend:plugin
+              caption: 'Display Name'
+              field: displayName
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+            /categoryId:
+              jcr:primaryType: frontend:plugin
+              caption: 'Category'
+              field: categoryId
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+                ui.extension: discoveryCategoryPicker
+      /productDetailDocument:
+        jcr:primaryType: hipposysedit:templatetype
+        jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
+        /hipposysedit:nodetype:
+          jcr:primaryType: hippo:handle
+          jcr:mixinTypes: ['mix:referenceable']
+          /hipposysedit:nodetype:
+            jcr:primaryType: hipposysedit:nodetype
+            jcr:mixinTypes: ['hipposysedit:remodel']
+            hipposysedit:supertype: ['hippo:document', 'hippostdpubwf:document']
+            hipposysedit:uri: 'http://www.bloomreach.com/forge/discovery/nt/1.0'
+            /displayName:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:displayName
+              hipposysedit:type: String
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+            /productId:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:productId
+              hipposysedit:type: OpenUiString
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+        /hipposysedit:prototypes:
+          jcr:primaryType: hipposysedit:prototypeset
+          /hipposysedit:prototype:
+            jcr:primaryType: brxdis:productDetailDocument
+            hippostd:holder: holder
+            hippostd:state: draft
+            hippostdpubwf:createdBy: ''
+            hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+            hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+            hippostdpubwf:lastModifiedBy: ''
+            brxdis:displayName: ''
+            brxdis:productId: ''
+        /editor:templates:
+          jcr:primaryType: editor:templateset
+          /_default_:
+            jcr:primaryType: frontend:plugincluster
+            frontend:properties: ['mode']
+            frontend:references: ['wicket.model', 'engine', 'model.compareTo']
+            frontend:services: ['wicket.id']
+            type: brxdis:productDetailDocument
+            /root:
+              jcr:primaryType: frontend:plugin
+              plugin.class: 'org.hippoecm.frontend.service.render.ListViewPlugin'
+              item: '${cluster.id}.field'
+            /displayName:
+              jcr:primaryType: frontend:plugin
+              caption: 'Display Name'
+              field: displayName
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+            /productId:
+              jcr:primaryType: frontend:plugin
+              caption: 'Product'
+              field: productId
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+                ui.extension: discoveryProductPicker
+      /recommendationDocument:
+        jcr:primaryType: hipposysedit:templatetype
+        jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
+        /hipposysedit:nodetype:
+          jcr:primaryType: hippo:handle
+          jcr:mixinTypes: ['mix:referenceable']
+          /hipposysedit:nodetype:
+            jcr:primaryType: hipposysedit:nodetype
+            jcr:mixinTypes: ['hipposysedit:remodel']
+            hipposysedit:supertype: ['hippo:document', 'hippostdpubwf:document']
+            hipposysedit:uri: 'http://www.bloomreach.com/forge/discovery/nt/1.0'
+            /displayName:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:displayName
+              hipposysedit:type: String
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+            /widgetId:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:widgetId
+              hipposysedit:type: OpenUiString
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+        /hipposysedit:prototypes:
+          jcr:primaryType: hipposysedit:prototypeset
+          /hipposysedit:prototype:
+            jcr:primaryType: brxdis:recommendationDocument
+            hippostd:holder: holder
+            hippostd:state: draft
+            hippostdpubwf:createdBy: ''
+            hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+            hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+            hippostdpubwf:lastModifiedBy: ''
+            brxdis:displayName: ''
+            brxdis:widgetId: ''
+        /editor:templates:
+          jcr:primaryType: editor:templateset
+          /_default_:
+            jcr:primaryType: frontend:plugincluster
+            frontend:properties: ['mode']
+            frontend:references: ['wicket.model', 'engine', 'model.compareTo']
+            frontend:services: ['wicket.id']
+            type: brxdis:recommendationDocument
+            /root:
+              jcr:primaryType: frontend:plugin
+              plugin.class: 'org.hippoecm.frontend.service.render.ListViewPlugin'
+              item: '${cluster.id}.field'
+            /displayName:
+              jcr:primaryType: frontend:plugin
+              caption: 'Display Name'
+              field: displayName
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+            /widgetId:
+              jcr:primaryType: frontend:plugin
+              caption: 'Widget'
+              field: widgetId
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+                ui.extension: discoveryWidgetPicker

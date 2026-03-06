@@ -1,0 +1,119 @@
+/content/documents/demo/test:
+  .meta:order-before: content
+  jcr:primaryType: hippostd:folder
+  jcr:mixinTypes: ['hippotranslation:translated', 'mix:versionable']
+  jcr:uuid: 4421b03c-b970-47df-b77c-b67ecceae301
+  hippostd:foldertype: [new-translated-folder, new-document]
+  hippostd:hasfolders: false
+  hippotranslation:id: e799e938-5d26-4cd7-9242-b1ebaf74bca8
+  hippotranslation:locale: en
+  /fee:
+    jcr:primaryType: hippo:handle
+    jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
+    jcr:uuid: 7d1bf49f-3ddd-4ec1-8791-2814e35ed1d9
+    hippo:versionHistory: 4a07544c-d4fd-4e15-a5b8-111a8ef964d5
+    /fee[1]:
+      jcr:primaryType: brxdis:recommendationDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: a2b9668c-12fa-47cd-9f8a-c926e6540577
+      brxdis:displayName: PDP Similar Items
+      brxdis:widgetId: 4le608d9
+      hippo:availability: [live]
+      hippostd:state: published
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+      hippostdpubwf:lastModifiedBy: ''
+    /fee[2]:
+      jcr:primaryType: brxdis:recommendationDocument
+      jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
+      jcr:uuid: ea5418fd-6016-487e-bf7f-4c1f75d1d9b0
+      brxdis:displayName: PDP Similar Items
+      brxdis:widgetId: 4le608d9
+      hippo:availability: [preview]
+      hippostd:state: unpublished
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+      hippostdpubwf:lastModifiedBy: ''
+    /fee[3]:
+      jcr:primaryType: brxdis:recommendationDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: 2747ce46-2083-4138-8831-5dc5dc4458b3
+      brxdis:displayName: PDP Similar Items
+      brxdis:widgetId: 4le608d9
+      hippo:availability: []
+      hippostd:retainable: false
+      hippostd:state: draft
+      hippostd:transferable: false
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2026-03-05T21:05:42.182Z
+      hippostdpubwf:lastModifiedBy: admin
+  /cat:
+    jcr:primaryType: hippo:handle
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: b09ad4f7-b4fc-4ca8-b529-25429ae6b898
+    /cat:
+      jcr:primaryType: brxdis:categoryDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: 0554678c-b85c-4541-a87b-cf2cf25b8813
+      brxdis:categoryId: '116791'
+      brxdis:displayName: Demo Category
+      hippo:availability: []
+      hippostd:holder: holder
+      hippostd:state: draft
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+      hippostdpubwf:lastModifiedBy: ''
+  /product:
+    jcr:primaryType: hippo:handle
+    jcr:mixinTypes: ['hippo:named', 'hippo:versionInfo', 'mix:referenceable']
+    jcr:uuid: ffd87e1b-3b54-483a-a85f-1c35a2c63cb4
+    hippo:name: Product
+    hippo:versionHistory: c086c838-a91d-45ba-a8c5-c648e7ff9067
+    /product[1]:
+      jcr:primaryType: brxdis:productDetailDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: 36db02a4-8421-4cc6-8e1c-7d2b2dc87ead
+      brxdis:displayName: Wine
+      brxdis:productId: '21557'
+      hippo:availability: []
+      hippostd:retainable: false
+      hippostd:state: draft
+      hippostd:transferable: false
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2026-03-05T21:13:13.597Z
+      hippostdpubwf:lastModifiedBy: admin
+    /product[2]:
+      jcr:primaryType: brxdis:productDetailDocument
+      jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
+      jcr:uuid: f86f2184-9383-4d99-a579-a2340ef8bf9d
+      brxdis:displayName: Wine
+      brxdis:productId: '21557'
+      hippo:availability: [preview]
+      hippostd:retainable: false
+      hippostd:state: unpublished
+      hippostd:transferable: false
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2026-03-05T21:12:51.507Z
+      hippostdpubwf:lastModifiedBy: admin
+    /product[3]:
+      jcr:primaryType: brxdis:productDetailDocument
+      jcr:mixinTypes: ['mix:referenceable']
+      jcr:uuid: 733f0208-e1d0-4062-9d22-670d68281dbc
+      brxdis:displayName: Wine
+      brxdis:productId: '21557'
+      hippo:availability: [live]
+      hippostd:retainable: false
+      hippostd:state: published
+      hippostd:transferable: false
+      hippostdpubwf:createdBy: ''
+      hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+      hippostdpubwf:lastModificationDate: 2026-03-05T21:12:51.507Z
+      hippostdpubwf:lastModifiedBy: admin
+      hippostdpubwf:publicationDate: 2026-03-05T21:12:54.150Z
+      hippostdpubwf:publishedBy: admin

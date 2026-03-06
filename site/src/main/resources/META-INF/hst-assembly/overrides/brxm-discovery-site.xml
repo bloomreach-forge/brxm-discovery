@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  brXM Discovery Plugin — Site assembly
+  ======================================
+  Loaded into the main HST site delivery Spring context via the overrides mechanism.
+  Beans here are accessible via:
+      HstServices.getComponentManager().getComponent(ClassName.class.getName())
+
+  The CRISP ResourceServiceBroker is NOT referenced here — DiscoveryClientImpl obtains it
+  at request time via HippoServiceRegistry to avoid cross addon-context dependency issues.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+
+    <!-- Internal helpers -->
+
+    <bean id="brxmdis.configReader"
+          class="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader"/>
+
+    <bean id="brxmdis.objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper"/>
+
+    <bean id="brxmdis.responseMapper"
+          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryResponseMapper">
+        <constructor-arg ref="brxmdis.objectMapper"/>
+    </bean>
+
+    <bean id="brxmdis.discoveryClient"
+          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.responseMapper"/>
+    </bean>
+
+    <!-- Public services — bean IDs match Class.getName() for getComponent() lookups -->
+
+    <bean id="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver"
+          class="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver">
+        <constructor-arg ref="brxmdis.configReader"/>
+    </bean>
+
+    <bean id="org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetService"
+          class="org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetServiceImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.discoveryClient"/>
+    </bean>
+
+    <!-- Config cache: lazy JCR reads, JVM-lifetime entries, JCR-driven invalidation -->
+    <bean id="brxmdis.configProvider"
+          class="org.bloomreach.forge.discovery.site.service.discovery.config.CachingDiscoveryConfigProvider">
+        <constructor-arg ref="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver"/>
+        <constructor-arg ref="javax.jcr.Repository"/>
+    </bean>
+
+    <!-- Pixel event service — fires async tracking calls to Discovery after each cache-miss result -->
+    <bean id="brxmdis.pixelService"
+          class="org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelServiceImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.discoveryClient"/>
+    </bean>
+
+    <!-- HST façade — FQCN bean ID for getComponent() lookup -->
+    <bean id="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
+          class="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.discoveryClient"/>
+        <constructor-arg ref="org.bloomreach.forge.discovery.site.service.discovery.recommendation.DiscoveryWidgetService"/>
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.pixelService"/>
+        <constructor-arg><null/></constructor-arg><!-- SoREnrichmentProvider: integrator overrides -->
+    </bean>
+
+</beans>

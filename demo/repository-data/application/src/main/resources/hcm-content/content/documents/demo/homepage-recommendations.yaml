@@ -1,0 +1,44 @@
+/content/documents/demo/homepage-recommendations:
+  .meta:order-before: banners
+  jcr:primaryType: hippo:handle
+  jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
+  jcr:uuid: a3b4c5d6-e7f8-9012-abcd-123456789012
+  hippo:versionHistory: 8152d3e6-5881-4a1d-8590-eb09961edbce
+  /homepage-recommendations[1]:
+    jcr:primaryType: brxdis:recommendationDocument
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: b4c5d6e7-f8a9-0123-bcde-234567890123
+    brxdis:displayName: Homepage Recommendations
+    brxdis:widgetId: 2jnxqelz
+    hippo:availability: [live]
+    hippostd:state: published
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+    hippostdpubwf:lastModifiedBy: ''
+  /homepage-recommendations[2]:
+    jcr:primaryType: brxdis:recommendationDocument
+    jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
+    jcr:uuid: 9af0dee1-8b8e-4393-a3eb-d56f33f85e6b
+    brxdis:displayName: Homepage Recommendations
+    brxdis:widgetId: 2jnxqelz
+    hippo:availability: [preview]
+    hippostd:state: unpublished
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+    hippostdpubwf:lastModifiedBy: ''
+  /homepage-recommendations[3]:
+    jcr:primaryType: brxdis:recommendationDocument
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: ad513efd-62c2-4f73-a501-6892b45d4a5f
+    brxdis:displayName: Homepage Recommendations
+    brxdis:widgetId: 2jnxqelz
+    hippo:availability: []
+    hippostd:retainable: false
+    hippostd:state: draft
+    hippostd:transferable: false
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2026-03-05T21:05:24.191Z
+    hippostdpubwf:lastModifiedBy: admin

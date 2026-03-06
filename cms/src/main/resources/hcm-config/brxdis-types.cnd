@@ -1,0 +1,61 @@
+<'nt'='http://www.jcp.org/jcr/nt/1.0'>
+<'mix'='http://www.jcp.org/jcr/mix/1.0'>
+<'hippo'='http://www.onehippo.org/jcr/hippo/nt/2.0.4'>
+<'hippostd'='http://www.onehippo.org/jcr/hippostd/nt/2.0'>
+<'hippostdpubwf'='http://www.onehippo.org/jcr/hippostdpubwf/nt/1.0'>
+<'brxdis'='http://www.bloomreach.com/forge/discovery/nt/1.0'>
+
+/**
+ * brxdis:discoveryConfig
+ *
+ * A Bloomreach Discovery API configuration document.
+ * Create one instance per channel and reference it via the
+ * "discoveryConfigPath" channel parameter.
+ */
+[brxdis:discoveryConfig] > hippo:document
+  orderable
+  - brxdis:accountId        (String)
+  - brxdis:domainKey        (String)
+  - brxdis:apiKey           (String)
+  - brxdis:authKey          (String)
+  - brxdis:baseUri          (String)
+  - brxdis:pathwaysBaseUri  (String)
+  - brxdis:environment      (String)
+  - brxdis:defaultPageSize  (Long)
+  - brxdis:defaultSort      (String)
+
+/**
+ * brxdis:recommendationDocument
+ *
+ * A Discovery Recommendation document.
+ * brxdis:widgetId is populated by the Open UI widget picker.
+ * brxdis:displayName is a human-readable label for editors.
+ */
+[brxdis:recommendationDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+  orderable
+  - brxdis:displayName (String)
+  - brxdis:widgetId    (String)
+
+/**
+ * brxdis:categoryDocument
+ *
+ * A Discovery Category document.
+ * brxdis:categoryId is populated by the Open UI category picker.
+ * brxdis:displayName is a human-readable label for editors.
+ */
+[brxdis:categoryDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+  orderable
+  - brxdis:displayName (String)
+  - brxdis:categoryId  (String)
+
+/**
+ * brxdis:productDetailDocument
+ *
+ * A Discovery Product Detail document.
+ * brxdis:productId is populated by the Open UI product picker.
+ * brxdis:displayName is a human-readable label for editors.
+ */
+[brxdis:productDetailDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+  orderable
+  - brxdis:displayName (String)
+  - brxdis:productId   (String)

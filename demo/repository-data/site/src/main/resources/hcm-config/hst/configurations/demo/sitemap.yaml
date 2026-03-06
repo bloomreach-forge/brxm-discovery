@@ -1,0 +1,12 @@
+definitions:
+  config:
+    /hst:hst/hst:configurations/demo/hst:sitemap:
+      jcr:primaryType: hst:sitemap
+      /_any_:
+        jcr:primaryType: hst:sitemapitem
+        hst:componentconfigurationid: hst:pages/pagenotfound
+      /pagenotfound:
+        jcr:primaryType: hst:sitemapitem
+        hst:componentconfigurationid: hst:pages/pagenotfound
+        hst:pagetitle: Not Found Page
+        hst:refId: pagenotfound

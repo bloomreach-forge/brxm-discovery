@@ -1,0 +1,44 @@
+definitions:
+  config:
+    /hst:hst/hst:configurations/hst:default/hst:catalog/brxm-discovery-catalog:
+      jcr:primaryType: hst:containeritempackage
+      /search:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
+        hst:label: Discovery Search
+        hst:template: brxdis-search
+        hst:xtype: hst.Item
+      /category:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryComponent
+        hst:label: Discovery Category Browse
+        hst:template: brxdis-category
+        hst:xtype: hst.Item
+      /recommendations:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
+        hst:label: Discovery Recommendations
+        hst:template: brxdis-recommendations
+        hst:xtype: hst.Item
+        hst:parameternames: [document, contextProductId, contextProductPidProperty, limit]
+        hst:parametervalues: ['', '', 'brxdis:pid', '8']
+      /product-grid:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductGridComponent
+        hst:label: Discovery Product Grid
+      /facets:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryFacetComponent
+        hst:label: Discovery Facets
+      /autosuggest:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryAutosuggestComponent
+        hst:label: Discovery Autosuggest
+        hst:template: brxdis-autosuggest
+        hst:xtype: hst.Item
+      /product-detail:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent
+        hst:label: Discovery Product Detail
+        hst:template: brxdis-product-detail
+        hst:xtype: hst.Item

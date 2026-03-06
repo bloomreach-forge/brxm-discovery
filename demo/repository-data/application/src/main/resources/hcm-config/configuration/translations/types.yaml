@@ -1,0 +1,294 @@
+definitions:
+  config:
+    /hippo:configuration/hippo:translations/hippo:types/demo:bannerdocument:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Inhalt
+        demo:image: Abbildung
+        demo:link: Link
+        demo:title: Titel
+        jcr:name: Banner
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Content
+        demo:image: Image
+        demo:link: Link
+        demo:title: Title
+        jcr:name: Banner
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Contenu
+        demo:image: Image
+        demo:link: Lien
+        demo:title: Titre
+        jcr:name: Bannière
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Inhoud
+        demo:image: Afbeelding
+        demo:link: Link
+        demo:title: Titel
+        jcr:name: Banner
+    /hippo:configuration/hippo:translations/hippo:types/demo:blogpost:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:authors: Verfasser
+        demo:authors#hint: Link zu Verfasserdokument(en)
+        demo:categories: Kategorien
+        demo:content: Inhalt
+        demo:introduction: Einführung
+        demo:publicationdate: Publikationsdatum
+        demo:title: Titel
+        jcr:name: Blog-Post
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:authors: Author(s)
+        demo:authors#hint: Link to author document(s)
+        demo:categories: Categories
+        demo:content: Content
+        demo:introduction: Introduction
+        demo:publicationdate: Publication Date
+        demo:title: Title
+        jcr:name: Blog Post
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:authors: Auteur(s)
+        demo:authors#hint: Lien vers le(s) document(s) de l'auteur
+        demo:categories: Catégories
+        demo:content: Contenu
+        demo:introduction: Introduction
+        demo:publicationdate: Date de publication
+        demo:title: Titre
+        jcr:name: Post blog
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:authors: Auteur(s)
+        demo:authors#hint: Link naar auteur document(en)
+        demo:categories: Categorieën
+        demo:content: Inhoud
+        demo:introduction: Introductie
+        demo:publicationdate: Publicatiedatum
+        demo:title: Titel
+        jcr:name: Blogpost
+    /hippo:configuration/hippo:translations/hippo:types/demo:author:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:accounts: Comptes
+        demo:accounts#hint: Externe Konten soziale Medien
+        demo:content: Beschreibung
+        demo:content#hint: Informationen über den Verfasser
+        demo:fullname: Name
+        demo:fullname#hint: Vollständiger Name
+        demo:photo: Foto
+        demo:photo#hint: Foto des Verfassers
+        demo:role: Rolle
+        jcr:name: Verfasser
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:accounts: Accounts
+        demo:accounts#hint: External social media accounts
+        demo:content: Description
+        demo:content#hint: Information about the author
+        demo:fullname: Name
+        demo:fullname#hint: Full name
+        demo:photo: Photo
+        demo:photo#hint: Photo of the author
+        demo:role: Role
+        jcr:name: Author
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:accounts: Konten
+        demo:accounts#hint: Comptes médias sociaux externes
+        demo:content: Description
+        demo:content#hint: Informations sur l'auteur
+        demo:fullname: Nom
+        demo:fullname#hint: Nom complet
+        demo:photo: Photo
+        demo:photo#hint: Photo de l'auteur
+        demo:role: Rôle
+        jcr:name: Auteur
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:accounts: Accounts
+        demo:accounts#hint: Externe social media accounts
+        demo:content: Beschrijving
+        demo:content#hint: Informatie over de auteur
+        demo:fullname: Naam
+        demo:fullname#hint: Volledige naam
+        demo:photo: Foto
+        demo:photo#hint: Foto van de auteur
+        demo:role: Rol
+        jcr:name: Auteur
+    /hippo:configuration/hippo:translations/hippo:types/demo:account:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:link: Link
+        demo:link#hint: Externer Link zum Konto
+        demo:type: Art
+        jcr:name: Konto (Compound)
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:link: Link
+        demo:link#hint: External link to the account
+        demo:type: Type
+        jcr:name: Account (Compound)
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:link: Lien
+        demo:link#hint: Lien externe vers le compte
+        demo:type: Type
+        jcr:name: Compte (Compound)
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:link: Link
+        demo:link#hint: Externe link naar het account
+        demo:type: Soort
+        jcr:name: Account (Compound)
+    /hippo:configuration/hippo:translations/hippo:types/demo:eventsdocument:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Inhalt
+        demo:date: Startdatum
+        demo:enddate: Enddatum
+        demo:image: Abbildung
+        demo:introduction: Einführung
+        demo:location: Standort
+        demo:title: Titel
+        jcr:name: Event
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Content
+        demo:date: Start date
+        demo:enddate: End date
+        demo:image: Image
+        demo:introduction: Introduction
+        demo:location: Location
+        demo:title: Title
+        jcr:name: Event
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Contenu
+        demo:date: Date de début
+        demo:enddate: Date de fin
+        demo:image: Image
+        demo:introduction: Introduction
+        demo:location: Lieu
+        demo:title: Titre
+        jcr:name: Événement
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Inhoud
+        demo:date: Startdatum
+        demo:enddate: Einddatum
+        demo:image: Afbeelding
+        demo:introduction: Introductie
+        demo:location: Locatie
+        demo:title: Titel
+        jcr:name: Evenement
+    /hippo:configuration/hippo:translations/hippo:types/demo:newsdocument:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:author: Verfasser
+        demo:content: Inhalt
+        demo:date: Datum
+        demo:image: Abbildung
+        demo:introduction: Einführung
+        demo:location: Standort
+        demo:source: Quelle
+        demo:title: Titel
+        jcr:name: News
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:author: Author
+        demo:content: Content
+        demo:date: Date
+        demo:image: Image
+        demo:introduction: Introduction
+        demo:location: Location
+        demo:source: Source
+        demo:title: Title
+        jcr:name: News Item
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:author: Auteur
+        demo:content: Contenu
+        demo:date: Date
+        demo:image: Image
+        demo:introduction: Introduction
+        demo:location: Lieu
+        demo:source: Source
+        demo:title: Titre
+        jcr:name: Message d'info
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:author: Auteur
+        demo:content: Inhoud
+        demo:date: Datum
+        demo:image: Afbeelding
+        demo:introduction: Introductie
+        demo:location: Locatie
+        demo:source: Bron
+        demo:title: Titel
+        jcr:name: Nieuwsbericht
+    /hippo:configuration/hippo:translations/hippo:types/demo:contentdocument:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Inhalt
+        demo:introduction: Einführung
+        demo:publicationdate: Publikationsdatum
+        demo:title: Titel
+        jcr:name: Einfaches Dokument
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Content
+        demo:introduction: Introduction
+        demo:publicationdate: Publication date
+        demo:title: Title
+        jcr:name: Simple Document
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Contenu
+        demo:introduction: Introduction
+        demo:publicationdate: Date de publication
+        demo:title: Titre
+        jcr:name: Document simple
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:content: Inhoud
+        demo:introduction: Introductie
+        demo:publicationdate: Publicatiedatum
+        demo:title: Titel
+        jcr:name: Eenvoudig Document
+    /hippo:configuration/hippo:translations/hippo:types/demo:video:
+      jcr:primaryType: hipposys:resourcebundles
+      /de:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:description: Beschreibung
+        demo:link: Video-URL
+        demo:title: Titel
+        jcr:name: Video
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:description: Description
+        demo:link: Video URL
+        demo:title: Title
+        jcr:name: Video
+      /fr:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:description: Description
+        demo:link: URL vidéo
+        demo:title: Titre
+        jcr:name: Vidéo
+      /nl:
+        jcr:primaryType: hipposys:resourcebundle
+        demo:description: Beschrijving
+        demo:link: Video URL
+        demo:title: Titel
+        jcr:name: Video

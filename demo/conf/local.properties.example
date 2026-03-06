@@ -1,0 +1,7 @@
+brxdis.accountId=YOUR_ACCOUNT_ID
+brxdis.domainKey=YOUR_DOMAIN_KEY
+brxdis.apiKey=YOUR_API_KEY
+# Required for v2 Pathways recommendations (optional — omit to use v1 API)
+brxdis.authKey=YOUR_AUTH_KEY
+# PRODUCTION (default) or STAGING
+# brxdis.environment=PRODUCTION

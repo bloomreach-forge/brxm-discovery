@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discovery Category Picker</title>
+  <link rel="stylesheet" href="picker-field.css"/>
+</head>
+<body>
+
+<div id="field-row">
+  <div id="value-display" class="empty">No category selected</div>
+  <button id="clear-btn" class="btn btn-ghost" style="display:none">&#x2715; Clear</button>
+  <button id="browse-btn" class="btn btn-primary">Browse&hellip;</button>
+</div>
+
+<script src="ui-extension.min.js"></script>
+<script src="picker-field.js"></script>
+<script>
+  initPickerField({
+    dialogPath:  "category-picker-dialog.html",
+    dialogTitle: "Select Category",
+    placeholder: "No category selected",
+    errorLabel:  "category"
+  });
+</script>
+</body>
+</html>

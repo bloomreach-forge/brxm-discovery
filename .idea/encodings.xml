@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/cms/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/cms/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/cms-dependencies/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/cms-dependencies/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/cms/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/cms/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/essentials/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/essentials/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/application/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/application/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/development/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/development/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/site-development/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/site-development/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/site/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/site/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/webfiles/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/repository-data/webfiles/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/site/components/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/site/components/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/site/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/site/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/site/webapp/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/site/webapp/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/hcm-site/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/hcm-site/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/site/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/site/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/webfiles/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/webfiles/src/main/resources" charset="UTF-8" />
+  </component>
+</project>
