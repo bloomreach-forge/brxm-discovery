@@ -27,9 +27,6 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:templates/brxdis-product-detail:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-detail.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-autosuggest:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-autosuggest.ftl
     /hst:hst/hst:configurations/demo/hst:templates/brxdis-category-highlight:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-category-highlight.ftl

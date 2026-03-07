@@ -1,5 +1,7 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#assign resolvedProductPage><@hst.link path="/product"/></#assign>
+<#assign resolvedProductPage = resolvedProductPage?trim>
 <@hst.headContribution keyHint="brxdis-pagination-css">
 <style>
 .brxdis-pagination{display:flex;align-items:center;justify-content:center;gap:.3rem;padding:1.5rem 0;flex-wrap:wrap;font-family:system-ui,-apple-system,sans-serif}
@@ -64,14 +66,14 @@
         </div>
         <div class="brxdis-card__body">
           <h3 class="brxdis-card__title">
-            <a href="/product?pid=${product.id()!""}">${product.title()!"Untitled product"}</a>
+            <a href="${resolvedProductPage}?pid=${product.id()!""}">${product.title()!"Untitled product"}</a>
           </h3>
           <p class="brxdis-card__pid">PID:&nbsp;${product.id()!""}</p>
           <#if product.price()??>
             <p class="brxdis-card__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
           </#if>
         </div>
-        <a class="brxdis-card__cta" href="/product?pid=${product.id()!""}">View Product</a>
+        <a class="brxdis-card__cta" href="${resolvedProductPage}?pid=${product.id()!""}">View Product</a>
       </article>
     </#list>
   </div>

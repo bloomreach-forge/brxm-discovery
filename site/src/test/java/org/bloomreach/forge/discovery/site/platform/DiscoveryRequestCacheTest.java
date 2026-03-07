@@ -161,4 +161,5 @@ class DiscoveryRequestCacheTest {
         assertTrue(DiscoveryRequestCache.isSearchBandPresent(request, "default"));
         assertTrue(DiscoveryRequestCache.getSearchResult(request, "default").isEmpty());
     }
+
 }

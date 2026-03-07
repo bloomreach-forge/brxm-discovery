@@ -320,6 +320,7 @@ class DiscoveryClientTest {
                 && path.contains("domain_key=myDomain")
                 && path.contains("request_type=suggest")
                 && path.contains("q=shi")
+                && path.contains("catalog_views=myDomain")
         ), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toAutosuggestResult(resource)).thenReturn(expected);
 

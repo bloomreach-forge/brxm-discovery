@@ -167,16 +167,11 @@ public class HstDiscoveryService {
     // ── Autosuggest (real-time, no caching, no pixels) ────────────────────────
 
     public AutosuggestResult autosuggest(HstRequest request, String query, int limit) {
-        return autosuggest(request, query, limit, null);
-    }
-
-    public AutosuggestResult autosuggest(HstRequest request, String query, int limit,
-                                          String catalogViews) {
         DiscoveryConfig config = configFor(request.getRequestContext());
         String brUid2 = cookieValue(request, "_br_uid_2");
         String url = pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
-        AutosuggestQuery suggestQuery = new AutosuggestQuery(query, limit, catalogViews,
+        AutosuggestQuery suggestQuery = new AutosuggestQuery(query, limit, null,
                 brUid2, refUrl, url);
         return client.autosuggest(suggestQuery, config);
     }

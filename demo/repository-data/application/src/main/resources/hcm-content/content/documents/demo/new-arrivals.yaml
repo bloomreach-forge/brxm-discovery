@@ -1,0 +1,45 @@
+/content/documents/demo/new-arrivals:
+  .meta:order-before: homepage-recommendations
+  jcr:primaryType: hippo:handle
+  jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
+  jcr:uuid: c9d0e1f2-a3b4-5678-cdef-789012345678
+  hippo:versionHistory: 6fb4c4f8-88e9-4dae-bb32-6c65dcc7086a
+  /new-arrivals[1]:
+    jcr:primaryType: brxdis:categoryDocument
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: d0e1f2a3-b4c5-6789-defa-890123456789
+    brxdis:categoryId: ''
+    brxdis:displayName: New Arrivals
+    hippo:availability: [live]
+    hippostd:state: published
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+    hippostdpubwf:lastModifiedBy: ''
+  /new-arrivals[2]:
+    jcr:primaryType: brxdis:categoryDocument
+    jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
+    jcr:uuid: 7a539c64-e087-4d83-93ea-49b5ce6ed162
+    brxdis:categoryId: '117417'
+    brxdis:displayName: New Arrivals
+    hippo:availability: [preview]
+    hippostd:retainable: false
+    hippostd:state: unpublished
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2026-03-07T13:36:32.274Z
+    hippostdpubwf:lastModifiedBy: admin
+  /new-arrivals[3]:
+    jcr:primaryType: brxdis:categoryDocument
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: 89c33861-f0e9-4df5-bc50-b2e06717b195
+    brxdis:categoryId: '117417'
+    brxdis:displayName: New Arrivals
+    hippo:availability: []
+    hippostd:retainable: false
+    hippostd:state: draft
+    hippostd:transferable: false
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2026-03-07T13:36:32.310Z
+    hippostdpubwf:lastModifiedBy: admin

@@ -44,13 +44,19 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     protected void warnIfMissingDataSource(HstRequest request, boolean resultEmpty,
                                             boolean isCategory, String band) {
+        String source = isCategory ? "category" : "search";
+        warnIfMissingDataSource(request, resultEmpty, source, band);
+    }
+
+    protected void warnIfMissingDataSource(HstRequest request, boolean resultEmpty,
+                                            String dataSource, String band) {
         if (!resultEmpty) return;
         HstRequestContext ctx = request.getRequestContext();
         if (ctx != null && ctx.isChannelManagerPreviewRequest()) {
-            String source = isCategory ? "Category" : "Search";
+            String capitalized = Character.toUpperCase(dataSource.charAt(0)) + dataSource.substring(1);
             request.setAttribute("brxdis_warning",
-                    "No " + source.toLowerCase() + " data for band '" + band + "'. " +
-                    "Add a Discovery" + source + "Component with bandName='" + band + "' to this page.");
+                    "No " + dataSource + " data for band '" + band + "'. " +
+                    "Add a Discovery" + capitalized + "Component with bandName='" + band + "' to this page.");
         }
     }
 

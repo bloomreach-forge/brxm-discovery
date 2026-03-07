@@ -362,18 +362,6 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
-    void autosuggest_withCatalogViews_passesThroughToQuery() {
-        var expected = new AutosuggestResult("shi", List.of(), List.of(), List.of());
-        when(client.autosuggest(any(AutosuggestQuery.class), eq(validConfig))).thenReturn(expected);
-
-        service.autosuggest(request, "shi", 8, "store:products_en");
-
-        ArgumentCaptor<AutosuggestQuery> captor = ArgumentCaptor.forClass(AutosuggestQuery.class);
-        verify(client).autosuggest(captor.capture(), any());
-        assertEquals("store:products_en", captor.getValue().catalogViews());
-    }
-
-    @Test
     void autosuggest_noCaching_alwaysCallsClient() {
         var expected = new AutosuggestResult("shi", List.of(), List.of(), List.of());
         when(client.autosuggest(any(AutosuggestQuery.class), eq(validConfig))).thenReturn(expected);

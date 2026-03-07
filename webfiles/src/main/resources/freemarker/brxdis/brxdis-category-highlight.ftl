@@ -1,5 +1,7 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#assign resolvedCategoryPage><@hst.link path="/category"/></#assign>
+<#assign resolvedCategoryPage = resolvedCategoryPage?trim>
 <@hst.headContribution keyHint="brxdis-cathighlight-css">
 <style>
 .brxdis-cathighlight{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0}
@@ -28,7 +30,7 @@
     <div class="brxdis-cathighlight__grid">
       <#list categories as cat>
         <a class="brxdis-cathighlight__tile"
-           href="/category?cat_id=${cat.categoryId!""}"
+           href="${resolvedCategoryPage}?cat_id=${cat.categoryId!""}"
            aria-label="${cat.displayName!"Category"}">
           <span class="brxdis-cathighlight__icon">&#128722;</span>
           <span class="brxdis-cathighlight__name">${cat.displayName!"Unnamed"}</span>

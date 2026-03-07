@@ -3,6 +3,7 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 
 import org.hippoecm.hst.core.component.HstComponentException;
@@ -28,28 +29,42 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
         // false "missing data source" warning just because no query has been typed yet.
         DiscoveryRequestCache.markSearchBandPresent(request, band);
 
+        String query = getPublicRequestParameter(request, "q");
+        query = (query != null) ? query.trim() : "";
+
+        boolean suggestOnlyMode = "1".equals(getPublicRequestParameter(request, "brxdis_suggest"));
+
+        // Config models — always set so FTL can render form/input correctly regardless of query
         setModelAndAttribute(request, "dataBand", band);
+        setModelAndAttribute(request, "suggestionsEnabled", info.isSuggestionsEnabled());
+        setModelAndAttribute(request, "resultsPage", info.getResultsPage());
+        setModelAndAttribute(request, "minChars", info.getMinChars());
+        setModelAndAttribute(request, "debounceMs", info.getDebounceMs());
+        setModelAndAttribute(request, "placeholder", info.getPlaceholder());
+        setModelAndAttribute(request, "query", query);
+        setModelAndAttribute(request, "suggestOnlyMode", suggestOnlyMode);
 
-        String searchTerm = getPublicRequestParameter(request, "q");
-        if (searchTerm != null) {
-            searchTerm = searchTerm.trim();
-        }
-
-        if (searchTerm == null || searchTerm.isBlank()) {
-            setModelAndAttribute(request, "query", "");
+        if (query.isBlank()) {
             request.setModel("searchResult", null);
+            setModelAndAttribute(request, "autosuggestResult", null);
             return;
         }
 
         HstDiscoveryService svc = getDiscoveryService();
-        String catalogName = info.getCatalogName();
-        SearchResult result = svc.search(request, info.getPageSize(), info.getDefaultSort(),
-                (catalogName != null && !catalogName.isBlank()) ? catalogName : null, band);
 
-        setModelAndAttribute(request, "query", searchTerm);
-        setModelAndAttribute(request, "searchResult", result);
+        if (!suggestOnlyMode) {
+            String catalogName = info.getCatalogName();
+            SearchResult result = svc.search(request, info.getPageSize(), info.getDefaultSort(),
+                    (catalogName != null && !catalogName.isBlank()) ? catalogName : null, band);
+            setModelAndAttribute(request, "searchResult", result);
+            log.debug("Discovery search '{}' → {} results (page {})", query, result.total(), result.page());
+        }
 
-        log.debug("Discovery search '{}' → {} results (page {})",
-                searchTerm, result.total(), result.page());
+        if (info.isSuggestionsEnabled()) {
+            AutosuggestResult suggestions = svc.autosuggest(request, query, info.getSuggestionsLimit());
+            setModelAndAttribute(request, "autosuggestResult", suggestions);
+        } else {
+            setModelAndAttribute(request, "autosuggestResult", null);
+        }
     }
 }

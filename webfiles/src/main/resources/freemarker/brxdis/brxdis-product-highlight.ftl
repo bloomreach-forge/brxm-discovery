@@ -1,5 +1,7 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#assign resolvedProductPage><@hst.link path="/product"/></#assign>
+<#assign resolvedProductPage = resolvedProductPage?trim>
 <@hst.headContribution keyHint="brxdis-prodhighlight-css">
 <style>
 .brxdis-prodhighlight{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0}
@@ -66,7 +68,7 @@
                 <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
               </#if>
               <h3 class="brxdis-prodhighlight__name">
-                <a href="${product.url()!"/product?pid=${product.id()}"}">${product.title()!"Untitled"}</a>
+                <a href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">${product.title()!"Untitled"}</a>
               </h3>
               <#if product.attributes()["description"]??>
                 <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
@@ -76,7 +78,7 @@
               </#if>
             </div>
             <a class="brxdis-prodhighlight__cta"
-               href="${product.url()!"/product?pid=${product.id()}"}">View Product</a>
+               href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">View Product</a>
           </article>
         <#else>
           <div class="brxdis-prodhighlight__slot">&#43; Product ${slotNum}</div>
@@ -104,7 +106,7 @@
                   <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
                 </#if>
                 <h3 class="brxdis-prodhighlight__name">
-                  <a href="${product.url()!"/product?pid=${product.id()}"}">${product.title()!"Untitled"}</a>
+                  <a href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">${product.title()!"Untitled"}</a>
                 </h3>
                 <#if product.attributes()["description"]??>
                   <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
@@ -114,7 +116,7 @@
                 </#if>
               </div>
               <a class="brxdis-prodhighlight__cta"
-                 href="${product.url()!"/product?pid=${product.id()}"}">View Product</a>
+                 href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">View Product</a>
             </article>
           </#if>
         </#list>

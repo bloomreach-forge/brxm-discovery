@@ -21,14 +21,16 @@ definitions:
           jcr:primaryType: hst:containercomponent
           hst:xtype: hst.vBox
           hippo:identifier: 4a28171f-5b6e-41f2-97a5-c46af22aed06
-          hst:lastmodified: 2026-03-06T20:42:52.620Z
+          hst:lastmodified: 2026-03-07T13:34:42.683Z
           /search:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
             hst:label: Discovery Search
-            hst:parameternames: [catalogName, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
-              pageSize, bandName, defaultSort]
-            hst:parametervalues: ['', 'off', '12', sidebar, '']
+            hst:parameternames: [catalogName, resultsPage, debounceMs, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              suggestionsLimit, suggestionsEnabled, pageSize, bandName, defaultSort,
+              placeholder, minChars]
+            hst:parametervalues: ['', '', '250', 'off', '5', 'on', '12', sidebar,
+              '', Search..., '2']
             hst:template: brxdis-search
             hst:xtype: hst.Item
           /product-grid:
@@ -104,10 +106,15 @@ definitions:
           jcr:primaryType: hst:containercomponent
           hst:xtype: hst.vBox
           hippo:identifier: 02237295-ba42-4178-8f10-6c843dc9cb8c
-          /autosuggest:
+          hst:lastmodified: 2026-03-07T10:52:43.565Z
+          /search-bar:
             jcr:primaryType: hst:containeritemcomponent
-            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryAutosuggestComponent
-            hst:template: brxdis-autosuggest
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
+            hst:label: Discovery Search Bar
+            hst:parameternames: [resultsPage, debounceMs, suggestionsLimit, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              suggestionsEnabled, placeholder, minChars]
+            hst:parametervalues: [/search, '250', '5', 'off', 'on', Search..., '2']
+            hst:template: brxdis-search
             hst:xtype: hst.Item
       /product-detail-page:
         jcr:primaryType: hst:component

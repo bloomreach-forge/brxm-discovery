@@ -8,8 +8,11 @@ definitions:
         hst:label: Discovery Search
         hst:template: brxdis-search
         hst:xtype: hst.Item
-        hst:parameternames: [bandName]
-        hst:parametervalues: ['default']
+        hst:parameternames: [bandName, pageSize, defaultSort, catalogName,
+                              placeholder, resultsPage,
+                              suggestionsEnabled, suggestionsLimit, minChars, debounceMs]
+        hst:parametervalues: ['default', '12', '', '', 'Search...', '',
+                               'true', '5', '2', '250']
       /category:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryComponent
@@ -42,12 +45,6 @@ definitions:
         hst:xtype: hst.Item
         hst:parameternames: [dataSource, bandName]
         hst:parametervalues: ['search', 'default']
-      /autosuggest:
-        jcr:primaryType: hst:containeritemcomponent
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryAutosuggestComponent
-        hst:label: Discovery Autosuggest
-        hst:template: brxdis-autosuggest
-        hst:xtype: hst.Item
       /product-detail:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent

@@ -233,9 +233,9 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         sb.append("&request_type=suggest");
         sb.append("&q=").append(query.query() != null ? query.query() : "");
         sb.append("&request_id=").append(java.util.UUID.randomUUID());
-        if (query.catalogViews() != null && !query.catalogViews().isBlank()) {
-            sb.append("&catalog_views=").append(query.catalogViews());
-        }
+        String catalogViews = (query.catalogViews() != null && !query.catalogViews().isBlank())
+                ? query.catalogViews() : config.domainKey();
+        sb.append("&catalog_views=").append(catalogViews);
         appendTracking(sb, query.brUid2(), query.refUrl(), query.url());
         return sb.toString();
     }
