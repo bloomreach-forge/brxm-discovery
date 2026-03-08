@@ -14,3 +14,6 @@ definitions:
       /pagenotfound-main:
         jcr:primaryType: hst:template
         hst:renderpath: webfile:/freemarker/demo/pagenotfound-main.ftl
+      /search-layout:
+        jcr:primaryType: hst:template
+        hst:renderpath: webfile:/freemarker/demo/search-layout.ftl

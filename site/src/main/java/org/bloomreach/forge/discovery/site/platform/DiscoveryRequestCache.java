@@ -80,6 +80,27 @@ public final class DiscoveryRequestCache {
         putCategoryResult(request, "default", result);
     }
 
+    // ── Product detail band ───────────────────────────────────────────────────
+    //
+    // PDP components write the resolved product to a named band so downstream
+    // recommendation components can read the PID without needing a URL param.
+
+    public static void putProductResult(HstRequest request, String band, ProductSummary product) {
+        ctx(request).setAttribute(ATTR + ".productDetailResult." + band, product);
+    }
+
+    public static Optional<ProductSummary> getProductResult(HstRequest request, String band) {
+        return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productDetailResult." + band));
+    }
+
+    public static void markProductDetailBandPresent(HstRequest request, String band) {
+        ctx(request).setAttribute(ATTR + ".band.productDetail." + band, Boolean.TRUE);
+    }
+
+    public static boolean isProductDetailBandPresent(HstRequest request, String band) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".band.productDetail." + band));
+    }
+
     @SuppressWarnings("unchecked")
     public static Optional<List<ProductSummary>> getRecommendations(HstRequest request, String widgetId) {
         return Optional.ofNullable((List<ProductSummary>) ctx(request).getAttribute(ATTR + ".recs." + widgetId));

@@ -4,7 +4,9 @@ import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.hippoecm.hst.component.support.bean.BaseHstComponent;
 import org.hippoecm.hst.configuration.components.HstComponentConfiguration;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
+import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
+import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.hippoecm.hst.site.HstServices;
 
@@ -13,6 +15,17 @@ import org.hippoecm.hst.site.HstServices;
  * Provides typed service lookup, bean path resolution, and int-parsing utilities.
  */
 public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
+
+    /**
+     * Sets {@code editMode} on the FTL model once, before every component renders.
+     * All brxdis templates use {@code (editMode!false)} so this guarantees a non-null
+     * value without any per-component boilerplate.
+     */
+    @Override
+    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
+        super.doBeforeRender(request, response);
+        setModelAndAttribute(request, "editMode", isEditMode(request));
+    }
 
     protected <T> T lookupService(Class<T> type) {
         return type.cast(HstServices.getComponentManager().getComponent(type.getName()));

@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryRecommendationComponentInfo;
+import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -12,7 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -28,17 +31,32 @@ class DiscoveryRecommendationComponentTest {
     @Mock HstDiscoveryService discoveryService;
     @Mock HstRequestContext requestContext;
 
+    private final Map<String, Object> attrs = new HashMap<>();
+
     @BeforeEach
     void setUp() {
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
         lenient().when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
         lenient().when(requestContext.getContentBean()).thenReturn(null);
+        lenient().doAnswer(inv -> attrs.get((String) inv.getArgument(0)))
+                .when(requestContext).getAttribute(anyString());
+        lenient().doAnswer(inv -> {
+            attrs.put((String) inv.getArgument(0), inv.getArgument(1));
+            return null;
+        }).when(requestContext).setAttribute(anyString(), any());
     }
 
     private TestableRecommendationComponent componentWith(String widgetId,
                                                            int componentLimit, String limitParam) {
         return new TestableRecommendationComponent(discoveryService, widgetId,
-                componentLimit, limitParam);
+                componentLimit, limitParam, "standalone", "default");
+    }
+
+    private TestableRecommendationComponent componentWith(String widgetId, int componentLimit,
+                                                           String limitParam,
+                                                           String dataSource, String band) {
+        return new TestableRecommendationComponent(discoveryService, widgetId,
+                componentLimit, limitParam, dataSource, band);
     }
 
     // ── limit: component default vs URL override ────────────────────────────
@@ -99,6 +117,65 @@ class DiscoveryRecommendationComponentTest {
         assertEquals("url-widget", result);
     }
 
+    // ── productDetailBand mode ───────────────────────────────────────────────
+
+    @Test
+    void productDetailBand_mode_readsPidFromCachedProduct() {
+        ProductSummary cached = new ProductSummary("p-from-pdp", "T", null, null, null, null, Map.of());
+        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
+        DiscoveryRequestCache.putProductResult(request, "default", cached);
+        when(discoveryService.recommend(eq(request), eq("w-1"), any(), eq("p-from-pdp"),
+                any(), anyInt(), any(), any())).thenReturn(List.of());
+
+        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+
+        verify(discoveryService).recommend(eq(request), eq("w-1"), any(), eq("p-from-pdp"),
+                any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void productDetailBand_mode_bandAbsent_returnsEmpty_live() {
+        // band not marked → not edit mode → empty products, no warning
+        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
+        verify(request).setModel("products", List.of());
+        verify(request, never()).setAttribute(eq("brxdis_warning"), any());
+    }
+
+    @Test
+    void productDetailBand_mode_bandAbsent_setsWarning_inEditMode() {
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+
+        componentWith("w-1", 8, null, "productDetailBand", "my-band").doBeforeRender(request, response);
+
+        verify(request).setAttribute(eq("brxdis_warning"), argThat(msg ->
+                msg.toString().contains("my-band")));
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void productDetailBand_mode_bandPresentNoProduct_returnsEmpty() {
+        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
+        // No putProductResult → cache empty
+
+        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
+        verify(request).setModel("products", List.of());
+    }
+
+    @Test
+    void productDetailBand_mode_bandPresentNoProduct_setsWarning_inEditMode() {
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
+
+        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+
+        verify(request).setAttribute(eq("brxdis_warning"), any());
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
+    }
+
     // ── testable subclass ───────────────────────────────────────────────────
 
     private static class TestableRecommendationComponent extends DiscoveryRecommendationComponent {
@@ -107,13 +184,18 @@ class DiscoveryRecommendationComponentTest {
         private final String widgetId;
         private final int componentLimit;
         private final String limitParam;
+        private final String dataSource;
+        private final String band;
 
         TestableRecommendationComponent(HstDiscoveryService service, String widgetId,
-                                         int componentLimit, String limitParam) {
+                                         int componentLimit, String limitParam,
+                                         String dataSource, String band) {
             this.service = service;
             this.widgetId = widgetId;
             this.componentLimit = componentLimit;
             this.limitParam = limitParam;
+            this.dataSource = dataSource;
+            this.band = band;
         }
 
         @Override
@@ -131,6 +213,8 @@ class DiscoveryRecommendationComponentTest {
                 @Override public int getLimit() { return componentLimit; }
                 @Override public boolean isShowPrice() { return true; }
                 @Override public boolean isShowDescription() { return false; }
+                @Override public String getDataSource() { return dataSource; }
+                @Override public String getBand() { return band; }
             };
         }
 

@@ -7,7 +7,7 @@ import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
     @FieldGroup(value = {"document", "contextProductId", "contextProductPidProperty", "limit",
-                         "showPrice", "showDescription"},
+                         "showPrice", "showDescription", "dataSource", "band"},
                 titleKey = "recommendation.group")
 })
 public interface DiscoveryRecommendationComponentInfo {
@@ -39,4 +39,12 @@ public interface DiscoveryRecommendationComponentInfo {
 
     @Parameter(name = "showDescription", displayName = "Show description", defaultValue = "false")
     boolean isShowDescription();
+
+    @Parameter(name = "dataSource",
+               displayName = "PID data source (standalone or productDetailBand)",
+               defaultValue = "standalone")
+    String getDataSource();
+
+    @Parameter(name = "band", displayName = "Product band name", defaultValue = "default")
+    String getBand();
 }

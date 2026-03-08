@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetailComponentInfo;
+import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
@@ -25,6 +26,8 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         super.doBeforeRender(request, response);
 
         DiscoveryProductDetailComponentInfo info = getComponentParametersInfo(request);
+        String band = info.getBand();
+
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
                 DiscoveryProductDetailBean.class);
         setModelAndAttribute(request, "document", document);
@@ -42,6 +45,8 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         }
 
         if (pid == null || pid.isBlank()) {
+            // Mark band present so downstream components know PDP ran (just no PID resolved)
+            DiscoveryRequestCache.markProductDetailBandPresent(request, band);
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
                     "No product ID resolved. Select a 'Product Detail Document' in component properties, " +
@@ -58,7 +63,13 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         ProductSummary product = found.orElse(null);
         setModelAndAttribute(request, "product", product);
 
-        log.debug("PDP pid='{}' product={}", pid, product != null ? product.id() : "null");
+        DiscoveryRequestCache.markProductDetailBandPresent(request, band);
+        if (product != null) {
+            DiscoveryRequestCache.putProductResult(request, band, product);
+        }
+        setModelAndAttribute(request, "dataBand", band);
+
+        log.debug("PDP pid='{}' product={} band='{}'", pid, product != null ? product.id() : "null", band);
     }
 
     /**

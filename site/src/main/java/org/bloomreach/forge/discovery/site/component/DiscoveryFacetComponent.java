@@ -37,12 +37,10 @@ public class DiscoveryFacetComponent extends AbstractDiscoveryComponent {
                     : DiscoverySearchComponent.class;
             bandConnected = isBandConfiguredOnPage(request, band, dataComponentClass);
         }
-        boolean editMode = isEditMode(request);
         warnIfMissingDataSource(request, !bandConnected, isCategory, band);
         Map<?, ?> facets = result.map(SearchResult::facets).orElse(Map.of());
         setModelAndAttribute(request, "facets", facets);
         setModelAndAttribute(request, "dataBand", band);
         setModelAndAttribute(request, "bandConnected", bandConnected);
-        setModelAndAttribute(request, "editMode", editMode);
     }
 }

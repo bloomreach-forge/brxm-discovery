@@ -11,12 +11,6 @@
 </style>
 </@hst.headContribution>
 
-<#if document??>
-  <@hst.manageContent hippobean=document parameterName="document" rootPath="brxm-discovery" defaultPath="brxm-discovery"/>
-<#else>
-  <@hst.manageContent parameterName="document" rootPath="brxm-discovery" defaultPath="brxm-discovery"/>
-</#if>
-
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
 <#-- @ftlvariable name="dataBand" type="java.lang.String" -->
 <#if editMode?? && editMode && dataBand?has_content && dataBand != "default">
@@ -29,6 +23,11 @@
   <#assign end = ((categoryResult.page() + 1) * categoryResult.pageSize())>
   <#if end gt categoryResult.total()><#assign end = categoryResult.total()></#if>
   <div class="brxdis-cat">
+    <#if document??>
+      <@hst.manageContent hippobean=document parameterName="document" rootPath="brxm-discovery"/>
+    <#else>
+      <@hst.manageContent parameterName="document" rootPath="brxm-discovery"/>
+    </#if>
     <div class="brxdis-cat__header">
       <h1 class="brxdis-cat__title">${categoryId!""}</h1>
       <p class="brxdis-cat__meta">
@@ -38,5 +37,8 @@
     </div>
   </div>
 <#elseif editMode?? && editMode>
-  <div class="brxdis-empty">&#128736; <strong>Discovery Category</strong> &mdash; select a Category Document in component properties.</div>
+  <div class="brxdis-empty">
+    <@hst.manageContent parameterName="document" rootPath="brxm-discovery"/>
+    &#128736; <strong>Discovery Category</strong> &mdash; select a Category Document in component properties.
+  </div>
 </#if>

@@ -38,7 +38,7 @@
       </#list>
     </div>
   <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-  <#elseif editMode>
+  <#elseif (editMode!false)>
     <div class="brxdis-cathighlight__empty">&#128736; Select <strong>Category Documents</strong> in component properties to show category tiles.</div>
   <#else>
     <div class="brxdis-cathighlight__empty">No categories available.</div>

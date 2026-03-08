@@ -6,7 +6,7 @@ import org.hippoecm.hst.core.parameters.JcrPath;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"document", "productPidProperty", "productUrlParam"},
+    @FieldGroup(value = {"document", "productPidProperty", "productUrlParam", "band"},
                 titleKey = "pdp.group")
 })
 public interface DiscoveryProductDetailComponentInfo {
@@ -27,5 +27,8 @@ public interface DiscoveryProductDetailComponentInfo {
 
     @Parameter(name = "productUrlParam", displayName = "URL parameter name", defaultValue = "pid")
     String getProductUrlParam();
+
+    @Parameter(name = "band", displayName = "Product band name", defaultValue = "default")
+    String getBand();
 
 }

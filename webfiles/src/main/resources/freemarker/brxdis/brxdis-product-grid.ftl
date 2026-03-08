@@ -14,6 +14,10 @@
 </@hst.headContribution>
 <@hst.headContribution keyHint="brxdis-product-grid-css">
 <style>
+.brxdis-grid-main{min-width:0}
+.brxdis-grid-header{display:flex;align-items:center;padding:.5rem 0 .75rem;border-bottom:1px solid #e5e7eb;margin-bottom:.25rem;font-family:system-ui,-apple-system,sans-serif}
+.brxdis-grid-header__count{font-size:.875rem;color:#6b7280}
+.brxdis-grid-header__count strong{color:#111827;font-weight:600}
 .brxdis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1.25rem;padding:1rem 0;font-family:system-ui,-apple-system,sans-serif}
 .brxdis-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s}
 .brxdis-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.1);transform:translateY(-3px)}
@@ -32,6 +36,7 @@
 </style>
 </@hst.headContribution>
 
+<div class="brxdis-grid-main">
 <#if brxdis_warning??>
   <div style="border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem">
     &#9888;&nbsp;<strong>Warning:</strong> ${brxdis_warning}
@@ -52,6 +57,13 @@
       Band: <strong>${_band}</strong>
     </div>
   </#if>
+</#if>
+<#if pagination?? && (pagination.total() gt 0)>
+  <div class="brxdis-grid-header">
+    <span class="brxdis-grid-header__count">
+      <strong>${pagination.total()}</strong> result<#if pagination.total() != 1>s</#if>
+    </span>
+  </div>
 </#if>
 <#if products?has_content>
   <div class="brxdis-grid">
@@ -77,7 +89,7 @@
       </article>
     </#list>
   </div>
-<#elseif editMode>
+<#elseif (editMode!false)>
   <#if bandConnected?? && bandConnected>
     <div class="brxdis-empty">&#128270; <strong>Product Grid</strong> &mdash; connected to band <strong>${dataBand!"default"}</strong>. Products will appear here once a search query or category is active.</div>
   <#else>
@@ -133,8 +145,9 @@
     </#if>
 
   </nav>
-<#elseif editMode && pagination?? && (pagination.totalPages() lte 1)>
+<#elseif (editMode!false) && pagination?? && (pagination.totalPages() lte 1)>
   <div style="border:2px dashed #e5e7eb;padding:.75rem 1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center">
     &#128736; <strong>Pagination</strong> &mdash; page controls will appear here when results span multiple pages.
   </div>
 </#if>
+</div>

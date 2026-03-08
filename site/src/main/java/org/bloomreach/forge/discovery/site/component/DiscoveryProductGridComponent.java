@@ -49,11 +49,9 @@ public class DiscoveryProductGridComponent extends AbstractDiscoveryComponent {
                 .map(r -> new PaginationModel(r.total(), r.page(), r.pageSize()))
                 .orElse(new PaginationModel(0L, 0, 0));
 
-        boolean editMode = isEditMode(request);
         setModelAndAttribute(request, "products", products);
         setModelAndAttribute(request, "dataBand", band);
         setModelAndAttribute(request, "bandConnected", bandConnected);
-        setModelAndAttribute(request, "editMode", editMode);
         setModelAndAttribute(request, "pagination", pagination);
     }
 }

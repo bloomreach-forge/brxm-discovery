@@ -2,19 +2,24 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetailComponentInfo;
+import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
+import org.hippoecm.hst.core.request.HstRequestContext;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -24,6 +29,21 @@ class DiscoveryProductDetailComponentTest {
     @Mock HstRequest request;
     @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
+    @Mock HstRequestContext requestContext;
+
+    private final Map<String, Object> attrs = new HashMap<>();
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(request.getRequestContext()).thenReturn(requestContext);
+        lenient().doAnswer(inv -> attrs.get((String) inv.getArgument(0)))
+                .when(requestContext).getAttribute(anyString());
+        lenient().doAnswer(inv -> {
+            attrs.put((String) inv.getArgument(0), inv.getArgument(1));
+            return null;
+        }).when(requestContext).setAttribute(anyString(), any());
+        lenient().when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
+    }
 
     /** No document, no bean resolution. */
     private TestableProductDetailComponent component(String urlPid) {
@@ -155,6 +175,50 @@ class DiscoveryProductDetailComponentTest {
 
     // ── testable subclass ─────────────────────────────────────────────────────
 
+    // ── band publication: marksBandPresent_whenProductFound ──────────────────
+
+    @Test
+    void marksBandPresent_whenProductFound() {
+        ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
+        when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
+
+        component("p-1").doBeforeRender(request, response);
+
+        assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
+    }
+
+    @Test
+    void marksBandPresent_whenProductNotFound() {
+        when(discoveryService.fetchProduct(eq(request), eq("p-99"))).thenReturn(Optional.empty());
+
+        component("p-99").doBeforeRender(request, response);
+
+        assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
+    }
+
+    @Test
+    void putsToCacheWhenProductFound() {
+        ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
+        when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
+
+        component("p-1").doBeforeRender(request, response);
+
+        Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, "default");
+        assertTrue(cached.isPresent());
+        assertSame(product, cached.get());
+    }
+
+    @Test
+    void doesNotPutToCache_whenProductNotFound() {
+        when(discoveryService.fetchProduct(eq(request), eq("p-99"))).thenReturn(Optional.empty());
+
+        component("p-99").doBeforeRender(request, response);
+
+        assertTrue(DiscoveryRequestCache.getProductResult(request, "default").isEmpty());
+    }
+
+    // ── testable subclass ─────────────────────────────────────────────────────
+
     private static class TestableProductDetailComponent extends DiscoveryProductDetailComponent {
 
         private final HstDiscoveryService service;
@@ -187,6 +251,7 @@ class DiscoveryProductDetailComponentTest {
                 @Override public String getDocument() { return documentPid != null ? "test-doc" : ""; }
                 @Override public String getProductPidProperty() { return pidProperty; }
                 @Override public String getProductUrlParam() { return productUrlParam; }
+                @Override public String getBand() { return "default"; }
             };
         }
 

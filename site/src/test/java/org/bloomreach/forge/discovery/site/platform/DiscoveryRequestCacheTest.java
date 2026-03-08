@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -160,6 +161,55 @@ class DiscoveryRequestCacheTest {
         DiscoveryRequestCache.markSearchBandPresent(request, "default");
         assertTrue(DiscoveryRequestCache.isSearchBandPresent(request, "default"));
         assertTrue(DiscoveryRequestCache.getSearchResult(request, "default").isEmpty());
+    }
+
+    // ── product detail band ──────────────────────────────────────────────────
+
+    private final ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
+
+    @Test
+    void isProductDetailBandPresent_returnsFalse_beforeMark() {
+        assertFalse(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
+    }
+
+    @Test
+    void markProductDetailBandPresent_roundTrips() {
+        DiscoveryRequestCache.markProductDetailBandPresent(request, "pdp-band");
+        assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "pdp-band"));
+    }
+
+    @Test
+    void putAndGet_productResult_withNamedBand_roundTrips() {
+        DiscoveryRequestCache.putProductResult(request, "pdp-band", product);
+        Optional<ProductSummary> got = DiscoveryRequestCache.getProductResult(request, "pdp-band");
+        assertTrue(got.isPresent());
+        assertSame(product, got.get());
+    }
+
+    @Test
+    void productDetailBands_areIndependent() {
+        ProductSummary p2 = new ProductSummary("p-2", "U", null, null, null, null, Map.of());
+        DiscoveryRequestCache.putProductResult(request, "band-a", product);
+        DiscoveryRequestCache.putProductResult(request, "band-b", p2);
+
+        assertSame(product, DiscoveryRequestCache.getProductResult(request, "band-a").orElseThrow());
+        assertSame(p2,      DiscoveryRequestCache.getProductResult(request, "band-b").orElseThrow());
+        assertTrue(DiscoveryRequestCache.getProductResult(request, "other").isEmpty());
+    }
+
+    @Test
+    void productDetailMarker_doesNotLeakToSearchOrCategory() {
+        DiscoveryRequestCache.markProductDetailBandPresent(request, "shared");
+        assertFalse(DiscoveryRequestCache.isSearchBandPresent(request, "shared"));
+        assertFalse(DiscoveryRequestCache.isCategoryBandPresent(request, "shared"));
+    }
+
+    @Test
+    void productDetailBandMarker_independentOfResultCache() {
+        // Marker present, no result → valid state (PDP ran, but no product found)
+        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
+        assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
+        assertTrue(DiscoveryRequestCache.getProductResult(request, "default").isEmpty());
     }
 
 }

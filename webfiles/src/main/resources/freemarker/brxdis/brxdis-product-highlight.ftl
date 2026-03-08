@@ -46,42 +46,51 @@
     <div class="brxdis-prodhighlight__grid" role="list">
       <#list products as product>
         <#assign slotNum = product?index + 1>
-        <#assign bean = productBeans[product?index]>
-        <#if bean??>
-          <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
-              rootPath="brxdis/products" defaultPath="brxdis/products"/>
-        <#else>
-          <@hst.manageContent parameterName="document${slotNum}"
-              rootPath="brxdis/products" defaultPath="brxdis/products"/>
-        </#if>
+        <#assign bean = (productBeans[product?index])!>
         <#if product??>
+          <#assign prodImageUrl = product.imageUrl()!>
+          <#assign prodTitle = product.title()!"">
+          <#assign prodAttrs = product.attributes()!{}>
+          <#assign prodPrice = product.price()>
+          <#assign _rawUrl = product.url()!>
+          <#assign prodUrl = _rawUrl?has_content?then(_rawUrl, resolvedProductPage + '?pid=' + (product.id()!''))>
           <article class="brxdis-prodhighlight__card" role="listitem">
+            <#if bean??>
+              <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
+                  rootPath="brxdis/products"/>
+            <#else>
+              <@hst.manageContent parameterName="document${slotNum}"
+                  rootPath="brxdis/products"/>
+            </#if>
             <div class="brxdis-prodhighlight__img">
-              <#if product.imageUrl()?has_content>
-                <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
+              <#if prodImageUrl?has_content>
+                <img src="${prodImageUrl}" alt="${prodTitle}"/>
               <#else>
                 <div class="brxdis-prodhighlight__placeholder">&#127873;</div>
               </#if>
             </div>
             <div class="brxdis-prodhighlight__body">
-              <#if product.attributes()["brand"]??>
-                <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
+              <#if prodAttrs["brand"]??>
+                <p class="brxdis-prodhighlight__brand">${prodAttrs["brand"]}</p>
               </#if>
               <h3 class="brxdis-prodhighlight__name">
-                <a href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">${product.title()!"Untitled"}</a>
+                <a href="${prodUrl}">${prodTitle?has_content?then(prodTitle, "Untitled")}</a>
               </h3>
-              <#if product.attributes()["description"]??>
-                <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
+              <#if prodAttrs["description"]??>
+                <p class="brxdis-prodhighlight__desc">${prodAttrs["description"]}</p>
               </#if>
-              <#if product.price()??>
-                <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
+              <#if prodPrice??>
+                <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${prodPrice?string("0.00")}</p>
               </#if>
             </div>
-            <a class="brxdis-prodhighlight__cta"
-               href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">View Product</a>
+            <a class="brxdis-prodhighlight__cta" href="${prodUrl}">View Product</a>
           </article>
         <#else>
-          <div class="brxdis-prodhighlight__slot">&#43; Product ${slotNum}</div>
+          <div class="brxdis-prodhighlight__slot">
+            <@hst.manageContent parameterName="document${slotNum}"
+                rootPath="brxdis/products"/>
+            &#43; Product ${slotNum}
+          </div>
         </#if>
       </#list>
     </div>
@@ -93,30 +102,35 @@
       <div class="brxdis-prodhighlight__grid" role="list">
         <#list products as product>
           <#if product??>
+            <#assign prodImageUrl = product.imageUrl()!>
+            <#assign prodTitle = product.title()!"">
+            <#assign prodAttrs = product.attributes()!{}>
+            <#assign prodPrice = product.price()>
+            <#assign _rawUrl = product.url()!>
+            <#assign prodUrl = _rawUrl?has_content?then(_rawUrl, resolvedProductPage + '?pid=' + (product.id()!''))>
             <article class="brxdis-prodhighlight__card" role="listitem">
               <div class="brxdis-prodhighlight__img">
-                <#if product.imageUrl()?has_content>
-                  <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
+                <#if prodImageUrl?has_content>
+                  <img src="${prodImageUrl}" alt="${prodTitle}"/>
                 <#else>
                   <div class="brxdis-prodhighlight__placeholder">&#127873;</div>
                 </#if>
               </div>
               <div class="brxdis-prodhighlight__body">
-                <#if product.attributes()["brand"]??>
-                  <p class="brxdis-prodhighlight__brand">${product.attributes()["brand"]}</p>
+                <#if prodAttrs["brand"]??>
+                  <p class="brxdis-prodhighlight__brand">${prodAttrs["brand"]}</p>
                 </#if>
                 <h3 class="brxdis-prodhighlight__name">
-                  <a href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">${product.title()!"Untitled"}</a>
+                  <a href="${prodUrl}">${prodTitle?has_content?then(prodTitle, "Untitled")}</a>
                 </h3>
-                <#if product.attributes()["description"]??>
-                  <p class="brxdis-prodhighlight__desc">${product.attributes()["description"]}</p>
+                <#if prodAttrs["description"]??>
+                  <p class="brxdis-prodhighlight__desc">${prodAttrs["description"]}</p>
                 </#if>
-                <#if product.price()??>
-                  <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
+                <#if prodPrice??>
+                  <p class="brxdis-prodhighlight__price">${product.currency()!""}&nbsp;${prodPrice?string("0.00")}</p>
                 </#if>
               </div>
-              <a class="brxdis-prodhighlight__cta"
-                 href="${product.url()?has_content?then(product.url()!'', resolvedProductPage + '?pid=' + (product.id()!''))}">View Product</a>
+              <a class="brxdis-prodhighlight__cta" href="${prodUrl}">View Product</a>
             </article>
           </#if>
         </#list>

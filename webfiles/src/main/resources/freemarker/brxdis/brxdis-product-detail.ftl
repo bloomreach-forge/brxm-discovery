@@ -17,37 +17,47 @@
 .brxdis-pdp__cta:hover{background:#1d4ed8;color:#fff}
 .brxdis-pdp__notfound{padding:3rem 1.5rem;text-align:center;color:#6b7280;border:2px dashed #e5e7eb;border-radius:10px}
 .brxdis-pdp__notfound h2{font-size:1.25rem;margin:0 0 .5rem}
+.brxdis-band-badge{font-size:.75rem;color:#374151;border-radius:6px;padding:.3rem .6rem;margin-bottom:.5rem;display:inline-block}
+.brxdis-band-badge--green{background:#f0fdf4;border:1px solid #86efac}
 </style>
 </@hst.headContribution>
 
-<#if document??>
-  <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/products" defaultPath="brxdis/products"/>
-<#else>
-  <@hst.manageContent parameterName="document" rootPath="brxdis/products" defaultPath="brxdis/products"/>
+<#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
+<#-- @ftlvariable name="dataBand" type="java.lang.String" -->
+<#if (editMode!false) && dataBand?has_content>
+  <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Product detail &mdash; writes PID to band: <strong>${dataBand}</strong></div>
 </#if>
 
 <div class="brxdis-pdp">
+  <#if document??>
+    <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/products"/>
+  <#else>
+    <@hst.manageContent parameterName="document" rootPath="brxdis/products"/>
+  </#if>
   <#if product??>
+    <#assign prodAttrs = product.attributes()!{}>
+    <#assign prodImageUrl = product.imageUrl()!>
+    <#assign prodTitle = product.title()!"Untitled product">
     <#-- Product hero section -->
     <div class="brxdis-pdp__hero">
       <div class="brxdis-pdp__img">
-        <#if product.imageUrl()?has_content>
-          <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
+        <#if prodImageUrl?has_content>
+          <img src="${prodImageUrl}" alt="${prodTitle}"/>
         <#else>
           <div class="brxdis-pdp__img-placeholder">&#128722;</div>
         </#if>
       </div>
       <div class="brxdis-pdp__details">
-        <#if product.attributes()?? && product.attributes()["brand"]?has_content>
-          <p class="brxdis-pdp__brand">${product.attributes()["brand"]}</p>
+        <#if prodAttrs["brand"]?has_content>
+          <p class="brxdis-pdp__brand">${prodAttrs["brand"]}</p>
         </#if>
-        <h1 class="brxdis-pdp__title">${product.title()!"Untitled product"}</h1>
+        <h1 class="brxdis-pdp__title">${prodTitle}</h1>
         <p class="brxdis-pdp__pid">PID:&nbsp;${product.id()!""}</p>
         <#if product.price()??>
           <p class="brxdis-pdp__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
         </#if>
-        <#if product.attributes()?? && product.attributes()["description"]?has_content>
-          <p class="brxdis-pdp__desc">${product.attributes()["description"]}</p>
+        <#if prodAttrs["description"]?has_content>
+          <p class="brxdis-pdp__desc">${prodAttrs["description"]}</p>
         </#if>
         <a class="brxdis-pdp__cta" href="#">Add to Cart</a>
       </div>
@@ -55,8 +65,7 @@
 
   <#else>
     <div class="brxdis-pdp__notfound">
-      <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-      <#if editMode>
+      <#if (editMode!false)>
         <h2>&#128736; Not configured</h2>
         <p>Select a <strong>Product Detail Document</strong> in component properties, or add <code>?pid=&lt;product-id&gt;</code> to the URL.</p>
       <#else>
