@@ -5,6 +5,8 @@ import org.bloomreach.forge.discovery.site.service.discovery.search.model.Facet;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.FacetValue;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.PaginationModel;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -20,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -35,11 +38,13 @@ class DiscoveryViewComponentsTest {
 
     private SearchResult searchResult;
     private SearchResult categoryResult;
+    private SearchResponse searchResponse;
+    private SearchResponse categoryResponse;
 
-    private static final String SEARCH_ATTR        = "org.bloomreach.forge.discovery.requestCache.searchResult.default";
-    private static final String CATEGORY_ATTR      = "org.bloomreach.forge.discovery.requestCache.categoryResult.default";
-    private static final String SEARCH_BAND_MARKER = "org.bloomreach.forge.discovery.requestCache.band.search.default";
-    private static final String CAT_BAND_MARKER    = "org.bloomreach.forge.discovery.requestCache.band.category.default";
+    private static final String SEARCH_ATTR         = "org.bloomreach.forge.discovery.requestCache.searchResult.default";
+    private static final String CATEGORY_ATTR       = "org.bloomreach.forge.discovery.requestCache.categoryResult.default";
+    private static final String SEARCH_BAND_MARKER  = "org.bloomreach.forge.discovery.requestCache.label.search.default";
+    private static final String CAT_BAND_MARKER     = "org.bloomreach.forge.discovery.requestCache.label.category.default";
 
     @BeforeEach
     void setUp() {
@@ -53,15 +58,17 @@ class DiscoveryViewComponentsTest {
         );
         searchResult = new SearchResult(products, 42L, 1, 12, facets);
         categoryResult = new SearchResult(products, 100L, 0, 24, facets);
+        searchResponse = new SearchResponse(searchResult, SearchMetadata.empty());
+        categoryResponse = new SearchResponse(categoryResult, SearchMetadata.empty());
     }
 
     // --- ProductGrid ---
 
     @Test
     void productGrid_searchDataSource_setsProductsModel() {
-        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResult);
+        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResponse);
 
-        TestableProductGridComponent grid = new TestableProductGridComponent(null);
+        TestableProductGridComponent grid = new TestableProductGridComponent();
         grid.doBeforeRender(request, response);
 
         verify(request).setModel("products", searchResult.products());
@@ -78,9 +85,10 @@ class DiscoveryViewComponentsTest {
 
     @Test
     void productGrid_categoryDataSource_readsCategoryResult() {
-        when(requestContext.getAttribute(CATEGORY_ATTR)).thenReturn(categoryResult);
+        // search probe returns null (default); lenient avoids PotentialStubbingProblem on SEARCH_ATTR call
+        lenient().when(requestContext.getAttribute(CATEGORY_ATTR)).thenReturn(categoryResponse);
 
-        TestableProductGridComponent grid = new TestableProductGridComponent("category");
+        TestableProductGridComponent grid = new TestableProductGridComponent();
         grid.doBeforeRender(request, response);
 
         verify(request).setModel("products", categoryResult.products());
@@ -90,7 +98,7 @@ class DiscoveryViewComponentsTest {
     void productGrid_noData_setsEmptyList() {
         when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(null);
 
-        TestableProductGridComponent grid = new TestableProductGridComponent(null);
+        TestableProductGridComponent grid = new TestableProductGridComponent();
         grid.doBeforeRender(request, response);
 
         verify(request).setModel(eq("products"), eq(List.of()));
@@ -107,7 +115,7 @@ class DiscoveryViewComponentsTest {
         when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(null);
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
 
-        new TestableProductGridComponent(null).doBeforeRender(request, response);
+        new TestableProductGridComponent().doBeforeRender(request, response);
 
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
@@ -120,27 +128,27 @@ class DiscoveryViewComponentsTest {
         // strict mode would flag the band-marker stub as a "potential arg mismatch" otherwise.
         lenient().when(requestContext.getAttribute(SEARCH_BAND_MARKER)).thenReturn(Boolean.TRUE);
 
-        new TestableProductGridComponent(null).doBeforeRender(request, response);
+        new TestableProductGridComponent().doBeforeRender(request, response);
 
-        verify(request).setModel("bandConnected", true);
+        verify(request).setModel("labelConnected", true);
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
 
     @Test
     void productGrid_bandAbsent_isNotBandConnected() {
-        // No marker, no result → bandConnected=false
-        new TestableProductGridComponent(null).doBeforeRender(request, response);
+        // No marker, no result → labelConnected=false
+        new TestableProductGridComponent().doBeforeRender(request, response);
 
-        verify(request).setModel("bandConnected", false);
+        verify(request).setModel("labelConnected", false);
     }
 
     // --- Facet ---
 
     @Test
     void facet_searchDataSource_setsFacetsModel() {
-        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResult);
+        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResponse);
 
-        TestableFacetComponent facet = new TestableFacetComponent(null);
+        TestableFacetComponent facet = new TestableFacetComponent();
         facet.doBeforeRender(request, response);
 
         verify(request).setModel("facets", searchResult.facets());
@@ -150,7 +158,7 @@ class DiscoveryViewComponentsTest {
     void facet_noData_setsEmptyMap() {
         when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(null);
 
-        TestableFacetComponent facet = new TestableFacetComponent(null);
+        TestableFacetComponent facet = new TestableFacetComponent();
         facet.doBeforeRender(request, response);
 
         verify(request).setModel(eq("facets"), eq(Map.of()));
@@ -161,7 +169,7 @@ class DiscoveryViewComponentsTest {
         when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(null);
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
 
-        new TestableFacetComponent(null).doBeforeRender(request, response);
+        new TestableFacetComponent().doBeforeRender(request, response);
 
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
@@ -170,9 +178,9 @@ class DiscoveryViewComponentsTest {
     void facet_bandPresentButNoResult_isBandConnected_noWarning() {
         lenient().when(requestContext.getAttribute(SEARCH_BAND_MARKER)).thenReturn(Boolean.TRUE);
 
-        new TestableFacetComponent(null).doBeforeRender(request, response);
+        new TestableFacetComponent().doBeforeRender(request, response);
 
-        verify(request).setModel("bandConnected", true);
+        verify(request).setModel("labelConnected", true);
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
 
@@ -182,24 +190,24 @@ class DiscoveryViewComponentsTest {
         // (data component found in page tree) → no false "band not connected" warning.
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        TestableProductGridComponent component = new TestableProductGridComponent(null);
+        TestableProductGridComponent component = new TestableProductGridComponent();
         component.setBandWiredOnPage(true);
         component.doBeforeRender(request, response);
 
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
-        verify(request).setModel("bandConnected", true);
+        verify(request).setModel("labelConnected", true);
     }
 
     @Test
     void facet_editMode_bandAbsent_noWarning() {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        TestableFacetComponent component = new TestableFacetComponent(null);
+        TestableFacetComponent component = new TestableFacetComponent();
         component.setBandWiredOnPage(true);
         component.doBeforeRender(request, response);
 
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
-        verify(request).setModel("bandConnected", true);
+        verify(request).setModel("labelConnected", true);
     }
 
     @Test
@@ -207,7 +215,7 @@ class DiscoveryViewComponentsTest {
         // Full-page CMS preview: isBandConfiguredOnPage override returns false (default) → warning IS shown.
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        new TestableProductGridComponent(null).doBeforeRender(request, response);
+        new TestableProductGridComponent().doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), anyString());
     }
@@ -216,7 +224,7 @@ class DiscoveryViewComponentsTest {
     void facet_editMode_fullPageLoad_bandAbsent_setsWarning() {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        new TestableFacetComponent(null).doBeforeRender(request, response);
+        new TestableFacetComponent().doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), anyString());
     }
@@ -226,7 +234,7 @@ class DiscoveryViewComponentsTest {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
         ArgumentCaptor<String> warningCaptor = ArgumentCaptor.forClass(String.class);
-        new TestableProductGridComponent(null, "search-bar").doBeforeRender(request, response);
+        new TestableProductGridComponent("search-bar").doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), warningCaptor.capture());
         assertTrue(warningCaptor.getValue().contains("search-bar"));
@@ -248,9 +256,9 @@ class DiscoveryViewComponentsTest {
     @Test
     void productGrid_namedBand_readsFromNamedBandKey() {
         String namedBandAttr = "org.bloomreach.forge.discovery.requestCache.searchResult.my-band";
-        when(requestContext.getAttribute(namedBandAttr)).thenReturn(searchResult);
+        when(requestContext.getAttribute(namedBandAttr)).thenReturn(searchResponse);
 
-        new TestableProductGridComponent(null, "my-band").doBeforeRender(request, response);
+        new TestableProductGridComponent("my-band").doBeforeRender(request, response);
 
         verify(request).setModel("products", searchResult.products());
     }
@@ -258,94 +266,128 @@ class DiscoveryViewComponentsTest {
     @Test
     void productGrid_namedBandMismatch_setsEmptyProducts() {
         // band "other" has no data; component returns empty products
-        new TestableProductGridComponent(null, "other").doBeforeRender(request, response);
+        new TestableProductGridComponent("other").doBeforeRender(request, response);
 
         verify(request).setModel(eq("products"), eq(List.of()));
     }
 
     @Test
-    void productGrid_setsDataBandModel() {
-        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResult);
+    void productGrid_setsLabelModel() {
+        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResponse);
 
-        new TestableProductGridComponent(null, "default").doBeforeRender(request, response);
+        new TestableProductGridComponent("default").doBeforeRender(request, response);
 
-        verify(request).setModel("dataBand", "default");
-        verify(request).setAttribute("dataBand", "default");
+        verify(request).setModel("label", "default");
+        verify(request).setAttribute("label", "default");
     }
 
     @Test
     void facet_namedBand_readsFromNamedBandKey() {
         String namedBandAttr = "org.bloomreach.forge.discovery.requestCache.searchResult.promo-band";
-        when(requestContext.getAttribute(namedBandAttr)).thenReturn(searchResult);
+        when(requestContext.getAttribute(namedBandAttr)).thenReturn(searchResponse);
 
-        new TestableFacetComponent(null, "promo-band").doBeforeRender(request, response);
+        new TestableFacetComponent("promo-band").doBeforeRender(request, response);
 
         verify(request).setModel("facets", searchResult.facets());
     }
 
     @Test
-    void facet_setsDataBandModel() {
-        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResult);
+    void facet_setsLabelModel() {
+        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResponse);
 
-        new TestableFacetComponent(null, "default").doBeforeRender(request, response);
+        new TestableFacetComponent("default").doBeforeRender(request, response);
 
-        verify(request).setModel("dataBand", "default");
-        verify(request).setAttribute("dataBand", "default");
+        verify(request).setModel("label", "default");
+        verify(request).setAttribute("label", "default");
+    }
+
+    // --- PPR backfill ---
+
+    @Test
+    void productGrid_pprMode_backfillsFromProducer_showsProducts() {
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+        when(requestContext.getBaseURL()).thenReturn(baseUrl);
+        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("some-ns");
+
+        TestableProductGridComponent grid = new TestableProductGridComponent();
+        grid.setBackfillResponse(searchResponse);
+        grid.doBeforeRender(request, response);
+
+        verify(request).setModel("products", searchResult.products());
+        verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
+    }
+
+    @Test
+    void facet_pprMode_backfillsFromProducer_showsFacets() {
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+        when(requestContext.getBaseURL()).thenReturn(baseUrl);
+        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("some-ns");
+
+        TestableFacetComponent facet = new TestableFacetComponent();
+        facet.setBackfillResponse(searchResponse);
+        facet.doBeforeRender(request, response);
+
+        verify(request).setModel("facets", searchResult.facets());
+        verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
 
     // --- Testable subclasses that override getComponentParametersInfo ---
 
     private static class TestableProductGridComponent extends DiscoveryProductGridComponent {
-        private final String dataSource;
         private final String bandName;
         private boolean bandWiredOnPage = false;
+        private SearchResponse backfillResponse = null;
 
-        TestableProductGridComponent(String dataSource) { this(dataSource, "default"); }
-        TestableProductGridComponent(String dataSource, String bandName) {
-            this.dataSource = dataSource;
+        TestableProductGridComponent() { this("default"); }
+        TestableProductGridComponent(String bandName) {
             this.bandName = bandName;
         }
 
         void setBandWiredOnPage(boolean wired) { this.bandWiredOnPage = wired; }
+        void setBackfillResponse(SearchResponse r) { this.backfillResponse = r; }
 
         @Override
-        protected boolean isBandConfiguredOnPage(HstRequest req, String band, Class<?> dataComponentClass) {
+        protected boolean isBandConfiguredOnPage(HstRequest req, String label, Class<?> dataComponentClass) {
             return bandWiredOnPage;
         }
 
         @Override
+        protected Optional<SearchResponse> backfillSearchResponse(HstRequest req, String label) {
+            return Optional.ofNullable(backfillResponse);
+        }
+
+        @Override
         protected DiscoveryDataSourceComponentInfo getComponentParametersInfo(HstRequest request) {
-            return new DiscoveryDataSourceComponentInfo() {
-                @Override public String getDataSource() { return dataSource; }
-                @Override public String getBandName() { return bandName; }
-            };
+            return () -> bandName;
         }
     }
 
     private static class TestableFacetComponent extends DiscoveryFacetComponent {
-        private final String dataSource;
         private final String bandName;
         private boolean bandWiredOnPage = false;
+        private SearchResponse backfillResponse = null;
 
-        TestableFacetComponent(String dataSource) { this(dataSource, "default"); }
-        TestableFacetComponent(String dataSource, String bandName) {
-            this.dataSource = dataSource;
+        TestableFacetComponent() { this("default"); }
+        TestableFacetComponent(String bandName) {
             this.bandName = bandName;
         }
 
         void setBandWiredOnPage(boolean wired) { this.bandWiredOnPage = wired; }
+        void setBackfillResponse(SearchResponse r) { this.backfillResponse = r; }
 
         @Override
-        protected boolean isBandConfiguredOnPage(HstRequest req, String band, Class<?> dataComponentClass) {
+        protected boolean isBandConfiguredOnPage(HstRequest req, String label, Class<?> dataComponentClass) {
             return bandWiredOnPage;
         }
 
         @Override
+        protected Optional<SearchResponse> backfillSearchResponse(HstRequest req, String label) {
+            return Optional.ofNullable(backfillResponse);
+        }
+
+        @Override
         protected DiscoveryDataSourceComponentInfo getComponentParametersInfo(HstRequest request) {
-            return new DiscoveryDataSourceComponentInfo() {
-                @Override public String getDataSource() { return dataSource; }
-                @Override public String getBandName() { return bandName; }
-            };
+            return () -> bandName;
         }
     }
 

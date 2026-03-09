@@ -30,7 +30,7 @@
     <div class="brxdis-cathighlight__grid">
       <#list categories as cat>
         <a class="brxdis-cathighlight__tile"
-           href="${resolvedCategoryPage}?cat_id=${cat.categoryId!""}"
+           href="${resolvedCategoryPage}?category=${(cat.categoryId!"")?url('UTF-8')}"
            aria-label="${cat.displayName!"Category"}">
           <span class="brxdis-cathighlight__icon">&#128722;</span>
           <span class="brxdis-cathighlight__name">${cat.displayName!"Unnamed"}</span>

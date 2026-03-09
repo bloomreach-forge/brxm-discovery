@@ -32,6 +32,18 @@ BRXDIS_ACCOUNT_ID (env var)
 
 `authKey` is only required when using the v2 Pathways recommendations API. When absent, the plugin falls back to v1 automatically — no error is thrown. `environment` accepts `PRODUCTION` or `STAGING`; the value drives API subdomain selection.
 
+## Pixel base URI override
+
+The pixel endpoint defaults to `https://p.brsrvr.com`. For regional deployments (e.g. EU), override it via env var or system property — no JCR edit required.
+
+| Variable | Env var | System property | Default |
+|---|---|---|---|
+| Pixel base URI | `BRXDIS_PIXEL_BASEURI` | `brxdis.pixelBaseUri` | `https://p.brsrvr.com` |
+
+Resolution order: env var → system property → CRISP JCR default (unchanged).
+
+The override is applied by `DiscoveryPickerModule` at CMS startup, before CRISP reads its configuration, so the new value takes effect without any JCR edit or CRISP restart.
+
 ---
 
 ## Method 1: Environment variables (recommended for production)
@@ -42,6 +54,8 @@ Set the env vars before starting the JVM. In Docker:
 ENV BRXDIS_ACCOUNT_ID=your_account_id
 ENV BRXDIS_DOMAIN_KEY=your_domain_key
 ENV BRXDIS_API_KEY=your_api_key
+# Optional: override pixel endpoint for regional deployments
+# ENV BRXDIS_PIXEL_BASEURI=https://p-eu.brsrvr.com
 ```
 
 In Kubernetes, reference a Secret:
@@ -70,6 +84,9 @@ env:
         key: authKey
   - name: BRXDIS_ENVIRONMENT
     value: "PRODUCTION"
+  # Optional: override pixel endpoint for regional deployments
+  # - name: BRXDIS_PIXEL_BASEURI
+  #   value: "https://p-eu.brsrvr.com"
 ```
 
 Create the secret:
@@ -115,6 +132,7 @@ brxdis.domainKey=YOUR_DOMAIN_KEY
 brxdis.apiKey=YOUR_API_KEY
 brxdis.authKey=YOUR_AUTH_KEY
 # brxdis.environment=PRODUCTION
+# brxdis.pixelBaseUri=https://p-eu.brsrvr.com
 ```
 
 Alternatively, pass them inline without a file:

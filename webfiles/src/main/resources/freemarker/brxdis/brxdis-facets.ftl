@@ -44,9 +44,9 @@ nav.brxdis-facets{font-family:system-ui,-apple-system,sans-serif;color:#374151;f
 </style>
 </@hst.headContribution>
 
-<#-- @ftlvariable name="editMode"      type="java.lang.Boolean" -->
-<#-- @ftlvariable name="dataBand"      type="java.lang.String" -->
-<#-- @ftlvariable name="bandConnected" type="java.lang.Boolean" -->
+<#-- @ftlvariable name="editMode"        type="java.lang.Boolean" -->
+<#-- @ftlvariable name="label"          type="java.lang.String" -->
+<#-- @ftlvariable name="labelConnected" type="java.lang.Boolean" -->
 <#-- @ftlvariable name="facets"        type="java.util.Map" -->
 
 <#if brxdis_warning??>
@@ -56,15 +56,15 @@ nav.brxdis-facets{font-family:system-ui,-apple-system,sans-serif;color:#374151;f
 </#if>
 
 <#if editMode?? && editMode>
-  <#assign _band = dataBand!"default">
-  <#if bandConnected?? && bandConnected>
+  <#assign _label = label!"default">
+  <#if labelConnected?? && labelConnected>
     <#assign _fc = facets?size>
     <div style="display:inline-block;margin-bottom:.5rem;background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
-      &#10003; Band: <strong>${_band}</strong> &middot; ${_fc} filter group<#if _fc != 1>s</#if>
+      &#10003; Label: <strong>${_label}</strong> &middot; ${_fc} filter group<#if _fc != 1>s</#if>
     </div>
-  <#elseif _band != "default">
+  <#elseif _label != "default">
     <div style="display:inline-block;margin-bottom:.5rem;background:#dbeafe;border:1px solid #bfdbfe;color:#1e40af;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
-      Band: <strong>${_band}</strong>
+      Label: <strong>${_label}</strong>
     </div>
   </#if>
 </#if>
@@ -79,7 +79,7 @@ nav.brxdis-facets{font-family:system-ui,-apple-system,sans-serif;color:#374151;f
       <#if k != "page">
         <#list sr.parameterMap[k] as v>
           <#if !(k == removeKey && v == removeVal)>
-            <#local p = p + [k + "=" + v?url('UTF-8')]>
+            <#local p = p + [k?url('UTF-8') + "=" + v?url('UTF-8')]>
           </#if>
         </#list>
       </#if>
@@ -93,7 +93,7 @@ nav.brxdis-facets{font-family:system-ui,-apple-system,sans-serif;color:#374151;f
     <#list sr.parameterMap?keys as k>
       <#if k != "page" && !k?starts_with("filter.")>
         <#list sr.parameterMap[k] as v>
-          <#local p = p + [k + "=" + v?url('UTF-8')]>
+          <#local p = p + [k?url('UTF-8') + "=" + v?url('UTF-8')]>
         </#list>
       </#if>
     </#list>
@@ -159,10 +159,10 @@ nav.brxdis-facets{font-family:system-ui,-apple-system,sans-serif;color:#374151;f
   </nav>
 
 <#elseif editMode?? && editMode>
-  <#assign _band = dataBand!"default">
-  <#if bandConnected?? && bandConnected>
-    <div class="brxdis-empty">&#128270; <strong>Facets</strong> &mdash; connected to band <strong>${_band}</strong>.<br>Filters appear here once a search or category query is active.</div>
+  <#assign _label = label!"default">
+  <#if labelConnected?? && labelConnected>
+    <div class="brxdis-empty">&#128270; <strong>Facets</strong> &mdash; connected to label <strong>${_label}</strong>.<br>Filters appear here once a search or category query is active.</div>
   <#else>
-    <div class="brxdis-empty">&#128736; <strong>Facets</strong> &mdash; no data source connected.<br>Add a Discovery Search or Category component with a matching band name.</div>
+    <div class="brxdis-empty">&#128736; <strong>Facets</strong> &mdash; no data source connected.<br>Add a Discovery Search or Category component with a matching label.</div>
   </#if>
 </#if>

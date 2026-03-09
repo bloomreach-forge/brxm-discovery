@@ -1,10 +1,11 @@
 package org.bloomreach.forge.discovery.site.service.discovery.config;
 
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.hippoecm.repository.HippoRepository;
+import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,35 +14,38 @@ import java.util.concurrent.ConcurrentHashMap;
  * JVM-lifetime cache of {@link DiscoveryConfig} per config path.
  * <p>
  * Cache entries are populated on first request and remain for the lifetime of the JVM.
- * If JCR session acquisition fails (e.g. the HST session pool rejects admin credentials),
- * the provider falls back to environment variables / system properties and caches that result.
+ * Invalidation is triggered by {@link DiscoveryConfigJcrListener} on JCR observation events.
  * <p>
  * Thread-safety: {@link ConcurrentHashMap} guarantees safe concurrent reads and puts.
  * Benign double-compute on first concurrent miss is acceptable — the config is immutable.
+ * <p>
+ * <strong>Session note:</strong> uses {@code HippoServiceRegistry.getService(HippoRepository.class)}
+ * to obtain a system session for JCR reads. The {@code javax.jcr.Repository} bean in the HST Spring
+ * context is the pooled delivery repository which rejects arbitrary {@code system} credentials —
+ * the raw {@code HippoRepository} must be used instead.
  */
 public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
 
     private static final Logger log = LoggerFactory.getLogger(CachingDiscoveryConfigProvider.class);
 
     private final DiscoveryConfigResolver resolver;
-    private final Repository repository;
     private final ConcurrentHashMap<String, DiscoveryConfig> cache = new ConcurrentHashMap<>();
 
-    /** Production constructor — repository injected from the HST Spring context. */
-    public CachingDiscoveryConfigProvider(DiscoveryConfigResolver resolver, Repository repository) {
+    /** Production constructor. */
+    public CachingDiscoveryConfigProvider(DiscoveryConfigResolver resolver) {
         this.resolver = resolver;
-        this.repository = repository;
-    }
-
-    /** Test constructor — no repository needed since tests always supply an explicit SessionSupplier. */
-    CachingDiscoveryConfigProvider(DiscoveryConfigResolver resolver) {
-        this(resolver, null);
     }
 
     @Override
     public DiscoveryConfig get(String configPath) {
-        return get(configPath, () ->
-                repository.login(new SimpleCredentials("system", new char[0])));
+        return get(configPath, () -> {
+            HippoRepository hippoRepo = HippoServiceRegistry.getService(HippoRepository.class);
+            if (hippoRepo == null) {
+                throw new IllegalStateException(
+                        "HippoRepository not yet registered in HippoServiceRegistry");
+            }
+            return hippoRepo.login(new SimpleCredentials("system", new char[0]));
+        });
     }
 
     @Override
@@ -75,8 +79,9 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
             try {
                 session = sessionSupplier.get();
             } catch (Exception e) {
-                // JCR admin session unavailable (e.g. HST session pool rejects system credentials).
-                // Fall back to env/sys props so the component degrades gracefully rather than crashing.
+                // JCR admin session unavailable (e.g. HippoRepository not yet registered,
+                // or system credentials rejected). Fall back to env/sys props so the component
+                // degrades gracefully rather than crashing.
                 log.warn("brxm-discovery: Cannot open JCR session for config path '{}' — " +
                         "falling back to environment/system properties. Cause: {}", configPath, e.getMessage());
                 config = resolver.resolve(null, null);

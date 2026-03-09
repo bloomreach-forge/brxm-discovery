@@ -72,6 +72,14 @@ class DiscoveryProductDetailComponentTest {
         verify(request).setAttribute("product", null);
     }
 
+    @Test
+    void label_setEvenWhenPidBlank() {
+        component("").doBeforeRender(request, response);
+
+        verify(request).setModel("label", "default");
+        verify(request).setAttribute("label", "default");
+    }
+
     // ── product found → model set ─────────────────────────────────────────────
 
     @Test
@@ -173,6 +181,32 @@ class DiscoveryProductDetailComponentTest {
         verify(discoveryService, never()).fetchProduct(eq(request), eq("bean-pid"));
     }
 
+    // ── Bug #2: document with blank productId must not wipe valid URL param ──
+
+    @Test
+    void pid_urlParam_preservedWhenDocumentHasBlankProductId() {
+        // document IS attached (documentPid = "") but has no productId set — must not override "url-pid"
+        ProductSummary product = new ProductSummary("url-pid", "T", null, null, null, null, Map.of());
+        when(discoveryService.fetchProduct(eq(request), eq("url-pid"))).thenReturn(Optional.of(product));
+
+        new TestableProductDetailComponent(discoveryService, "url-pid", null, "brxdis:pid", "", "pid")
+                .doBeforeRender(request, response);
+
+        verify(discoveryService).fetchProduct(eq(request), eq("url-pid"));
+    }
+
+    // ── Bug #1: resolved pid must be exposed as a model attribute ────────────
+
+    @Test
+    void pid_exposedAsModelAttribute_forTemplateErrorMessage() {
+        when(discoveryService.fetchProduct(eq(request), eq("bad-pid"))).thenReturn(Optional.empty());
+
+        component("bad-pid").doBeforeRender(request, response);
+
+        verify(request).setModel("pid", "bad-pid");
+        verify(request).setAttribute("pid", "bad-pid");
+    }
+
     // ── testable subclass ─────────────────────────────────────────────────────
 
     // ── band publication: marksBandPresent_whenProductFound ──────────────────
@@ -251,7 +285,7 @@ class DiscoveryProductDetailComponentTest {
                 @Override public String getDocument() { return documentPid != null ? "test-doc" : ""; }
                 @Override public String getProductPidProperty() { return pidProperty; }
                 @Override public String getProductUrlParam() { return productUrlParam; }
-                @Override public String getBand() { return "default"; }
+                @Override public String getLabel() { return "default"; }
             };
         }
 

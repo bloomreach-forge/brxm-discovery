@@ -2,7 +2,7 @@
 <@hst.defineObjects/>
 <@hst.headContribution keyHint="brxdis-pdp-css">
 <style>
-.brxdis-pdp{font-family:system-ui,-apple-system,sans-serif;padding:1.5rem 0}
+.brxdis-pdp{font-family:system-ui,-apple-system,sans-serif;padding:1.5rem 0;position:relative}
 .brxdis-pdp__hero{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap}
 .brxdis-pdp__img{flex:0 0 420px;max-width:100%;border-radius:12px;overflow:hidden;background:#f3f4f6;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
 .brxdis-pdp__img img{width:100%;height:100%;object-fit:cover;display:block}
@@ -23,9 +23,9 @@
 </@hst.headContribution>
 
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-<#-- @ftlvariable name="dataBand" type="java.lang.String" -->
-<#if (editMode!false) && dataBand?has_content>
-  <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Product detail &mdash; writes PID to band: <strong>${dataBand}</strong></div>
+<#-- @ftlvariable name="label" type="java.lang.String" -->
+<#if (editMode!false) && label?has_content>
+  <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Product detail &mdash; label: <strong>${label}</strong></div>
 </#if>
 
 <div class="brxdis-pdp">
@@ -70,8 +70,8 @@
         <p>Select a <strong>Product Detail Document</strong> in component properties, or add <code>?pid=&lt;product-id&gt;</code> to the URL.</p>
       <#else>
         <h2>&#128269; Product not found</h2>
-        <#if RequestContext.getServletRequest().getParameter("pid")?has_content>
-          <p>No product found for PID: <code>${RequestContext.getServletRequest().getParameter("pid")}</code></p>
+        <#if (pid!"")?has_content>
+          <p>No product found for PID: <code>${pid?html}</code></p>
         <#else>
           <p>No product ID specified. Add <code>?pid=&lt;product-id&gt;</code> to the URL.</p>
         </#if>

@@ -1,83 +1,63 @@
-# Autosuggest / Typeahead
+# Autosuggest / Search Bar
 
 ## Overview
 
-`DiscoveryAutosuggestComponent` calls the Bloomreach Discovery Autosuggest API at `suggest.dxpapi.com` and exposes three suggestion lists for your template:
+Autosuggest (typeahead) is built into `DiscoverySearchComponent` — no separate component is needed. When `suggestionsEnabled = true` (the default), the search component calls the Bloomreach Discovery Autosuggest API at `suggest.dxpapi.com` and exposes an `autosuggestResult` model alongside the main search result.
 
-- **Query suggestions** — search term completions (e.g. "shi" → "shirts", "shipping")
-- **Attribute suggestions** — brand / category completions (e.g. "Nike", "Running Shoes")
-- **Product suggestions** — matching products with image, price, and title
+The search component is the single entry point for both full-text search and real-time typeahead suggestions. Suggestions are always fetched live (not cached) — they reflect the query state at the moment the request is made.
 
-Autosuggest responses are **not cached** — each request goes to the API immediately. This is intentional: typeahead is real-time and should not be served from a stale page-render cache.
-
-The required `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically by the plugin — no manual CRISP configuration required.
+The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically by the plugin.
 
 ---
 
-## HST configuration
+## Enabling suggestions on a search component
 
-### Register the component and template
-
-```yaml
-# components.yaml
-definitions:
-  config:
-    /hst:hst/hst:configurations/<your-site>/hst:components:
-      /autosuggest:
-        jcr:primaryType: hst:component
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryAutosuggestComponent
-        hst:template: brxdis-autosuggest
-```
-
-```yaml
-# templates.yaml — use the plugin classpath template
-definitions:
-  config:
-    /hst:hst/hst:configurations/<your-site>/hst:templates:
-      /brxdis-autosuggest:
-        jcr:primaryType: hst:template
-        hst:renderpath: classpath:/freemarker/brxdis/brxdis-autosuggest.ftl
-```
-
-### Sitemap entry
-
-```yaml
-/autosuggest:
-  jcr:primaryType: hst:sitemapitem
-  hst:componentconfigurationid: hst:pages/autosuggest-page
-```
-
-Or wire autosuggest as an AJAX endpoint: the Page Model API response at `/autosuggest?q=shi` returns `autosuggestResult` as JSON for SPA / JavaScript consumption.
-
----
-
-## Request parameters
-
-| Parameter | Type | Description |
-|---|---|---|
-| `q` | String | Partial query to complete. Blank = returns no results (no API call made). |
-
----
-
-## Component parameters
-
-Set in HST config via `@ParametersInfo` — visible in the Channel Manager component editor.
+All suggestion parameters are set as component parameters in the HST config:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `limit` | int | `8` | Maximum number of suggestions per type to return. |
-| `catalogViews` | String | `""` | Catalog view filter, e.g. `store:products_en`. Blank = all catalogs. |
+| `suggestionsEnabled` | boolean | `true` | Enable autosuggest dropdown. Set `false` to disable entirely. |
+| `suggestionsLimit` | int | `5` | Max suggestions shown per category (query, attribute, product). |
+| `minChars` | int | `2` | Minimum characters before the suggestion dropdown is triggered. |
+| `debounceMs` | int | `250` | Debounce delay in milliseconds — prevents API calls on every keystroke. |
+| `placeholder` | String | `"Search..."` | Input placeholder text rendered by the FTL. |
+| `resultsPage` | String | `""` | Path to redirect to for full results. Blank = render results on the current page. |
+
+```yaml
+/search:
+  jcr:primaryType: hst:component
+  hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
+  hst:template: brxdis-search
+  hst:parameternames: [suggestionsEnabled, suggestionsLimit, minChars, debounceMs, placeholder, resultsPage]
+  hst:parametervalues: [true, 5, 2, 250, 'Search products...', '/search']
+```
 
 ---
 
-## Request attributes and models
+## Suggest-only mode
+
+To use the component purely as a typeahead endpoint (e.g. called via AJAX before the user submits), add `brxdis_suggest=1` to the request:
+
+```
+GET /site/search?q=shi&brxdis_suggest=1
+```
+
+In suggest-only mode, the full Discovery search call is skipped — only `autosuggestResult` is populated. This is useful for wiring up a JavaScript typeahead that calls the page endpoint via `fetch`.
+
+---
+
+## Models set on the request
 
 | Key | Type | Description |
 |---|---|---|
 | `query` | `String` | Trimmed search term (empty string when blank) |
-| `autosuggestResult` | `AutosuggestResult` | Suggestion payload (null when query is blank) |
-
-Both `request.setAttribute()` and `request.setModel()` are set — the component works for FTL and Page Model API (headless) delivery.
+| `autosuggestResult` | `AutosuggestResult` | Suggestion payload (null when query is blank or `suggestionsEnabled=false`) |
+| `suggestionsEnabled` | `boolean` | Whether suggestions are configured on this component |
+| `minChars` | `int` | Minimum chars threshold (for FTL to render correctly) |
+| `debounceMs` | `int` | Debounce delay (for FTL to configure the JS handler) |
+| `placeholder` | `String` | Input placeholder text |
+| `resultsPage` | `String` | Configured results page path |
+| `suggestOnlyMode` | `boolean` | True when `brxdis_suggest=1` |
 
 ### `AutosuggestResult` model
 
@@ -94,22 +74,21 @@ AutosuggestResult
     ├── String title
     ├── String imageUrl
     ├── BigDecimal price
-    ├── String currency
-    └── Map<String,Object> attributes  — brand, description, sale_price
+    └── String currency
 ```
 
 ---
 
 ## Plugin FTL template
 
-`brxdis-autosuggest.ftl` renders a search form plus a suggestion panel when `autosuggestResult` is present. The panel contains three sections (query suggestions, attribute suggestions, product cards) and injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
+`brxdis-search.ftl` renders a search form with an inline suggestion panel. The panel contains three sections (query suggestions, attribute suggestions, product cards) and uses `suggestionsEnabled`, `minChars`, and `debounceMs` to configure the JavaScript behaviour. Scoped CSS is injected via `<@hst.headContribution>`.
 
 Register and use it directly:
 
 ```yaml
-/brxdis-autosuggest:
+/brxdis-search:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-autosuggest.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
 ```
 
 ---
@@ -150,10 +129,10 @@ Register and use it directly:
 
 ## Page Model API shape
 
-For a headless/SPA implementation, call the autosuggest endpoint via AJAX:
+For a headless/SPA implementation, call the search endpoint in suggest-only mode via AJAX:
 
 ```
-GET /site/autosuggest?q=shi
+GET /site/search?q=shi&brxdis_suggest=1
 ```
 
 Response shape:
@@ -161,7 +140,7 @@ Response shape:
 ```json
 {
   "page": {
-    "autosuggest": {
+    "search": {
       "models": {
         "query": "shi",
         "autosuggestResult": {
@@ -171,9 +150,10 @@ Response shape:
             { "name": "brand", "value": "Nike", "attributeType": "text" }
           ],
           "productSuggestions": [
-            { "id": "p1", "title": "Blue Shirt", "price": 29.99, ... }
+            { "id": "p1", "title": "Blue Shirt", "price": 29.99 }
           ]
-        }
+        },
+        "suggestOnlyMode": true
       }
     }
   }
@@ -184,19 +164,10 @@ Response shape:
 
 ## Catalog views
 
-Use `catalogViews` to restrict suggestions to a specific catalog view (e.g. a locale-specific product catalog):
-
-```yaml
-/autosuggest:
-  jcr:primaryType: hst:component
-  hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryAutosuggestComponent
-  hst:template: brxdis-autosuggest
-  hst:parameternames: [limit, catalogViews]
-  hst:parametervalues: [8, 'store:products_en']
-```
+To restrict suggestions to a specific catalog view (e.g. a locale-specific product catalog), use the `catalogViews` parameter on `HstDiscoveryService.autosuggest()`. This is not exposed as a component parameter on `DiscoverySearchComponent` — wire it programmatically if needed in a custom component subclass.
 
 ---
 
 ## Error handling
 
-Discovery API errors are wrapped in `SearchException` (a `RuntimeException`). Blank or null query returns a null `autosuggestResult` without calling the API — templates should guard with `<#if autosuggestResult??>`.
+Discovery API errors are wrapped in `SearchException` (a `RuntimeException`). A blank or null query returns a null `autosuggestResult` without calling the API — templates should guard with `<#if autosuggestResult??>`. Autosuggest failures do not affect the main search result.

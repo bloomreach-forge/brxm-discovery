@@ -5,16 +5,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.bloomreach.forge.discovery.site.exception.SearchException;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.AutosuggestResponse;
+import org.bloomreach.forge.discovery.site.service.discovery.dto.CampaignDto;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.FacetCounts;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.FacetFieldDto;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.FacetValueDto;
+import org.bloomreach.forge.discovery.site.service.discovery.dto.FieldStatsEntryDto;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.ProductDoc;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.RecommendationResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.SearchApiResponse;
+import org.bloomreach.forge.discovery.site.service.discovery.dto.StatsDto;
+import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.Campaign;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.Facet;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.FacetValue;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.FieldStats;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.onehippo.cms7.crisp.api.resource.Resource;
 
@@ -31,8 +39,22 @@ public class DiscoveryResponseMapper {
         this.objectMapper = objectMapper;
     }
 
-    public SearchResult toSearchResult(Resource resource, int page, int pageSize) {
+    public SearchResponse toSearchResponse(Resource resource, int page, int pageSize) {
         SearchApiResponse dto = parse(resource, SearchApiResponse.class);
+        SearchResult result = toSearchResult(dto, page, pageSize);
+        Map<String, FieldStats> stats = toStats(dto.stats());
+        String redirectUrl = dto.keywordRedirect() != null ? dto.keywordRedirect().redirectedUrl() : null;
+        String redirectQuery = dto.keywordRedirect() != null ? dto.keywordRedirect().redirectedQuery() : null;
+        Campaign campaign = toCampaign(dto.campaign());
+        return new SearchResponse(result, new SearchMetadata(stats, dto.didYouMean(), dto.autoCorrectQuery(),
+                redirectUrl, redirectQuery, campaign));
+    }
+
+    public SearchResult toSearchResult(Resource resource, int page, int pageSize) {
+        return toSearchResult(parse(resource, SearchApiResponse.class), page, pageSize);
+    }
+
+    private SearchResult toSearchResult(SearchApiResponse dto, int page, int pageSize) {
         long total = dto.response() != null ? dto.response().numFound() : 0L;
         List<ProductSummary> products = dto.response() != null && dto.response().docs() != null
                 ? dto.response().docs().stream().map(this::toProductSummary).toList()
@@ -41,12 +63,15 @@ public class DiscoveryResponseMapper {
         return new SearchResult(products, total, page, pageSize, facets);
     }
 
-    public List<ProductSummary> toRecommendationResult(Resource resource) {
+    public RecommendationResult toRecommendationResult(Resource resource) {
         RecommendationResponse dto = parse(resource, RecommendationResponse.class);
         if (dto.response() == null || dto.response().docs() == null) {
-            return List.of();
+            return RecommendationResult.of(List.of());
         }
-        return dto.response().docs().stream().map(this::toProductSummary).toList();
+        List<ProductSummary> products = dto.response().docs().stream().map(this::toProductSummary).toList();
+        String wrid = dto.metadata() != null && dto.metadata().widget() != null
+                ? dto.metadata().widget().rid() : null;
+        return new RecommendationResult(wrid, products);
     }
 
     public AutosuggestResult toAutosuggestResult(Resource resource) {
@@ -94,6 +119,11 @@ public class DiscoveryResponseMapper {
                 doc.price(), doc.currency(), Map.copyOf(attrs));
     }
 
+    private Campaign toCampaign(CampaignDto dto) {
+        if (dto == null) return null;
+        return new Campaign(dto.id(), dto.campaignName(), dto.htmlText(), dto.bannerUrl(), dto.imageUrl());
+    }
+
     private static void putIfPresent(Map<String, Object> map, String key, String value) {
         if (value != null && !value.isBlank()) {
             map.put(key, value);
@@ -118,6 +148,18 @@ public class DiscoveryResponseMapper {
     private FacetValue toFacetValue(FacetValueDto dto) {
         String name = dto.catName() != null ? dto.catName() : dto.name();
         return new FacetValue(name, dto.count(), dto.catId(), dto.crumb(), dto.treePath(), dto.parent());
+    }
+
+    private Map<String, FieldStats> toStats(StatsDto statsDto) {
+        if (statsDto == null || statsDto.statsFields() == null || statsDto.statsFields().isEmpty()) {
+            return Map.of();
+        }
+        Map<String, FieldStats> result = new LinkedHashMap<>();
+        for (Map.Entry<String, FieldStatsEntryDto> entry : statsDto.statsFields().entrySet()) {
+            FieldStatsEntryDto e = entry.getValue();
+            result.put(entry.getKey(), new FieldStats(e.min(), e.max(), e.mean(), e.count()));
+        }
+        return Map.copyOf(result);
     }
 
     private <T> T parse(Resource resource, Class<T> type) {

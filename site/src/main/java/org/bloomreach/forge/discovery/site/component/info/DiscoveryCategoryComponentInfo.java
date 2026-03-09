@@ -6,7 +6,7 @@ import org.hippoecm.hst.core.parameters.JcrPath;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"document", "pageSize", "defaultSort", "bandName"}, titleKey = "category.group")
+    @FieldGroup(value = {"document", "pageSize", "defaultSort", "label", "statsFields", "segment", "exclusionFilter"}, titleKey = "category.group")
 })
 public interface DiscoveryCategoryComponentInfo {
 
@@ -25,6 +25,15 @@ public interface DiscoveryCategoryComponentInfo {
     @Parameter(name = "defaultSort", displayName = "Default sort order", defaultValue = "")
     String getDefaultSort();
 
-    @Parameter(name = "bandName", displayName = "Data band name", defaultValue = "default")
-    String getBandName();
+    @Parameter(name = "label", displayName = "Label", defaultValue = "default")
+    String getLabel();
+
+    @Parameter(name = "statsFields", displayName = "Stats fields (comma-separated)", defaultValue = "")
+    String getStatsFields();
+
+    @Parameter(name = "segment", displayName = "Segment (blank = none)", defaultValue = "")
+    String getSegment();
+
+    @Parameter(name = "exclusionFilter", displayName = "Exclusion filter (efq expression)", defaultValue = "")
+    String getExclusionFilter();
 }

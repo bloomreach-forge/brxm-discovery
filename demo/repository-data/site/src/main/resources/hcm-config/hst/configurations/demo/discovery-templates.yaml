@@ -33,6 +33,3 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:templates/brxdis-product-highlight:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-highlight.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/demo-search:
-      jcr:primaryType: hst:template
-      hst:renderpath: webfile:/ft/search.ftl

@@ -44,17 +44,17 @@
 </#if>
 
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-<#-- @ftlvariable name="dataBand" type="java.lang.String" -->
-<#-- @ftlvariable name="bandConnected" type="java.lang.Boolean" -->
+<#-- @ftlvariable name="label" type="java.lang.String" -->
+<#-- @ftlvariable name="labelConnected" type="java.lang.Boolean" -->
 <#if editMode?? && editMode>
-  <#assign _band = dataBand!"default">
-  <#if bandConnected?? && bandConnected>
+  <#assign _label = label!"default">
+  <#if labelConnected?? && labelConnected>
     <div style="display:inline-block;margin-bottom:.5rem;background:#dcfce7;border:1px solid #86efac;color:#166534;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
-      &#10003; Band: <strong>${_band}</strong> &middot; ${products?size} product<#if products?size != 1>s</#if>
+      &#10003; Label: <strong>${_label}</strong> &middot; ${products?size} product<#if products?size != 1>s</#if>
     </div>
-  <#elseif _band != "default">
+  <#elseif _label != "default">
     <div style="display:inline-block;margin-bottom:.5rem;background:#dbeafe;border:1px solid #bfdbfe;color:#1e40af;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
-      Band: <strong>${_band}</strong>
+      Label: <strong>${_label}</strong>
     </div>
   </#if>
 </#if>
@@ -78,22 +78,22 @@
         </div>
         <div class="brxdis-card__body">
           <h3 class="brxdis-card__title">
-            <a href="${resolvedProductPage}?pid=${product.id()!""}">${product.title()!"Untitled product"}</a>
+            <a href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">${product.title()!"Untitled product"}</a>
           </h3>
           <p class="brxdis-card__pid">PID:&nbsp;${product.id()!""}</p>
           <#if product.price()??>
             <p class="brxdis-card__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
           </#if>
         </div>
-        <a class="brxdis-card__cta" href="${resolvedProductPage}?pid=${product.id()!""}">View Product</a>
+        <a class="brxdis-card__cta" href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">View Product</a>
       </article>
     </#list>
   </div>
 <#elseif (editMode!false)>
-  <#if bandConnected?? && bandConnected>
-    <div class="brxdis-empty">&#128270; <strong>Product Grid</strong> &mdash; connected to band <strong>${dataBand!"default"}</strong>. Products will appear here once a search query or category is active.</div>
+  <#if labelConnected?? && labelConnected>
+    <div class="brxdis-empty">&#128270; <strong>Product Grid</strong> &mdash; connected to label <strong>${label!"default"}</strong>. Products will appear here once a search query or category is active.</div>
   <#else>
-    <div class="brxdis-empty">&#128736; <strong>Product Grid</strong> &mdash; no data source connected. Add a Discovery Search or Category component with a matching band name.</div>
+    <div class="brxdis-empty">&#128736; <strong>Product Grid</strong> &mdash; no data source connected. Add a Discovery Search or Category component with a matching label.</div>
   </#if>
 <#else>
   <div class="brxdis-empty">
@@ -112,7 +112,7 @@
     <#list sr.parameterMap?keys as k>
       <#if k != "page">
         <#list sr.parameterMap[k] as v>
-          <#local parts = parts + [k + "=" + v?url('UTF-8')]>
+          <#local parts = parts + [k?url('UTF-8') + "=" + v?url('UTF-8')]>
         </#list>
       </#if>
     </#list>

@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.component.info;
 
+import org.hippoecm.hst.core.parameters.DropDownList;
 import org.hippoecm.hst.core.parameters.FieldGroup;
 import org.hippoecm.hst.core.parameters.FieldGroupList;
 import org.hippoecm.hst.core.parameters.JcrPath;
@@ -7,7 +8,7 @@ import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
     @FieldGroup(value = {"document", "contextProductId", "contextProductPidProperty", "limit",
-                         "showPrice", "showDescription", "dataSource", "band"},
+                         "showPrice", "showDescription", "dataSource", "connectTo"},
                 titleKey = "recommendation.group")
 })
 public interface DiscoveryRecommendationComponentInfo {
@@ -20,11 +21,6 @@ public interface DiscoveryRecommendationComponentInfo {
         isRelative = true
     )
     String getDocument();
-
-    @Parameter(name = "contextProductId",
-               displayName = "Context product ID (optional override)",
-               defaultValue = "")
-    String getContextProductId();
 
     @Parameter(name = "contextProductPidProperty",
                displayName = "Product PID property name (advanced)",
@@ -40,11 +36,15 @@ public interface DiscoveryRecommendationComponentInfo {
     @Parameter(name = "showDescription", displayName = "Show description", defaultValue = "false")
     boolean isShowDescription();
 
-    @Parameter(name = "dataSource",
-               displayName = "PID data source (standalone or productDetailBand)",
-               defaultValue = "standalone")
+    @Parameter(name = "dataSource", displayName = "PID data source", defaultValue = "standalone")
+    @DropDownList({"standalone", "productDetailBand"})
     String getDataSource();
 
-    @Parameter(name = "band", displayName = "Product band name", defaultValue = "default")
-    String getBand();
+    @Parameter(name = "contextProductId",
+            displayName = "Context product ID (optional override)",
+            defaultValue = "")
+    String getContextProductId();
+
+    @Parameter(name = "connectTo", displayName = "Connects to label", defaultValue = "default")
+    String getConnectTo();
 }

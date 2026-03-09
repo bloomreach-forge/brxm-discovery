@@ -47,6 +47,7 @@ This JAR provides:
 - `DiscoveryPickerModule` daemon — registers the picker REST endpoint at `{cms}/ws/discovery/picker`
 - Open UI extension node `discoveryProductPicker` (pre-wired; you link your document fields to it)
 - Static web resource: `{cms}/discovery-picker/index.html` (the picker iframe)
+- CRISP resource space bootstrap via `brxdis-crisp.yaml` (HCM config)
 
 ### Site webapp
 
@@ -60,16 +61,21 @@ Add `brxm-discovery-site` to your site `components` JAR and `webapp` WAR:
 </dependency>
 ```
 
-This JAR provides:
+This JAR provides Spring beans auto-registered via `META-INF/hst-assembly/overrides/brxm-discovery-site.xml`:
 
-**Services** (Spring beans auto-registered via `META-INF/hst-assembly/overrides/brxm-discovery-site.xml`):
-- `DiscoverySearchService` / `DiscoveryRecommendationService` — Discovery API calls via CRISP
-- `DiscoveryWidgetService` — widget listing and caching from the merchant widgets API
-- `DiscoveryConfigResolver` — two-tier config resolution (env/sys/JCR + coded defaults)
+| Bean | Role |
+|---|---|
+| `HstDiscoveryService` | HST façade: config, cookie/URL extraction, caching, Discovery API calls |
+| `DiscoveryClientImpl` | CRISP broker calls; builds all API request paths |
+| `CachingDiscoveryConfigProvider` | JVM-lifetime config cache, JCR-observation-invalidated |
+| `DiscoveryConfigJcrListener` | Invalidates config cache on CMS node changes (no restart needed) |
+| `DiscoveryConfigResolver` | Two-tier config resolution (env/sys/JCR + coded defaults) |
+| `DiscoveryWidgetServiceImpl` | Widget listing from merchant widgets API (5-min in-process cache) |
+| `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on a dedicated bounded thread pool |
 
 **HST components** (reference by fully-qualified class name in your HST config):
-- Data-fetching: `DiscoverySearchComponent`, `DiscoveryCategoryComponent`, `DiscoveryRecommendationComponent`
-- Composable view: `DiscoveryProductGridComponent`, `DiscoveryFacetComponent`, `DiscoveryPaginationComponent`
+- Data-fetching: `DiscoverySearchComponent`, `DiscoveryCategoryComponent`, `DiscoveryRecommendationComponent`, `DiscoveryProductDetailComponent`, `DiscoveryProductHighlightComponent`, `DiscoveryCategoryHighlightComponent`
+- Composable view: `DiscoveryProductGridComponent`, `DiscoveryFacetComponent`
 
 All components expose data via `request.setModel()` (Page Model API / headless) and `request.setAttribute()` (FTL).
 
@@ -102,6 +108,7 @@ On first startup, HCM applies the following from `brxm-discovery-cms.jar`:
 | `brxdis:discoveryConfig` document type | `/hippo:namespaces/brxdis/discoveryConfig` |
 | Picker daemon module | `/hippo:configuration/hippo:modules/brxm-discovery-picker` |
 | `discoveryProductPicker` Open UI extension | `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker` |
+| CRISP resource spaces (all 3) | `/hippo:configuration/hippo:modules/crispregistry/…` |
 
 You still need to:
 1. **Enable the CRISP broker** in your site `hst-config.properties`:
@@ -109,11 +116,10 @@ You still need to:
    crisp.broker.registerService = true
    ```
    This causes `ResourceBrokerServiceRegistrationBean` to register the `ResourceServiceBroker` in
-   the `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
+   `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
    Without it, all Discovery API calls will throw `NullPointerException`.
-2. Configure the `discoverySearchAPI` and `discoveryPathwaysAPI` CRISP resource spaces (see [02-discovery-config.md](02-discovery-config.md))
-3. Set credentials via env vars / system properties, or via the JCR module config node (see [06-credential-injection.md](06-credential-injection.md))
-4. Wire the HST channel and components (see [03-search-and-category.md](03-search-and-category.md))
+2. Set credentials via env vars / system properties, or via the JCR config document (see [06-credential-injection.md](06-credential-injection.md))
+3. Wire the `discoveryConfigPath` mount parameter and HST components (see [03-search-and-category.md](03-search-and-category.md))
 
 ---
 
@@ -123,6 +129,7 @@ After startup, check the CMS logs for:
 
 ```
 brxm-discovery: registered picker endpoint at /discovery/picker
+brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 ```
 
 And navigate to `http://localhost:8080/cms/ws/discovery/picker/search?configPath=…` — a `400 Bad Request` (not a 404) confirms the endpoint is live.

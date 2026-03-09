@@ -2,11 +2,13 @@
 
 ## Overview
 
-`DiscoverySearchComponent` and `DiscoveryCategoryComponent` extend `AbstractDiscoveryComponent` and call the Discovery Search / Category Browse API via CRISP. They expose data via:
+`DiscoverySearchComponent` and `DiscoveryCategoryComponent` call the Discovery Search / Category Browse API via CRISP. They expose data via:
 - `request.setModel()` — consumed by the Page Model API for headless/SPA delivery
 - `request.setAttribute()` — consumed by Freemarker templates for server-side rendering
 
-Both components cache config and API results on the underlying servlet request (`DiscoveryRequestCache` uses `request.getRequestContext().getServletRequest()` for cross-component visibility) for the duration of the page render, so sibling view components (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent`, `DiscoveryPaginationComponent`) can read the same result without triggering a second API call.
+Both components cache results on the underlying servlet request (`DiscoveryRequestCache`) for the duration of the page render, so sibling view components (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent`) can read the same result without triggering a second API call.
+
+`DiscoverySearchComponent` also handles autosuggest inline — it calls the Autosuggest API when `suggestionsEnabled = true` and exposes `autosuggestResult` alongside the main search result. No separate autosuggest component is needed.
 
 Credentials are resolved from the `discoveryConfigPath` mount parameter — see [02-discovery-config.md](02-discovery-config.md).
 
@@ -16,7 +18,7 @@ Credentials are resolved from the `discoveryConfigPath` mount parameter — see 
 
 ### 1. Register the components and templates
 
-In your project's HCM site config (typically `repository-data/site/src/main/resources/hcm-config/hst/configurations/<your-site>/`):
+In your project's HCM site config:
 
 **`components.yaml`**
 
@@ -27,11 +29,11 @@ definitions:
       /search-page:
         jcr:primaryType: hst:component
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
-        hst:template: search-page
+        hst:template: brxdis-search
       /category-page:
         jcr:primaryType: hst:component
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryComponent
-        hst:template: category-page
+        hst:template: brxdis-category
 ```
 
 **`templates.yaml`**
@@ -40,12 +42,12 @@ definitions:
 definitions:
   config:
     /hst:hst/hst:configurations/<your-site>/hst:templates:
-      /search-page:
+      /brxdis-search:
         jcr:primaryType: hst:template
-        hst:renderpath: 'webfile:/ft/search.ftl'
-      /category-page:
+        hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
+      /brxdis-category:
         jcr:primaryType: hst:template
-        hst:renderpath: 'webfile:/ft/category.ftl'
+        hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
 ```
 
 ### 2. Add sitemap entries
@@ -70,73 +72,87 @@ definitions:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `q` | String | `*` | Search query. Pass `*` for all-products browse. |
-| `page` | int | `1` | 1-indexed page number (`page=1` is the first page). |
-| `pageSize` | int | `brxdis:defaultPageSize` | Results per page. |
-| `sort` | String | `brxdis:defaultSort` | Sort expression, e.g. `price asc`. |
-| `filter.{attribute}` | String (repeatable) | — | Facet filter, e.g. `filter.brand=Nike`. May be repeated. |
+| `q` | String | `*` | Search query. Pass `*` for all-products browse. Blank → no API call made. |
+| `page` | int | `1` | 1-indexed page number. |
+| `pageSize` | int | component param | Results per page. |
+| `sort` | String | component param | Sort expression, e.g. `price asc`. |
+| `filter.{attribute}` | String (repeatable) | — | Facet filter, e.g. `filter.brand=Nike`. |
+| `brxdis_suggest` | `1` | — | Suggest-only mode: skips full search, returns only autosuggest results. |
 
 Example: `GET /site/search?q=shirt&page=2&pageSize=24&sort=price+asc&filter.brand=Nike`
 
-### Category (`DiscoveryCategoryComponent`)
+### Search — component parameters
 
-**Request parameters** (query string):
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `categoryId` | String | — | Discovery category ID. Required. |
-| `page` | int | `1` | 1-indexed page number (`page=1` is the first page). |
-| `pageSize` | int | component param → `brxdis:defaultPageSize` | Results per page. URL param overrides component param. |
-| `sort` | String | component param → `brxdis:defaultSort` | Sort expression. URL param overrides component param. |
-| `filter.{attribute}` | String (repeatable) | — | Facet filter, e.g. `filter.color=red`. May be repeated. |
-
-**Component parameters** (set in HST config, not query string):
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `pageSize` | int | `12` | Component-level default page size. |
-| `defaultSort` | String | `""` | Component-level default sort. |
-
-Example: `GET /site/category?categoryId=sale&page=1`
-
-### `DiscoverySearchComponent` — component parameters
+Set in HST config via `@ParametersInfo` (visible in the Channel Manager component editor):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `pageSize` | int | `12` | Results per page (URL `pageSize` overrides). |
 | `defaultSort` | String | `""` | Default sort expression (URL `sort` overrides). |
 | `catalogName` | String | `""` | Non-product catalog to search (e.g. `blog_en`). Blank = product catalog. |
+| `label` | String | `"default"` | Data band — links this component to sibling view components on the same page. |
+| `placeholder` | String | `"Search..."` | Input placeholder text rendered in the FTL form. |
+| `resultsPage` | String | `""` | Path to redirect to for full results. Blank = renders results on current page. |
+| `suggestionsEnabled` | boolean | `true` | Enable autosuggest dropdown. |
+| `suggestionsLimit` | int | `5` | Max suggestions shown per type. |
+| `minChars` | int | `2` | Minimum characters before suggestions are fetched. |
+| `debounceMs` | int | `250` | Debounce delay in milliseconds for suggestion requests. |
 
-Use `catalogName` to search content catalogs (blog articles, FAQs) indexed in Discovery alongside the product catalog.
+### Category (`DiscoveryCategoryComponent`)
+
+**Request parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `categoryId` | String | — | Discovery category ID. Required. |
+| `page` | int | `1` | 1-indexed page number. |
+| `pageSize` | int | component param | Results per page. URL param overrides component param. |
+| `sort` | String | component param | Sort expression. URL param overrides component param. |
+| `filter.{attribute}` | String (repeatable) | — | Facet filter, e.g. `filter.color=red`. |
+
+**Component parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pageSize` | int | `12` | Component-level default page size. |
+| `defaultSort` | String | `""` | Component-level default sort. |
+| `label` | String | `"default"` | Data band name. |
+
+Example: `GET /site/category?categoryId=sale&page=1`
 
 ---
 
-## Request attributes and models
+## Models set on the request
 
-Both components set attributes (`request.setAttribute`) and Page Model models (`request.setModel`):
-
-**`DiscoverySearchComponent`**
+### `DiscoverySearchComponent`
 
 | Key | Type | Description |
 |---|---|---|
-| `query` | `String` | Trimmed search term (empty string when blank) |
-| `searchResult` | `SearchResult` | Full Discovery response (null when query is blank) |
+| `query` | `String` | Trimmed search term |
+| `searchResult` | `SearchResult` | Full Discovery response (null when query is blank or suggest-only) |
+| `autosuggestResult` | `AutosuggestResult` | Suggestions (null when `suggestionsEnabled=false` or query is blank) |
+| `label` | `String` | Band name (for FTL conditional logic) |
+| `suggestionsEnabled` | `boolean` | Whether suggestions are enabled |
+| `suggestOnlyMode` | `boolean` | True when `brxdis_suggest=1` |
+| `resultsPage` | `String` | Configured results page path |
+| `placeholder` | `String` | Input placeholder text |
+| `minChars` | `int` | Min chars for suggestions |
+| `debounceMs` | `int` | Debounce delay |
 
-**`DiscoveryCategoryComponent`**
+### `DiscoveryCategoryComponent`
 
 | Key | Type | Description |
 |---|---|---|
 | `categoryId` | `String` | Resolved category ID |
 | `categoryResult` | `SearchResult` | Full Discovery response |
-
-To render products, facets, and pagination, use the composable view components (see [Composable view components](#composable-view-components)) or the plugin's built-in monolithic FTL templates (see [Plugin FTL templates](#plugin-ftl-templates)).
+| `label` | `String` | Band name |
 
 ### `SearchResult` model
 
 ```
 SearchResult
 ├── long total                   — total matching products
-├── int page                     — current page (zero-based)
+├── int page                     — current page (zero-based internally)
 ├── int pageSize                 — results per page
 ├── List<ProductSummary> products
 │   ├── String id                — product ID (PID)
@@ -155,7 +171,7 @@ SearchResult
             └── boolean selected
 ```
 
-The `attributes` map is populated from Discovery's response fields. Standard keys: `brand` (String), `description` (String), `sale_price` (BigDecimal). Access in FTL:
+Access extra attributes in FTL:
 
 ```ftl
 ${product.attributes()["brand"]!""}
@@ -164,7 +180,7 @@ ${product.attributes()["brand"]!""}
 
 ### CMS preview diagnostics
 
-When a view component (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent`, `DiscoveryPaginationComponent`) is on a page without a corresponding data-fetching component, it sets `brxdis_warning` on the request in Channel Manager preview mode. Display it in your FTL to give editors actionable feedback:
+When a view component (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent`) is on a page without a matching data-fetching component on the same band, it sets `brxdis_warning` in Channel Manager preview mode:
 
 ```ftl
 <#if brxdis_warning??>
@@ -176,31 +192,28 @@ When a view component (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent
 
 ## Plugin FTL templates
 
-The site JAR ships ready-to-use Freemarker templates on the classpath. Register them in your `templates.yaml` and point your component's `hst:template` at them:
+The webfiles module ships ready-to-use Freemarker templates. Register them in `templates.yaml`:
 
 ```yaml
 /brxdis-search:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-search.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
 /brxdis-category:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-category.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
 /brxdis-product-grid:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-grid.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-grid.ftl
 /brxdis-facets:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-facets.ftl
-/brxdis-pagination:
-  jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-pagination.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-facets.ftl
 ```
 
-Each template injects scoped CSS via `<@hst.headContribution keyHint="...">` — no external stylesheet required.
+Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
 
-**Monolithic templates** (`brxdis-search.ftl`, `brxdis-category.ftl`): single component renders the full page — search form, facet sidebar, product grid, and pagination all in one template. Use for quick integration.
+**Monolithic templates** (`brxdis-search.ftl`, `brxdis-category.ftl`): single component renders the full page — search form/bar, suggestion dropdown, facet sidebar, product grid, and pagination all in one template. Use for quick integration.
 
-**Composable templates** (`brxdis-product-grid.ftl`, `brxdis-facets.ftl`, `brxdis-pagination.ftl`): one template per view component. Use with the composable wiring pattern (see [Composable view components](#composable-view-components)) for independent slot placement.
+**Composable templates** (`brxdis-product-grid.ftl`, `brxdis-facets.ftl`): one template per view component. Use with the composable wiring pattern below for independent slot placement.
 
 ---
 
@@ -208,7 +221,7 @@ Each template injects scoped CSS via `<@hst.headContribution keyHint="...">` —
 
 Facet filter params use the `filter.{attribute}` convention (e.g. `filter.brand=Nike`). `QueryParamParser` reads all `filter.*` request params and converts them to `&fq=attribute:"value"` in the Discovery API call.
 
-To build clickable filter links that add or remove a filter while preserving all other query params (including `q`, `sort`, page state), read `hstRequest.requestContext.servletRequest.parameterMap` directly — `<@hst.renderURL>` only carries HST-managed params and will strip `q`, `filter.*`, etc.
+To build clickable filter links that preserve all other query params (including `q`, `sort`, page state), read `hstRequest.requestContext.servletRequest.parameterMap` directly — `<@hst.renderURL>` only carries HST-managed params and will strip `q`, `filter.*`, etc.
 
 ```ftl
 <#assign sr = hstRequest.requestContext.servletRequest>
@@ -225,49 +238,17 @@ To build clickable filter links that add or remove a filter while preserving all
   <#local p = p + ["filter." + key?url('UTF-8') + "=" + val?url('UTF-8')]>
   <#return "?" + p?join("&")>
 </#function>
-
-<#function removeFilter key val>
-  <#local p = []>
-  <#list sr.parameterMap?keys as k>
-    <#if k != "page">
-      <#list sr.parameterMap[k] as v>
-        <#if !(k == "filter." + key && v == val)>
-          <#local p = p + [k + "=" + v?url('UTF-8')]>
-        </#if>
-      </#list>
-    </#if>
-  </#list>
-  <#return "?" + p?join("&")>
-</#function>
-
-<#if facets?has_content>
-  <#list facets?values as facet>
-  <div class="facet">
-    <h4>${facet.name()}</h4>
-    <ul>
-      <#list facet.values() as fv>
-      <#assign isActive = (sr.getParameter("filter." + facet.name()) == fv.value())>
-      <li>
-        <#if isActive>
-          <a href="${removeFilter(facet.name(), fv.value())}">[x] ${fv.value()} (${fv.count()})</a>
-        <#else>
-          <a href="${addFilter(facet.name(), fv.value())}">${fv.value()} (${fv.count()})</a>
-        </#if>
-      </li>
-      </#list>
-    </ul>
-  </div>
-  </#list>
-</#if>
 ```
 
-> The plugin's `brxdis-facets.ftl` template (see [Plugin FTL templates](#plugin-ftl-templates)) provides a polished version of this pattern with active-filter chips and a dismiss control.
+> The plugin's `brxdis-facets.ftl` template provides a polished version of this pattern with active-filter chips and a dismiss control.
 
 ---
 
 ## Composable view components
 
-For layouts where product grid, facets, and pagination are separate HST components on the same page, add the view components as siblings. The data-fetching parent (`DiscoverySearchComponent`) stores results in `DiscoveryRequestCache` on the servlet request; sibling view components read from the same cache — the Discovery API is called exactly once per page render.
+For layouts where the product grid and facets are separate HST components on the same page, add the view components as siblings of the data-fetching component. Results flow via `DiscoveryRequestCache` — the Discovery API is called exactly once per page render.
+
+`DiscoveryProductGridComponent` exposes both `products` (list) and `pagination` (`PaginationModel`) — no separate pagination component is needed.
 
 **`pages.yaml`** (workspace):
 
@@ -275,7 +256,7 @@ For layouts where product grid, facets, and pagination are separate HST componen
 /search-page:
   jcr:primaryType: hst:component
   hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
-  hst:template: my-search-form
+  hst:template: brxdis-search
   /facets:
     jcr:primaryType: hst:component
     hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryFacetComponent
@@ -284,39 +265,39 @@ For layouts where product grid, facets, and pagination are separate HST componen
     jcr:primaryType: hst:component
     hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductGridComponent
     hst:template: brxdis-product-grid
-  /pagination:
-    jcr:primaryType: hst:component
-    hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryPaginationComponent
-    hst:template: brxdis-pagination
 ```
 
-**`templates.yaml`** — register the plugin classpath templates once:
+**View component models:**
+
+| View component | Model keys | Types | Description |
+|---|---|---|---|
+| `DiscoveryProductGridComponent` | `products`, `pagination`, `label`, `labelConnected` | `List<ProductSummary>`, `PaginationModel`, `String`, `boolean` | Product list + pagination |
+| `DiscoveryFacetComponent` | `facets`, `label`, `labelConnected` | `Map<String,Facet>`, `String`, `boolean` | Facet navigation |
+
+Both view components accept a `connectTo` component parameter that matches the `label` value on the data-fetching component. Auto-detection probes both search and category presence markers, so `dataSource` no longer needs to be specified.
+
+---
+
+## Named data bands
+
+When a page has multiple search results sections (e.g. a search bar + a featured products section), assign distinct `label` values so view components know which data source to read:
 
 ```yaml
-/brxdis-product-grid:
-  jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-grid.ftl
-/brxdis-facets:
-  jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-facets.ftl
-/brxdis-pagination:
-  jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-pagination.ftl
+/featured:
+  hst:componentclassname: …DiscoverySearchComponent
+  hst:parameternames: [label, pageSize]
+  hst:parametervalues: [featured, 4]
+  /grid:
+    hst:componentclassname: …DiscoveryProductGridComponent
+    hst:parameternames: [connectTo]
+    hst:parametervalues: [featured]
 ```
-
-All three view components accept a `dataSource` component parameter (`search` or `category`).
-
-| View component | `setModel` key | Type | Description |
-|---|---|---|---|
-| `DiscoveryProductGridComponent` | `products` | `List<ProductSummary>` | Product list only |
-| `DiscoveryFacetComponent` | `facets` | `Map<String,Facet>` | Facet navigation only |
-| `DiscoveryPaginationComponent` | `pagination` | `PaginationModel` | `total`, `page`, `pageSize`, `totalPages` |
 
 ---
 
 ## Page Model API shape
 
-For headless delivery, the Page Model API renders each component's models. A search page with all view components produces:
+For headless delivery, a search page with composable components produces:
 
 ```json
 {
@@ -324,12 +305,12 @@ For headless delivery, the Page Model API renders each component's models. A sea
     "search": {
       "models": {
         "query": "shoes",
-        "searchResult": { "total": 42, "products": [...], "facets": {...} }
+        "searchResult": { "total": 42, "products": [...], "facets": {...} },
+        "autosuggestResult": { "querySuggestions": [...], "productSuggestions": [...] }
       }
     },
-    "grid":       { "models": { "products": [...] } },
-    "facets":     { "models": { "facets": { "brand": [...], "color": [...] } } },
-    "pagination": { "models": { "pagination": { "total": 42, "page": 0, "pageSize": 12, "totalPages": 4 } } }
+    "grid":   { "models": { "products": [...], "pagination": { "total": 42, "page": 0, "pageSize": 12, "totalPages": 4 } } },
+    "facets": { "models": { "facets": { "brand": [...], "color": [...] } } }
   }
 }
 ```
@@ -340,7 +321,4 @@ For headless delivery, the Page Model API renders each component's models. A sea
 
 ## Error handling
 
-Both components throw `HstComponentException` if:
-- The JCR session cannot be obtained
-
-`ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the `discoveryConfigPath` mount parameter is missing or the JCR node is absent, the plugin falls back to env/sys + coded defaults rather than failing.
+`ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the `discoveryConfigPath` mount parameter is missing or the JCR document is absent, the plugin falls back to env/sys + coded defaults rather than failing.

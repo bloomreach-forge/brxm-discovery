@@ -5,7 +5,7 @@ import org.hippoecm.hst.core.parameters.FieldGroupList;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"pageSize", "defaultSort", "catalogName", "bandName"}, titleKey = "search.group"),
+    @FieldGroup(value = {"pageSize", "defaultSort", "catalogName", "label", "statsFields", "autoRedirect", "segment", "exclusionFilter"}, titleKey = "search.group"),
     @FieldGroup(value = {"placeholder", "resultsPage"}, titleKey = "search.bar.group"),
     @FieldGroup(value = {"suggestionsEnabled", "suggestionsLimit", "minChars", "debounceMs"}, titleKey = "search.suggestions.group")
 })
@@ -20,8 +20,8 @@ public interface DiscoverySearchComponentInfo {
     @Parameter(name = "catalogName", displayName = "Catalog name (blank = products)", defaultValue = "")
     String getCatalogName();
 
-    @Parameter(name = "bandName", displayName = "Data band name", defaultValue = "default")
-    String getBandName();
+    @Parameter(name = "label", displayName = "Label", defaultValue = "default")
+    String getLabel();
 
     @Parameter(name = "placeholder", displayName = "Input placeholder text", defaultValue = "Search...")
     String getPlaceholder();
@@ -40,4 +40,16 @@ public interface DiscoverySearchComponentInfo {
 
     @Parameter(name = "debounceMs", displayName = "Debounce delay (ms)", defaultValue = "250")
     int getDebounceMs();
+
+    @Parameter(name = "statsFields", displayName = "Stats fields (comma-separated)", defaultValue = "")
+    String getStatsFields();
+
+    @Parameter(name = "autoRedirect", displayName = "Auto-redirect on keyword redirect", defaultValue = "false")
+    boolean isAutoRedirect();
+
+    @Parameter(name = "segment", displayName = "Segment (blank = none)", defaultValue = "")
+    String getSegment();
+
+    @Parameter(name = "exclusionFilter", displayName = "Exclusion filter (efq expression)", defaultValue = "")
+    String getExclusionFilter();
 }

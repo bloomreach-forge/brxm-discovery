@@ -1,11 +1,12 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,93 +22,128 @@ public final class DiscoveryRequestCache {
 
     private DiscoveryRequestCache() {}
 
-    // ── Band-aware overloads ──────────────────────────────────────────────────
+    // ── Label-aware overloads ──────────────────────────────────────────────────
 
-    public static Optional<SearchResult> getSearchResult(HstRequest request, String band) {
-        return Optional.ofNullable((SearchResult) ctx(request).getAttribute(ATTR + ".searchResult." + band));
+    public static Optional<SearchResponse> getSearchResponse(HstRequest request, String label) {
+        return Optional.ofNullable((SearchResponse) ctx(request).getAttribute(ATTR + ".searchResult." + label));
     }
 
-    public static void putSearchResult(HstRequest request, String band, SearchResult result) {
-        ctx(request).setAttribute(ATTR + ".searchResult." + band, result);
+    public static void putSearchResponse(HstRequest request, String label, SearchResponse response) {
+        ctx(request).setAttribute(ATTR + ".searchResult." + label, response);
     }
 
-    public static Optional<SearchResult> getCategoryResult(HstRequest request, String band) {
-        return Optional.ofNullable((SearchResult) ctx(request).getAttribute(ATTR + ".categoryResult." + band));
+    public static Optional<SearchResponse> getCategoryResponse(HstRequest request, String label) {
+        return Optional.ofNullable((SearchResponse) ctx(request).getAttribute(ATTR + ".categoryResult." + label));
     }
 
-    public static void putCategoryResult(HstRequest request, String band, SearchResult result) {
-        ctx(request).setAttribute(ATTR + ".categoryResult." + band, result);
+    public static void putCategoryResponse(HstRequest request, String label, SearchResponse response) {
+        ctx(request).setAttribute(ATTR + ".categoryResult." + label, response);
     }
 
-    // ── Band-presence markers (set by data components before any early return) ──
+    /** @deprecated Use {@link #getSearchResponse(HstRequest, String)} */
+    @Deprecated
+    public static Optional<SearchResult> getSearchResult(HstRequest request, String label) {
+        return getSearchResponse(request, label).map(SearchResponse::result);
+    }
+
+    /** @deprecated Use {@link #putSearchResponse(HstRequest, String, SearchResponse)} */
+    @Deprecated
+    public static void putSearchResult(HstRequest request, String label, SearchResult result) {
+        throw new UnsupportedOperationException("Use putSearchResponse(request, label, SearchResponse)");
+    }
+
+    /** @deprecated Use {@link #getCategoryResponse(HstRequest, String)} */
+    @Deprecated
+    public static Optional<SearchResult> getCategoryResult(HstRequest request, String label) {
+        return getCategoryResponse(request, label).map(SearchResponse::result);
+    }
+
+    /** @deprecated Use {@link #putCategoryResponse(HstRequest, String, SearchResponse)} */
+    @Deprecated
+    public static void putCategoryResult(HstRequest request, String label, SearchResult result) {
+        throw new UnsupportedOperationException("Use putCategoryResponse(request, label, SearchResponse)");
+    }
+
+    // ── Label-presence markers (set by data components before any early return) ──
     //
-    // View components use these to distinguish "band not wired up on this page" (show warning)
-    // from "band connected but no results yet, e.g. no query typed" (silent empty state).
+    // View components use these to distinguish "label not wired up on this page" (show warning)
+    // from "label connected but no results yet, e.g. no query typed" (silent empty state).
     // Search and category markers are kept separate so a category component on the same page
     // cannot satisfy a view component that expects a search data source and vice-versa.
 
-    public static void markSearchBandPresent(HstRequest request, String band) {
-        ctx(request).setAttribute(ATTR + ".band.search." + band, Boolean.TRUE);
+    public static void markSearchBandPresent(HstRequest request, String label) {
+        ctx(request).setAttribute(ATTR + ".label.search." + label, Boolean.TRUE);
     }
 
-    public static boolean isSearchBandPresent(HstRequest request, String band) {
-        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".band.search." + band));
+    public static boolean isSearchBandPresent(HstRequest request, String label) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.search." + label));
     }
 
-    public static void markCategoryBandPresent(HstRequest request, String band) {
-        ctx(request).setAttribute(ATTR + ".band.category." + band, Boolean.TRUE);
+    public static void markCategoryBandPresent(HstRequest request, String label) {
+        ctx(request).setAttribute(ATTR + ".label.category." + label, Boolean.TRUE);
     }
 
-    public static boolean isCategoryBandPresent(HstRequest request, String band) {
-        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".band.category." + band));
+    public static boolean isCategoryBandPresent(HstRequest request, String label) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.category." + label));
     }
 
     // ── No-band overloads delegate to "default" band (backward compat) ────────
 
-    public static Optional<SearchResult> getSearchResult(HstRequest request) {
-        return getSearchResult(request, "default");
+    public static Optional<SearchResponse> getSearchResponse(HstRequest request) {
+        return getSearchResponse(request, "default");
     }
 
-    public static void putSearchResult(HstRequest request, SearchResult result) {
-        putSearchResult(request, "default", result);
+    public static void putSearchResponse(HstRequest request, SearchResponse response) {
+        putSearchResponse(request, "default", response);
     }
 
-    public static Optional<SearchResult> getCategoryResult(HstRequest request) {
-        return getCategoryResult(request, "default");
+    public static Optional<SearchResponse> getCategoryResponse(HstRequest request) {
+        return getCategoryResponse(request, "default");
     }
 
-    public static void putCategoryResult(HstRequest request, SearchResult result) {
-        putCategoryResult(request, "default", result);
+    public static void putCategoryResponse(HstRequest request, SearchResponse response) {
+        putCategoryResponse(request, "default", response);
     }
 
-    // ── Product detail band ───────────────────────────────────────────────────
+    // ── Product detail label ──────────────────────────────────────────────────
     //
-    // PDP components write the resolved product to a named band so downstream
+    // PDP components write the resolved product to a named label so downstream
     // recommendation components can read the PID without needing a URL param.
 
-    public static void putProductResult(HstRequest request, String band, ProductSummary product) {
-        ctx(request).setAttribute(ATTR + ".productDetailResult." + band, product);
+    public static void putProductResult(HstRequest request, String label, ProductSummary product) {
+        ctx(request).setAttribute(ATTR + ".productDetailResult." + label, product);
     }
 
-    public static Optional<ProductSummary> getProductResult(HstRequest request, String band) {
-        return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productDetailResult." + band));
+    public static Optional<ProductSummary> getProductResult(HstRequest request, String label) {
+        return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productDetailResult." + label));
     }
 
-    public static void markProductDetailBandPresent(HstRequest request, String band) {
-        ctx(request).setAttribute(ATTR + ".band.productDetail." + band, Boolean.TRUE);
+    public static void markProductDetailBandPresent(HstRequest request, String label) {
+        ctx(request).setAttribute(ATTR + ".label.productDetail." + label, Boolean.TRUE);
     }
 
-    public static boolean isProductDetailBandPresent(HstRequest request, String band) {
-        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".band.productDetail." + band));
+    public static boolean isProductDetailBandPresent(HstRequest request, String label) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.productDetail." + label));
     }
 
-    @SuppressWarnings("unchecked")
-    public static Optional<List<ProductSummary>> getRecommendations(HstRequest request, String widgetId) {
-        return Optional.ofNullable((List<ProductSummary>) ctx(request).getAttribute(ATTR + ".recs." + widgetId));
+    // ── Label-aware recommendation overloads ────────────────────────────────
+
+    public static Optional<RecommendationResult> getRecommendations(HstRequest request, String label, String widgetId) {
+        return Optional.ofNullable((RecommendationResult) ctx(request).getAttribute(ATTR + ".recs." + label + "." + widgetId));
     }
 
-    public static void putRecommendations(HstRequest request, String widgetId, List<ProductSummary> products) {
-        ctx(request).setAttribute(ATTR + ".recs." + widgetId, products);
+    public static void putRecommendations(HstRequest request, String label, String widgetId, RecommendationResult result) {
+        ctx(request).setAttribute(ATTR + ".recs." + label + "." + widgetId, result);
+    }
+
+    // ── No-band recommendation overloads → "default" (backward compat) ───
+
+    public static Optional<RecommendationResult> getRecommendations(HstRequest request, String widgetId) {
+        return getRecommendations(request, "default", widgetId);
+    }
+
+    public static void putRecommendations(HstRequest request, String widgetId, RecommendationResult result) {
+        putRecommendations(request, "default", widgetId, result);
     }
 
     private static HstRequestContext ctx(HstRequest request) {

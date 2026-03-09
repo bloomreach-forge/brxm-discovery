@@ -38,10 +38,26 @@ public class DiscoveryPickerModule implements DaemonModule {
 
     static final String ENDPOINT_ADDRESS = "/discovery/picker";
 
+    private static final String PIXEL_CRISP_NODE =
+            "/hippo:configuration/hippo:modules/crispregistry/" +
+            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPixelAPI";
+
+    private final Function<String, String> envLookup;
     private HttpClient httpClient;
+
+    public DiscoveryPickerModule() {
+        this.envLookup = System::getenv;
+    }
+
+    /** Package-private seam for tests. */
+    DiscoveryPickerModule(Function<String, String> envLookup) {
+        this.envLookup = envLookup;
+    }
 
     @Override
     public void initialize(Session session) throws RepositoryException {
+        applyPixelBaseUriOverride(session);
+
         httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -89,6 +105,26 @@ public class DiscoveryPickerModule implements DaemonModule {
 
         RepositoryJaxrsService.addEndpoint(endpoint);
         log.info("brxm-discovery: registered picker endpoint at {}", ENDPOINT_ADDRESS);
+    }
+
+    void applyPixelBaseUriOverride(Session session) {
+        String override = envLookup.apply("BRXDIS_PIXEL_BASEURI");
+        if (override == null || override.isBlank()) {
+            override = System.getProperty("brxdis.pixelBaseUri");
+        }
+        if (override == null || override.isBlank()) return;
+
+        try {
+            if (!session.nodeExists(PIXEL_CRISP_NODE)) {
+                log.warn("brxm-discovery: discoveryPixelAPI CRISP node not found — pixel base URI override skipped");
+                return;
+            }
+            session.getNode(PIXEL_CRISP_NODE).setProperty("crisp:propvalues", new String[]{override});
+            session.save();
+            log.info("brxm-discovery: pixel base URI set to {} (env/sys override)", override);
+        } catch (RepositoryException e) {
+            log.warn("brxm-discovery: failed to apply pixel base URI override", e);
+        }
     }
 
     @Override

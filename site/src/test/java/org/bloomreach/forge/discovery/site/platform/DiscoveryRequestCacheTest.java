@@ -1,6 +1,9 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -28,6 +31,7 @@ class DiscoveryRequestCacheTest {
 
     private final Map<String, Object> attrs = new HashMap<>();
     private final SearchResult result = new SearchResult(List.of(), 10L, 0, 10, Map.of());
+    private final SearchResponse response = new SearchResponse(result, SearchMetadata.empty());
 
     @BeforeEach
     void setUp() {
@@ -43,80 +47,81 @@ class DiscoveryRequestCacheTest {
     // ── band-aware search ────────────────────────────────────────────────────
 
     @Test
-    void getSearchResult_unknownBand_returnsEmpty() {
-        assertTrue(DiscoveryRequestCache.getSearchResult(request, "foo").isEmpty());
+    void getSearchResponse_unknownBand_returnsEmpty() {
+        assertTrue(DiscoveryRequestCache.getSearchResponse(request, "foo").isEmpty());
     }
 
     @Test
-    void putAndGet_searchResult_withNamedBand_roundTrips() {
-        DiscoveryRequestCache.putSearchResult(request, "my-band", result);
-        Optional<SearchResult> got = DiscoveryRequestCache.getSearchResult(request, "my-band");
+    void putAndGet_searchResponse_withNamedBand_roundTrips() {
+        DiscoveryRequestCache.putSearchResponse(request, "my-band", response);
+        Optional<SearchResponse> got = DiscoveryRequestCache.getSearchResponse(request, "my-band");
         assertTrue(got.isPresent());
-        assertSame(result, got.get());
+        assertSame(response, got.get());
     }
 
     @Test
-    void searchResult_bands_areIndependent() {
-        SearchResult r2 = new SearchResult(List.of(), 99L, 0, 5, Map.of());
-        DiscoveryRequestCache.putSearchResult(request, "band-a", result);
-        DiscoveryRequestCache.putSearchResult(request, "band-b", r2);
+    void searchResponse_bands_areIndependent() {
+        SearchResult r2Result = new SearchResult(List.of(), 99L, 0, 5, Map.of());
+        SearchResponse r2 = new SearchResponse(r2Result, SearchMetadata.empty());
+        DiscoveryRequestCache.putSearchResponse(request, "band-a", response);
+        DiscoveryRequestCache.putSearchResponse(request, "band-b", r2);
 
-        assertSame(result, DiscoveryRequestCache.getSearchResult(request, "band-a").orElseThrow());
-        assertSame(r2, DiscoveryRequestCache.getSearchResult(request, "band-b").orElseThrow());
-        assertTrue(DiscoveryRequestCache.getSearchResult(request, "other").isEmpty());
+        assertSame(response, DiscoveryRequestCache.getSearchResponse(request, "band-a").orElseThrow());
+        assertSame(r2, DiscoveryRequestCache.getSearchResponse(request, "band-b").orElseThrow());
+        assertTrue(DiscoveryRequestCache.getSearchResponse(request, "other").isEmpty());
     }
 
     @Test
-    void noArgSearchResult_delegatesToDefaultBand() {
-        DiscoveryRequestCache.putSearchResult(request, "default", result);
-        Optional<SearchResult> noArgResult = DiscoveryRequestCache.getSearchResult(request);
+    void noArgSearchResponse_delegatesToDefaultBand() {
+        DiscoveryRequestCache.putSearchResponse(request, "default", response);
+        Optional<SearchResponse> noArgResult = DiscoveryRequestCache.getSearchResponse(request);
         assertTrue(noArgResult.isPresent());
-        assertSame(result, noArgResult.get());
+        assertSame(response, noArgResult.get());
     }
 
     @Test
-    void noArgPutSearchResult_storedUnderDefaultBand() {
-        DiscoveryRequestCache.putSearchResult(request, result);
-        Optional<SearchResult> bandResult = DiscoveryRequestCache.getSearchResult(request, "default");
+    void noArgPutSearchResponse_storedUnderDefaultBand() {
+        DiscoveryRequestCache.putSearchResponse(request, response);
+        Optional<SearchResponse> bandResult = DiscoveryRequestCache.getSearchResponse(request, "default");
         assertTrue(bandResult.isPresent());
-        assertSame(result, bandResult.get());
+        assertSame(response, bandResult.get());
     }
 
     @Test
     void defaultBand_andNamedBand_areIndependent() {
-        SearchResult other = new SearchResult(List.of(), 7L, 0, 5, Map.of());
-        DiscoveryRequestCache.putSearchResult(request, result);      // → "default"
-        DiscoveryRequestCache.putSearchResult(request, "xyz", other);
+        SearchResponse other = new SearchResponse(new SearchResult(List.of(), 7L, 0, 5, Map.of()), SearchMetadata.empty());
+        DiscoveryRequestCache.putSearchResponse(request, response);      // → "default"
+        DiscoveryRequestCache.putSearchResponse(request, "xyz", other);
 
-        assertSame(result, DiscoveryRequestCache.getSearchResult(request).orElseThrow());
-        assertSame(other, DiscoveryRequestCache.getSearchResult(request, "xyz").orElseThrow());
+        assertSame(response, DiscoveryRequestCache.getSearchResponse(request).orElseThrow());
+        assertSame(other, DiscoveryRequestCache.getSearchResponse(request, "xyz").orElseThrow());
     }
 
     // ── band-aware category ──────────────────────────────────────────────────
 
     @Test
-    void getCategoryResult_unknownBand_returnsEmpty() {
-        assertTrue(DiscoveryRequestCache.getCategoryResult(request, "foo").isEmpty());
+    void getCategoryResponse_unknownBand_returnsEmpty() {
+        assertTrue(DiscoveryRequestCache.getCategoryResponse(request, "foo").isEmpty());
     }
 
     @Test
-    void putAndGet_categoryResult_withNamedBand_roundTrips() {
-        DiscoveryRequestCache.putCategoryResult(request, "cat-band", result);
-        Optional<SearchResult> got = DiscoveryRequestCache.getCategoryResult(request, "cat-band");
+    void putAndGet_categoryResponse_withNamedBand_roundTrips() {
+        DiscoveryRequestCache.putCategoryResponse(request, "cat-band", response);
+        Optional<SearchResponse> got = DiscoveryRequestCache.getCategoryResponse(request, "cat-band");
         assertTrue(got.isPresent());
-        assertSame(result, got.get());
+        assertSame(response, got.get());
     }
 
     @Test
-    void noArgCategoryResult_delegatesToDefaultBand() {
-        DiscoveryRequestCache.putCategoryResult(request, "default", result);
-        assertTrue(DiscoveryRequestCache.getCategoryResult(request).isPresent());
+    void noArgCategoryResponse_delegatesToDefaultBand() {
+        DiscoveryRequestCache.putCategoryResponse(request, "default", response);
+        assertTrue(DiscoveryRequestCache.getCategoryResponse(request).isPresent());
     }
 
     @Test
-    void noArgPutCategoryResult_storedUnderDefaultBand() {
-        DiscoveryRequestCache.putCategoryResult(request, result);
-        assertTrue(DiscoveryRequestCache.getCategoryResult(request, "default").isPresent());
+    void noArgPutCategoryResponse_storedUnderDefaultBand() {
+        DiscoveryRequestCache.putCategoryResponse(request, response);
+        assertTrue(DiscoveryRequestCache.getCategoryResponse(request, "default").isPresent());
     }
 
     // ── band-presence markers ────────────────────────────────────────────────
@@ -160,7 +165,7 @@ class DiscoveryRequestCacheTest {
         // Marker present, no result → valid state (data source on page, no query typed yet)
         DiscoveryRequestCache.markSearchBandPresent(request, "default");
         assertTrue(DiscoveryRequestCache.isSearchBandPresent(request, "default"));
-        assertTrue(DiscoveryRequestCache.getSearchResult(request, "default").isEmpty());
+        assertTrue(DiscoveryRequestCache.getSearchResponse(request, "default").isEmpty());
     }
 
     // ── product detail band ──────────────────────────────────────────────────
@@ -210,6 +215,62 @@ class DiscoveryRequestCacheTest {
         DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
         assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
         assertTrue(DiscoveryRequestCache.getProductResult(request, "default").isEmpty());
+    }
+
+    // ── band-aware recommendations ──────────────────────────────────────────
+
+    @Test
+    void getRecommendations_unknownBandAndWidget_returnsEmpty() {
+        assertTrue(DiscoveryRequestCache.getRecommendations(request, "default", "w1").isEmpty());
+    }
+
+    @Test
+    void putAndGet_recommendations_withBand_roundTrips() {
+        RecommendationResult recResult = RecommendationResult.of(List.of(product));
+        DiscoveryRequestCache.putRecommendations(request, "my-band", "w1", recResult);
+        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "my-band", "w1");
+        assertTrue(got.isPresent());
+        assertSame(recResult, got.get());
+    }
+
+    @Test
+    void putAndGetRecommendations_roundTripsRecommendationResult() {
+        RecommendationResult recResult = new RecommendationResult("rid-xyz", List.of(product));
+        DiscoveryRequestCache.putRecommendations(request, "band-r", "w2", recResult);
+        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "band-r", "w2");
+        assertTrue(got.isPresent());
+        assertSame(recResult, got.get());
+        assertEquals("rid-xyz", got.get().widgetResultId());
+    }
+
+    @Test
+    void recommendations_samWidgetId_differentBands_areIndependent() {
+        RecommendationResult r1 = RecommendationResult.of(List.of(product));
+        RecommendationResult r2 = RecommendationResult.of(List.of(new ProductSummary("p-2", "U", null, null, null, null, Map.of())));
+        DiscoveryRequestCache.putRecommendations(request, "band-a", "w1", r1);
+        DiscoveryRequestCache.putRecommendations(request, "band-b", "w1", r2);
+
+        assertSame(r1, DiscoveryRequestCache.getRecommendations(request, "band-a", "w1").orElseThrow());
+        assertSame(r2, DiscoveryRequestCache.getRecommendations(request, "band-b", "w1").orElseThrow());
+        assertTrue(DiscoveryRequestCache.getRecommendations(request, "other", "w1").isEmpty());
+    }
+
+    @Test
+    void noArgBand_recommendations_delegateToDefaultBand() {
+        RecommendationResult recResult = RecommendationResult.of(List.of(product));
+        DiscoveryRequestCache.putRecommendations(request, "w1", recResult);
+        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "default", "w1");
+        assertTrue(got.isPresent());
+        assertSame(recResult, got.get());
+    }
+
+    @Test
+    void noArgBand_getRecommendations_delegatesToDefaultBand() {
+        RecommendationResult recResult = RecommendationResult.of(List.of(product));
+        DiscoveryRequestCache.putRecommendations(request, "default", "w1", recResult);
+        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "w1");
+        assertTrue(got.isPresent());
+        assertSame(recResult, got.get());
     }
 
 }

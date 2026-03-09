@@ -1,12 +1,12 @@
 # Discovery Configuration
 
-Configuration lives on the module config JCR node bootstrapped by the CMS plugin under `/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig`. Credentials can be overridden by environment variables or JVM system properties — the JCR node is the last resort and acts as a CMS-editable fallback.
+Configuration lives on a `brxdis:discoveryConfig` JCR document created in the CMS. Credentials can be overridden by environment variables or JVM system properties — the JCR document is the last resort and acts as a CMS-editable fallback.
 
 ---
 
 ## Field reference
 
-### Credentials (resolved: env var → sys prop → JCR → `null`)
+### Credentials (resolved: env var → sys prop → JCR)
 
 | JCR property | Env var | System property | Description |
 |---|---|---|---|
@@ -24,13 +24,10 @@ Configuration lives on the module config JCR node bootstrapped by the CMS plugin
 |---|---|---|
 | `brxdis:baseUri` | `https://core.dxpapi.com` | Base URL of the Discovery Search/Category API |
 | `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` | Base URL of the Pathways recommendations API |
-| `brxdis:searchBasePath` | `/api/v1/core` | Path for search API calls |
-| `brxdis:categoryBasePath` | `/api/v1/core` | Path for category browse calls |
-| `brxdis:recsBasePath` | `/api/v2/widgets` | Path prefix for recommendation widget calls |
 | `brxdis:defaultPageSize` | `12` | Results per page when not specified in the request |
 | `brxdis:defaultSort` | `` | Default sort expression, e.g. `price asc`. Blank = relevance. |
 
-Structural fields are edited in the JCR console at the module config path. Coded defaults apply when the property is absent — no JCR node required to run the plugin.
+Structural fields are edited in the CMS on the `brxdis:discoveryConfig` document. Coded defaults apply when the property is absent — no JCR document is required to run the plugin if credentials are supplied via environment variables.
 
 ---
 
@@ -42,7 +39,7 @@ Credentials are resolved in this precedence (highest wins):
 |---|---|---|
 | 1 | Environment variable | Containers, Kubernetes, CI/CD pipelines |
 | 2 | JVM system property | Local development, shell scripts |
-| 3 | JCR module config node | CMS-editable fallback |
+| 3 | JCR document field | CMS-editable fallback; per-channel override |
 
 Leave the JCR field blank when injecting from the environment. See [06-credential-injection.md](06-credential-injection.md) for deployment-specific guidance.
 
@@ -50,7 +47,7 @@ Leave the JCR field blank when injecting from the environment. See [06-credentia
 
 ## JCR-less operation
 
-If `discoveryConfigPath` is not set on the mount, or the JCR node is missing, the plugin builds `DiscoveryConfig` entirely from environment variables / system properties + coded defaults. No JCR node is required to run the plugin — credentials must come from the environment in that case.
+If `discoveryConfigPath` is not set on the mount, or the JCR document is missing, the plugin builds `DiscoveryConfig` entirely from environment variables / system properties + coded defaults. No JCR document is required to run the plugin — credentials must come from the environment in that case.
 
 ---
 
@@ -82,16 +79,16 @@ definitions:
 
 ## Link the config to a channel
 
-Add `discoveryConfigPath` as a mount parameter pointing at the module config node:
+Add `discoveryConfigPath` as a mount parameter pointing at your `brxdis:discoveryConfig` document:
 
 ```yaml
 definitions:
   config:
     /hst:hst/hst:hosts/dev-localhost/localhost/hst:root:
       hst:parameternames: [discoveryConfigPath]
-      hst:parametervalues: ['/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig']
+      hst:parametervalues: ['/content/documents/administration/discovery-config/discovery-config']
 ```
 
-All HST components read `discoveryConfigPath` from the resolved mount and pass it to `DiscoveryConfigResolver`. When absent or pointing to a missing node, they fall back to env/sys + coded defaults.
+All HST components read `discoveryConfigPath` from the resolved mount. When absent or pointing to a missing document, they fall back to env/sys + coded defaults.
 
-If you run multiple channels with different Discovery accounts, set `discoveryConfigPath` to different node paths on each mount.
+If you run multiple channels with different Discovery accounts, set `discoveryConfigPath` to different document paths on each mount. The config is JVM-lifetime cached per path and invalidated automatically when the CMS document changes — no JVM restart required.

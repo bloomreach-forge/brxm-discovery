@@ -2,6 +2,9 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.Campaign;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -242,9 +245,9 @@ class DiscoveryResponseMapperTest {
                 }
                 """);
 
-        var result = mapper.toRecommendationResult(resource);
+        RecommendationResult result = mapper.toRecommendationResult(resource);
 
-        var attrs = result.get(0).attributes();
+        var attrs = result.products().get(0).attributes();
         assertEquals("Adidas", attrs.get("brand"));
         assertEquals("Sport shirt", attrs.get("description"));
         assertEquals(0, new BigDecimal("14.99").compareTo((BigDecimal) attrs.get("sale_price")));
@@ -271,10 +274,72 @@ class DiscoveryResponseMapperTest {
                 }
                 """);
 
-        var result = mapper.toRecommendationResult(resource);
+        RecommendationResult result = mapper.toRecommendationResult(resource);
 
-        assertEquals(1, result.size());
-        assertEquals("9790", result.get(0).id());
+        assertEquals(1, result.products().size());
+        assertEquals("9790", result.products().get(0).id());
+    }
+
+    @Test
+    void toRecommendationResult_extractsWrid() throws Exception {
+        stubResource("""
+                {
+                  "response": {
+                    "numFound": 1,
+                    "docs": [
+                      {"pid":"p1","title":"Widget Item","url":"https://shop.com/p1",
+                       "thumb_image":"http://img.jpg","price":9.99,"currency":"USD"}
+                    ]
+                  },
+                  "metadata": {
+                    "widget": {"rid": "rid-abc-123"}
+                  }
+                }
+                """);
+
+        RecommendationResult result = mapper.toRecommendationResult(resource);
+
+        assertEquals("rid-abc-123", result.widgetResultId());
+        assertEquals(1, result.products().size());
+        assertEquals("p1", result.products().get(0).id());
+    }
+
+    @Test
+    void toRecommendationResult_noMetadata_wridIsNull() throws Exception {
+        stubResource("""
+                {
+                  "response": {
+                    "numFound": 1,
+                    "docs": [{"pid":"p1","title":"Item","url":"https://shop.com/p1",
+                               "thumb_image":"http://img.jpg","price":9.99,"currency":"USD"}]
+                  }
+                }
+                """);
+
+        RecommendationResult result = mapper.toRecommendationResult(resource);
+
+        assertNull(result.widgetResultId());
+        assertEquals(1, result.products().size());
+    }
+
+    @Test
+    void toRecommendationResult_metadataWithoutRid_wridIsNull() throws Exception {
+        stubResource("""
+                {
+                  "response": {
+                    "numFound": 1,
+                    "docs": [{"pid":"p1","title":"Item","url":"https://shop.com/p1",
+                               "thumb_image":"http://img.jpg","price":9.99,"currency":"USD"}]
+                  },
+                  "metadata": {
+                    "widget": {"id": "some-widget-id", "name": "My Widget"}
+                  }
+                }
+                """);
+
+        RecommendationResult result = mapper.toRecommendationResult(resource);
+
+        assertNull(result.widgetResultId(), "rid absent from widget metadata → widgetResultId must be null");
     }
 
     // ── toAutosuggestResult ─────────────────────────────────────────────────
@@ -392,6 +457,259 @@ class DiscoveryResponseMapperTest {
         var result = mapper.toAutosuggestResult(resource);
 
         assertNull(result.originalQuery());
+    }
+
+    // ── toSearchResponse / stats ────────────────────────────────────────────
+
+    @Test
+    void toSearchResponse_mapsStatsFields() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 10, "docs": []},
+                  "stats": {
+                    "stats_fields": {
+                      "price": {"min": 5.99, "max": 999.99, "mean": 45.23, "count": 150}
+                    }
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertEquals(10L, response.result().total());
+        var stats = response.metadata().stats();
+        assertTrue(stats.containsKey("price"), "Stats should contain 'price'");
+        assertEquals(5.99,   stats.get("price").min(),  0.001);
+        assertEquals(999.99, stats.get("price").max(),  0.001);
+        assertEquals(45.23,  stats.get("price").mean(), 0.001);
+        assertEquals(150L,   stats.get("price").count());
+    }
+
+    @Test
+    void toSearchResponse_multipleStatsFields_allMapped() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 5, "docs": []},
+                  "stats": {
+                    "stats_fields": {
+                      "price":      {"min": 1.0, "max": 100.0, "mean": 50.0, "count": 5},
+                      "sale_price": {"min": 0.5, "max":  80.0, "mean": 40.0, "count": 3}
+                    }
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        var stats = response.metadata().stats();
+        assertEquals(2, stats.size());
+        assertTrue(stats.containsKey("price"));
+        assertTrue(stats.containsKey("sale_price"));
+        assertEquals(0.5, stats.get("sale_price").min(), 0.001);
+    }
+
+    @Test
+    void toSearchResponse_noStatsSection_returnsEmptyMap() throws Exception {
+        stubResource("""
+                {"response": {"numFound": 0, "docs": []}}
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertTrue(response.metadata().stats().isEmpty(), "Stats should be empty when absent");
+    }
+
+    @Test
+    void toSearchResponse_emptyStatsFields_returnsEmptyMap() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 0, "docs": []},
+                  "stats": {"stats_fields": {}}
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertTrue(response.metadata().stats().isEmpty());
+    }
+
+    @Test
+    void toSearchResponse_preservesProductsAndFacets() throws Exception {
+        stubResource("""
+                {
+                  "response": {
+                    "numFound": 1,
+                    "docs": [{"pid":"p1","title":"Shirt","url":"https://shop.com/shirt",
+                               "thumb_image":"http://img.jpg","price":19.99,"currency":"USD"}]
+                  },
+                  "facet_counts": {
+                    "facets": [{"name":"brand","value":[{"name":"Nike","count":1}]}]
+                  },
+                  "stats": {
+                    "stats_fields": {"price": {"min":19.99,"max":19.99,"mean":19.99,"count":1}}
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertEquals(1, response.result().products().size());
+        assertEquals("p1", response.result().products().get(0).id());
+        assertTrue(response.result().facets().containsKey("brand"));
+        assertEquals(19.99, response.metadata().stats().get("price").min(), 0.001);
+    }
+
+    // ── toSearchResponse / did_you_mean + autoCorrectQuery ─────────────────
+
+    @Test
+    void toSearchResponse_withDidYouMean_mapsSuggestions() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 0, "docs": []},
+                  "did_you_mean": ["shoes", "shoe"]
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        var dym = response.metadata().didYouMean();
+        assertNotNull(dym);
+        assertEquals(List.of("shoes", "shoe"), dym);
+    }
+
+    @Test
+    void toSearchResponse_withAutoCorrectQuery_mapsIt() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 5, "docs": []},
+                  "autoCorrectQuery": "boots"
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertEquals("boots", response.metadata().autoCorrectQuery());
+    }
+
+    @Test
+    void toSearchResponse_noSuggestions_returnsNullDidYouMeanAndAutoCorrect() throws Exception {
+        stubResource("""
+                {"response": {"numFound": 0, "docs": []}}
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertNull(response.metadata().didYouMean());
+        assertNull(response.metadata().autoCorrectQuery());
+    }
+
+    @Test
+    void toSearchResponse_emptyDidYouMean_returnsEmptyList() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 0, "docs": []},
+                  "did_you_mean": []
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertNotNull(response.metadata().didYouMean());
+        assertTrue(response.metadata().didYouMean().isEmpty());
+    }
+
+    // ── toSearchResponse / keywordRedirect ──────────────────────────────────
+
+    @Test
+    void toSearchResponse_withKeywordRedirect_mapsRedirectUrlAndQuery() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 0, "docs": []},
+                  "keywordRedirect": {
+                    "redirected_url": "https://example.com/sale",
+                    "redirected_query": "sale shoes"
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertEquals("https://example.com/sale", response.metadata().redirectUrl());
+        assertEquals("sale shoes", response.metadata().redirectQuery());
+    }
+
+    @Test
+    void toSearchResponse_noKeywordRedirect_returnsNullRedirectFields() throws Exception {
+        stubResource("""
+                {"response": {"numFound": 0, "docs": []}}
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertNull(response.metadata().redirectUrl());
+        assertNull(response.metadata().redirectQuery());
+    }
+
+    // ── toSearchResponse / campaign banner ──────────────────────────────────
+
+    @Test
+    void toSearchResponse_withCampaign_mapsCampaignFields() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 0, "docs": []},
+                  "campaign": {
+                    "id": "camp-001",
+                    "campaignName": "Summer Sale",
+                    "htmlText": "<p>20% off everything</p>",
+                    "bannerUrl": "https://example.com/summer-sale",
+                    "imageUrl": "https://cdn.example.com/banner.jpg"
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        var campaign = response.metadata().campaign();
+        assertNotNull(campaign);
+        assertEquals("camp-001", campaign.id());
+        assertEquals("Summer Sale", campaign.name());
+        assertEquals("<p>20% off everything</p>", campaign.htmlText());
+        assertEquals("https://example.com/summer-sale", campaign.bannerUrl());
+        assertEquals("https://cdn.example.com/banner.jpg", campaign.imageUrl());
+    }
+
+    @Test
+    void toSearchResponse_withoutCampaign_returnsNullCampaign() throws Exception {
+        stubResource("""
+                {"response": {"numFound": 0, "docs": []}}
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertNull(response.metadata().campaign());
+    }
+
+    @Test
+    void toSearchResponse_campaignWithPartialFields_mapsAvailableFields() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 0, "docs": []},
+                  "campaign": {
+                    "id": "camp-002",
+                    "campaignName": "Flash Deal"
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        var campaign = response.metadata().campaign();
+        assertNotNull(campaign);
+        assertEquals("camp-002", campaign.id());
+        assertEquals("Flash Deal", campaign.name());
+        assertNull(campaign.htmlText());
+        assertNull(campaign.bannerUrl());
+        assertNull(campaign.imageUrl());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

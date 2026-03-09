@@ -51,7 +51,9 @@ public class QueryParamParser {
                 ? sortFallback : config.defaultSort();
         String sort = firstNonBlank(paramProvider.getParameter("sort"), effectiveSortFallback);
         Map<String, List<String>> filters = parseFilters(paramProvider.getParameterMap());
-        return new SearchQuery(searchTerm, page, pageSize, sort, filters, brUid2, refUrl, url, catalogName);
+        String segment = paramProvider.getParameter("seg");
+        return new SearchQuery(searchTerm, page, pageSize, sort, filters, brUid2, refUrl, url, catalogName,
+                List.of(), segment != null && !segment.isBlank() ? segment : null, null);
     }
 
     /**
@@ -96,7 +98,9 @@ public class QueryParamParser {
                 ? sortFallback : config.defaultSort();
         String sort = firstNonBlank(paramProvider.getParameter("sort"), effectiveSortFallback);
         Map<String, List<String>> filters = parseFilters(paramProvider.getParameterMap());
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url);
+        String segment = paramProvider.getParameter("seg");
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url,
+                List.of(), segment != null && !segment.isBlank() ? segment : null, null);
     }
 
     /**

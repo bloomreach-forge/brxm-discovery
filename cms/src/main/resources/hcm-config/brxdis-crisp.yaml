@@ -45,3 +45,18 @@ definitions:
         - crisp.discoveryAutosuggestAPI.baseUri
       crisp:propvalues:
         - 'https://suggest.dxpapi.com'
+    /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPixelAPI:
+      jcr:primaryType: crisp:resourceresolver
+      crisp:beandefinition: |
+        <beans xmlns="http://www.springframework.org/schema/beans"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.springframework.org/schema/beans
+                                   http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+          <bean class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+            <property name="baseUri" value="${crisp.discoveryPixelAPI.baseUri}"/>
+          </bean>
+        </beans>
+      crisp:propnames:
+        - crisp.discoveryPixelAPI.baseUri
+      crisp:propvalues:
+        - 'https://p.brsrvr.com'

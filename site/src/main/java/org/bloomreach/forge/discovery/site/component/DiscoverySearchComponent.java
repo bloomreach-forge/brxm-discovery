@@ -4,7 +4,10 @@ import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchCompone
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
+
+import java.io.IOException;
+import java.util.List;
 
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -22,12 +25,12 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         DiscoverySearchComponentInfo info = getComponentParametersInfo(request);
-        String band = info.getBandName();
+        String label = info.getLabel();
 
         // Signal to view components (ProductGrid, Facets) that a search data source is wired
-        // to this band — must happen before any early return so view components never show a
+        // to this label — must happen before any early return so view components never show a
         // false "missing data source" warning just because no query has been typed yet.
-        DiscoveryRequestCache.markSearchBandPresent(request, band);
+        DiscoveryRequestCache.markSearchBandPresent(request, label);
 
         String query = getPublicRequestParameter(request, "q");
         query = (query != null) ? query.trim() : "";
@@ -35,7 +38,7 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
         boolean suggestOnlyMode = "1".equals(getPublicRequestParameter(request, "brxdis_suggest"));
 
         // Config models — always set so FTL can render form/input correctly regardless of query
-        setModelAndAttribute(request, "dataBand", band);
+        setModelAndAttribute(request, "label", label);
         setModelAndAttribute(request, "suggestionsEnabled", info.isSuggestionsEnabled());
         setModelAndAttribute(request, "resultsPage", info.getResultsPage());
         setModelAndAttribute(request, "minChars", info.getMinChars());
@@ -54,10 +57,29 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
 
         if (!suggestOnlyMode) {
             String catalogName = info.getCatalogName();
-            SearchResult result = svc.search(request, info.getPageSize(), info.getDefaultSort(),
-                    (catalogName != null && !catalogName.isBlank()) ? catalogName : null, band);
-            setModelAndAttribute(request, "searchResult", result);
-            log.debug("Discovery search '{}' → {} results (page {})", query, result.total(), result.page());
+            List<String> statsFields = parseStatsFields(info.getStatsFields());
+            SearchResponse searchResponse = svc.search(request, info.getPageSize(), info.getDefaultSort(),
+                    (catalogName != null && !catalogName.isBlank()) ? catalogName : null, label, statsFields,
+                    info.getSegment(), info.getExclusionFilter());
+            setModelAndAttribute(request, "searchResult", searchResponse.result());
+            setModelAndAttribute(request, "stats", searchResponse.metadata().stats());
+            setModelAndAttribute(request, "didYouMean", searchResponse.metadata().didYouMean());
+            setModelAndAttribute(request, "autoCorrectQuery", searchResponse.metadata().autoCorrectQuery());
+            setModelAndAttribute(request, "redirectUrl", searchResponse.metadata().redirectUrl());
+            setModelAndAttribute(request, "redirectQuery", searchResponse.metadata().redirectQuery());
+            setModelAndAttribute(request, "campaign", searchResponse.metadata().campaign());
+
+            String redirectUrl = searchResponse.metadata().redirectUrl();
+            if (info.isAutoRedirect() && redirectUrl != null && !redirectUrl.isBlank()) {
+                try {
+                    response.sendRedirect(redirectUrl);
+                } catch (IOException e) {
+                    log.warn("Keyword redirect to '{}' failed: {}", redirectUrl, e.getMessage());
+                }
+                return;
+            }
+            log.debug("Discovery search '{}' → {} results (page {})",
+                    query, searchResponse.result().total(), searchResponse.result().page());
         }
 
         if (info.isSuggestionsEnabled()) {
@@ -67,4 +89,6 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
             setModelAndAttribute(request, "autosuggestResult", null);
         }
     }
+
 }
+

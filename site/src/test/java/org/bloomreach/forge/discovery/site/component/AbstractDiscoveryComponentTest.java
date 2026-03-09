@@ -1,7 +1,9 @@
 package org.bloomreach.forge.discovery.site.component;
 
-import org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.configuration.components.HstComponentConfiguration;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -14,9 +16,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -122,7 +128,7 @@ class AbstractDiscoveryComponentTest {
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
         when(childConfig.getComponentClassName()).thenReturn(
                 "org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent");
-        when(childConfig.getParameter("bandName")).thenReturn(null); // defaults to "default"
+        when(childConfig.getParameter("label")).thenReturn(null); // defaults to "default"
 
         assertTrue(new TestableComponent(discoveryService).isBandConfiguredOnPage(request, "default", DiscoverySearchComponent.class));
     }
@@ -138,7 +144,7 @@ class AbstractDiscoveryComponentTest {
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
         when(childConfig.getComponentClassName()).thenReturn(
                 "org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent");
-        when(childConfig.getParameter("bandName")).thenReturn("other");
+        when(childConfig.getParameter("label")).thenReturn("other");
 
         assertFalse(new TestableComponent(discoveryService).isBandConfiguredOnPage(request, "default", DiscoverySearchComponent.class));
     }
@@ -208,6 +214,59 @@ class AbstractDiscoveryComponentTest {
         assertSame(discoveryService, component.getDiscoveryService());
     }
 
+    // ── backfillSearchResponse ────────────────────────────────────────────
+
+    /**
+     * Issue #1 regression: when a CategoryComponent config is found but categoryId is blank
+     * (no document, no URL param), the method must NOT return empty — it must fall through
+     * to the search branch and return the search result if a query is present.
+     */
+    @Test
+    void backfillSearchResponse_catConfigPresentButBlankCategoryId_fallsThroughToSearch() {
+        // PPR mode
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+        when(requestContext.getBaseURL()).thenReturn(baseUrl);
+        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
+        when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
+
+        // Category config: blank document param → no categoryId resolved
+        HstComponentConfiguration catConfig = mock(HstComponentConfiguration.class);
+        when(catConfig.getComponentClassName()).thenReturn(DiscoveryCategoryComponent.class.getName());
+        when(catConfig.getParameter("label")).thenReturn(null); // defaults to "default"
+        when(catConfig.getParameter("document")).thenReturn(null);
+
+        // Search config: present + all optional params null
+        when(childConfig.getComponentClassName()).thenReturn(DiscoverySearchComponent.class.getName());
+        when(childConfig.getParameter("label")).thenReturn(null); // defaults to "default"
+        when(childConfig.getParameter("pageSize")).thenReturn(null);
+        when(childConfig.getParameter("defaultSort")).thenReturn(null);
+        when(childConfig.getParameter("catalogName")).thenReturn(null);
+        when(childConfig.getParameter("statsFields")).thenReturn(null);
+        when(childConfig.getParameter("segment")).thenReturn(null);
+        when(childConfig.getParameter("exclusionFilter")).thenReturn(null);
+
+        // flattened() is called twice: once for cat lookup, once for search lookup
+        when(pageConfig.flattened())
+                .thenReturn(Stream.of(catConfig, childConfig))
+                .thenReturn(Stream.of(catConfig, childConfig));
+
+        SearchResult result = new SearchResult(List.of(), 1L, 0, 12, Map.of());
+        SearchResponse mockResponse = new SearchResponse(result, SearchMetadata.empty());
+        when(discoveryService.search(eq(request), eq(12), isNull(), isNull(), eq("default"),
+                eq(List.of()), isNull(), isNull()))
+                .thenReturn(mockResponse);
+
+        // "category" URL param blank → no cat id; "q" param present → search executes
+        Map<String, String> params = Map.of("q", "sneakers");
+        TestableMultiParamComponent component = new TestableMultiParamComponent(discoveryService, params);
+        var response = component.backfillSearchResponse(request, "default");
+
+        assertTrue(response.isPresent(), "Expected search fallback result when cat categoryId is blank");
+        verify(discoveryService, never()).browse(any(), any(), anyInt(), any(), any(), any(), any(), any());
+    }
+
     // ── testable subclass ─────────────────────────────────────────────────
 
     private static class TestableComponent extends AbstractDiscoveryComponent {
@@ -235,6 +294,33 @@ class AbstractDiscoveryComponentTest {
         @Override
         public String getPublicRequestParameter(HstRequest request, String name) {
             return name.equals(paramName) ? paramValue : null;
+        }
+
+        @Override
+        public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
+            // no-op — only testing base-class helpers
+        }
+    }
+
+    private static class TestableMultiParamComponent extends AbstractDiscoveryComponent {
+
+        private final HstDiscoveryService service;
+        private final Map<String, String> params;
+
+        TestableMultiParamComponent(HstDiscoveryService service, Map<String, String> params) {
+            this.service = service;
+            this.params = params;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        protected <T> T lookupService(Class<T> type) {
+            return (T) service;
+        }
+
+        @Override
+        public String getPublicRequestParameter(HstRequest request, String name) {
+            return params.get(name);
         }
 
         @Override

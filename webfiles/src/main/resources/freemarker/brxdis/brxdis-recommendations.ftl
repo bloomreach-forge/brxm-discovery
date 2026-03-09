@@ -1,8 +1,10 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#assign resolvedProductPage><@hst.link path="/product"/></#assign>
+<#assign resolvedProductPage = resolvedProductPage?trim>
 <@hst.headContribution keyHint="brxdis-recs-css">
 <style>
-.brxdis-recs{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0}
+.brxdis-recs{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0;position:relative}
 .brxdis-recs__header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.875rem}
 .brxdis-recs__title{font-size:1.125rem;font-weight:700;color:#111827;margin:0}
 .brxdis-recs__widget{font-size:.75rem;color:#9ca3af}
@@ -41,10 +43,10 @@
 
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
 <#-- @ftlvariable name="dataSource" type="java.lang.String" -->
-<#-- @ftlvariable name="dataBand" type="java.lang.String" -->
+<#-- @ftlvariable name="label" type="java.lang.String" -->
 <#if (editMode!false)>
   <#if (dataSource!"standalone") == "productDetailBand">
-    <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Recommendations &mdash; reads PID from product detail band: <strong>${dataBand!"default"}</strong></div>
+    <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Recommendations &mdash; reads PID from product detail label: <strong>${label!"default"}</strong></div>
   <#else>
     <div class="brxdis-band-badge brxdis-band-badge--blue">&#128204; Recommendations &mdash; standalone PID resolution</div>
   </#if>
@@ -54,11 +56,12 @@
   <#if document??>
     <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/widgets"/>
   <#else>
-    <@hst.manageContent parameterName="document" rootPath="brxdis/widgets"/>
+    <@hst.manageContent documentTemplateQuery="new-brxdis-recommendationDocument"
+        parameterName="document" rootPath="brxdis/widgets" defaultPath="widgets"/>
   </#if>
   <div class="brxdis-recs__header">
     <h2 class="brxdis-recs__title">You May Also Like</h2>
-    <#if widgetId?has_content>
+    <#if (editMode!false) && widgetId?has_content>
       <span class="brxdis-recs__widget">Widget:&nbsp;${widgetId}</span>
     </#if>
   </div>
@@ -88,7 +91,7 @@
             </div>
             <div class="brxdis-recs__body">
               <h3 class="brxdis-recs__name">
-                <a href="${prodUrl}">${prodTitle?has_content?then(prodTitle, "Untitled")}</a>
+                <a href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">${prodTitle?has_content?then(prodTitle, "Untitled")}</a>
               </h3>
               <#if (showDescription!false) && prodAttrs["description"]??>
                 <p class="brxdis-recs__desc" style="font-size:.8rem;color:#6b7280;margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${prodAttrs["description"]}</p>
@@ -97,7 +100,7 @@
                 <p class="brxdis-recs__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
               </#if>
             </div>
-            <a class="brxdis-recs__cta" href="${prodUrl}">View Product</a>
+            <a class="brxdis-recs__cta" href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">View Product</a>
           </article>
         </#list>
       </div>

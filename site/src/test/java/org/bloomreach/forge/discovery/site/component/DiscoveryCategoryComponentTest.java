@@ -3,6 +3,8 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -29,11 +31,13 @@ class DiscoveryCategoryComponentTest {
     @Mock HstDiscoveryService discoveryService;
 
     private SearchResult categoryResult;
+    private SearchResponse categoryResponse;
 
     @BeforeEach
     void setUp() {
         ProductSummary product = new ProductSummary("p1", "Shoe", "/shoe", null, BigDecimal.TEN, "USD", Map.of());
         categoryResult = new SearchResult(List.of(product), 36L, 1, 12, Map.of());
+        categoryResponse = new SearchResponse(categoryResult, SearchMetadata.empty());
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
     }
 
@@ -45,28 +49,28 @@ class DiscoveryCategoryComponentTest {
 
     @Test
     void delegatesToServiceWithCategoryIdAndComponentParams() {
-        when(discoveryService.browse(request, "cat-123", 24, "price asc", "default")).thenReturn(categoryResult);
+        when(discoveryService.browse(request, "cat-123", 24, "price asc", "default", List.of(), "", "")).thenReturn(categoryResponse);
 
         componentWith("cat-123", 24, "price asc").doBeforeRender(request, response);
 
-        verify(discoveryService).browse(request, "cat-123", 24, "price asc", "default");
+        verify(discoveryService).browse(request, "cat-123", 24, "price asc", "default", List.of(), "", "");
     }
 
     @Test
     void delegatesToServiceWithZeroPageSizeWhenNotSet() {
-        when(discoveryService.browse(eq(request), eq("shoes"), eq(0), eq(""), eq("default")))
-                .thenReturn(categoryResult);
+        when(discoveryService.browse(eq(request), eq("shoes"), eq(0), eq(""), eq("default"), eq(List.of()), eq(""), eq("")))
+                .thenReturn(categoryResponse);
 
         componentWith("shoes", 0, "").doBeforeRender(request, response);
 
-        verify(discoveryService).browse(request, "shoes", 0, "", "default");
+        verify(discoveryService).browse(request, "shoes", 0, "", "default", List.of(), "", "");
     }
 
     // ── model keys ──────────────────────────────────────────────────────────
 
     @Test
     void setsCategoryResultAndCategoryIdOnModel() {
-        when(discoveryService.browse(eq(request), anyString(), anyInt(), any(), any())).thenReturn(categoryResult);
+        when(discoveryService.browse(eq(request), anyString(), anyInt(), any(), any(), any(), any(), any())).thenReturn(categoryResponse);
 
         componentWith("electronics", 12, "").doBeforeRender(request, response);
 
@@ -105,7 +109,10 @@ class DiscoveryCategoryComponentTest {
                 @Override public String getDocument() { return null; }
                 @Override public int getPageSize() { return pageSize; }
                 @Override public String getDefaultSort() { return defaultSort; }
-                @Override public String getBandName() { return "default"; }
+                @Override public String getLabel() { return "default"; }
+                @Override public String getStatsFields() { return ""; }
+                @Override public String getSegment() { return ""; }
+                @Override public String getExclusionFilter() { return ""; }
             };
         }
 

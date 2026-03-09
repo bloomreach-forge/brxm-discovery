@@ -28,10 +28,15 @@
 <#-- @ftlvariable name="debounceMs"         type="java.lang.Integer" -->
 <#-- @ftlvariable name="placeholder"        type="java.lang.String" -->
 <#-- @ftlvariable name="query"              type="java.lang.String" -->
-<#-- @ftlvariable name="dataBand"           type="java.lang.String" -->
+<#-- @ftlvariable name="label"              type="java.lang.String" -->
 <#-- @ftlvariable name="searchResult"       type="org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult" -->
 <#-- @ftlvariable name="autosuggestResult"  type="org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult" -->
 <#-- @ftlvariable name="editMode"           type="java.lang.Boolean" -->
+<#-- @ftlvariable name="didYouMean"        type="java.util.List" -->
+<#-- @ftlvariable name="autoCorrectQuery"  type="java.lang.String" -->
+<#-- @ftlvariable name="redirectUrl"       type="java.lang.String" -->
+<#-- @ftlvariable name="redirectQuery"     type="java.lang.String" -->
+<#-- @ftlvariable name="campaign"          type="org.bloomreach.forge.discovery.site.service.discovery.search.model.Campaign" -->
 
 <#if suggestOnlyMode!false>
 <#-- ── Partial AJAX response — only the panel ──────────────────────────── -->
@@ -68,7 +73,19 @@
 .brxdis-as__empty{padding:1.5rem;text-align:center;color:#9ca3af;font-size:.875rem}
 .brxdis-search__meta{font-size:.875rem;color:#6b7280;margin-bottom:1rem}
 .brxdis-search__meta strong{color:#111827}
-.brxdis-empty{padding:3rem 1rem;text-align:center;color:#6b7280;border:2px dashed #e5e7eb;border-radius:10px;margin:1rem 0}
+.brxdis-search__autocorrect{font-size:.875rem;color:#6b7280;margin-bottom:.75rem}
+.brxdis-search__autocorrect strong{color:#111827}
+.brxdis-search__autocorrect a{color:#2563eb}
+.brxdis-search__dym{font-size:.875rem;color:#6b7280;margin-bottom:.75rem}
+.brxdis-search__dym a{color:#2563eb;text-decoration:none}
+.brxdis-search__dym a:hover{text-decoration:underline}
+.brxdis-search__redirect{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:.875rem;color:#1e40af}
+.brxdis-search__redirect a{color:#1d4ed8;font-weight:500}
+.brxdis-empty{padding:3rem 1rem;text-align:center;color:#6b7280;border:2px dashed #e5e7eb;border-radius:10px;margin:1rem 0;position:relative}
+.brxdis-campaign{margin-bottom:1.25rem;border-radius:10px;overflow:hidden}
+.brxdis-campaign a{display:block;text-decoration:none}
+.brxdis-campaign img{width:100%;display:block}
+.brxdis-campaign__text{padding:.75rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:.875rem}
 </style>
 </@hst.headContribution>
 
@@ -78,9 +95,9 @@
      data-debounce="${debounceMs!250}"
      data-results-page="${resolvedResultsPage}">
 
-  <#if editMode?? && editMode && dataBand?has_content && dataBand != "default">
+  <#if editMode?? && editMode && label?has_content && label != "default">
     <div style="display:inline-block;margin-bottom:.5rem;background:#dbeafe;border:1px solid #bfdbfe;color:#1e40af;border-radius:999px;font-size:.75rem;font-weight:600;padding:.2rem .65rem">
-      Writes to band: <strong>${dataBand}</strong>
+      Label: <strong>${label}</strong>
     </div>
   </#if>
 
@@ -157,6 +174,46 @@
 }());
 </script>
 
+  <#if campaign??>
+  <div class="brxdis-campaign">
+    <#if campaign.bannerUrl()?has_content>
+      <a href="${campaign.bannerUrl()}">
+        <#if campaign.imageUrl()?has_content>
+          <img src="${campaign.imageUrl()}" alt="${campaign.name()!""}"/>
+        </#if>
+      </a>
+    <#elseif campaign.imageUrl()?has_content>
+      <img src="${campaign.imageUrl()}" alt="${campaign.name()!""}"/>
+    </#if>
+    <#if campaign.htmlText()?has_content>
+      <div class="brxdis-campaign__text">${campaign.htmlText()}</div>
+    </#if>
+  </div>
+  </#if>
+
+  <#if redirectUrl?has_content>
+  <div class="brxdis-search__redirect">
+    <strong>Looking for "${redirectQuery!query}"?</strong>
+    <a href="${redirectUrl}">View curated results &rarr;</a>
+  </div>
+  </#if>
+
+  <#if autoCorrectQuery?has_content>
+  <p class="brxdis-search__autocorrect">
+    Showing results for <strong>${autoCorrectQuery}</strong>.
+    <a href="${resolvedResultsPage}?q=${autoCorrectQuery?url('UTF-8')}">Search instead for "${query}"?</a>
+  </p>
+  </#if>
+
+  <#if didYouMean?has_content && didYouMean?size > 0>
+  <p class="brxdis-search__dym">
+    Did you mean:
+    <#list didYouMean as suggestion>
+      <a href="${resolvedResultsPage}?q=${suggestion?url('UTF-8')}">${suggestion}</a><#sep>, </#sep>
+    </#list>?
+  </p>
+  </#if>
+
   <#if searchResult??>
     <#assign start = searchResult.page() * searchResult.pageSize() + 1>
     <#assign end = ((searchResult.page() + 1) * searchResult.pageSize())>
@@ -203,7 +260,7 @@
         <p class="brxdis-as__heading">Products</p>
         <div class="brxdis-as__products">
           <#list autosuggestResult.productSuggestions() as product>
-            <a class="brxdis-as__prod" href="${resolvedProductPage}?pid=${product.id()!""?url('UTF-8')}">
+            <a class="brxdis-as__prod" href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">
               <div class="brxdis-as__prod-img">
                 <#if product.imageUrl()?has_content>
                   <img src="${product.imageUrl()}" alt="${product.title()!""}"/>

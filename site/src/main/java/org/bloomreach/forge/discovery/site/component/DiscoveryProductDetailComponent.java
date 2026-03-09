@@ -26,7 +26,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         super.doBeforeRender(request, response);
 
         DiscoveryProductDetailComponentInfo info = getComponentParametersInfo(request);
-        String band = info.getBand();
+        String label = info.getLabel();
 
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
                 DiscoveryProductDetailBean.class);
@@ -34,9 +34,13 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
 
         String pid = getPublicRequestParameter(request, info.getProductUrlParam());
 
-        // Stage 2 — Document bean (picker-driven; overrides component param)
+        // Stage 2 — Document bean (picker-driven; overrides only when the document has a non-blank productId.
+        // A document with an unset productId must NOT wipe out a valid URL param from stage 1.)
         if (document != null) {
-            pid = document.getProductId();
+            String docPid = document.getProductId();
+            if (docPid != null && !docPid.isBlank()) {
+                pid = docPid;
+            }
         }
 
         // Stage 3 — Page content bean property (auto-detection from document)
@@ -44,9 +48,13 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             pid = resolvePidFromBean(request, info);
         }
 
+        // Expose resolved pid and label for template unconditionally (before any early returns)
+        setModelAndAttribute(request, "pid", pid != null ? pid : "");
+        setModelAndAttribute(request, "label", label);
+
         if (pid == null || pid.isBlank()) {
-            // Mark band present so downstream components know PDP ran (just no PID resolved)
-            DiscoveryRequestCache.markProductDetailBandPresent(request, band);
+            // Mark label present so downstream components know PDP ran (just no PID resolved)
+            DiscoveryRequestCache.markProductDetailBandPresent(request, label);
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
                     "No product ID resolved. Select a 'Product Detail Document' in component properties, " +
@@ -63,13 +71,12 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         ProductSummary product = found.orElse(null);
         setModelAndAttribute(request, "product", product);
 
-        DiscoveryRequestCache.markProductDetailBandPresent(request, band);
+        DiscoveryRequestCache.markProductDetailBandPresent(request, label);
         if (product != null) {
-            DiscoveryRequestCache.putProductResult(request, band, product);
+            DiscoveryRequestCache.putProductResult(request, label, product);
         }
-        setModelAndAttribute(request, "dataBand", band);
 
-        log.debug("PDP pid='{}' product={} band='{}'", pid, product != null ? product.id() : "null", band);
+        log.debug("PDP pid='{}' product={} label='{}'", pid, product != null ? product.id() : "null", label);
     }
 
     /**

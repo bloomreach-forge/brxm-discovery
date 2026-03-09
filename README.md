@@ -80,6 +80,8 @@ brxm-discovery/                          (aggregator POM, packaging=pom)
 │   └── JCR node types, editor template, picker daemon module, Open UI extension
 ├── site/                                (brxm-discovery-site — jar)
 │   └── Domain model, services, CRISP integration, HST components
+├── webfiles/                            (brxm-discovery-webfiles — jar)
+│   └── Bundled Freemarker templates (brxdis-*.ftl)
 └── demo/                                (standalone Maven project)
     └── Full brXM project for local end-to-end testing
 ```
@@ -92,14 +94,15 @@ brxm-discovery/                          (aggregator POM, packaging=pom)
 
 Add `brxm-discovery-cms` to your CMS webapp and `brxm-discovery-site` to your site webapp as shown in [Maven Coordinates](#maven-coordinates).
 
-**2. Configure the CRISP resource spaces**
+**2. Configure the CRISP broker**
 
-The plugin bootstraps three CRISP resource spaces automatically via `brxdis-crisp.yaml` (included in the CMS module's HCM config):
-- `discoverySearchAPI` — `https://core.dxpapi.com` (search, category, widgets)
-- `discoveryPathwaysAPI` — `https://pathways.dxpapi.com` (v2 Pathways recommendations)
-- `discoveryAutosuggestAPI` — `https://suggest.dxpapi.com` (autosuggest / typeahead)
+Enable the CRISP broker in your site `hst-config.properties`:
 
-No manual CRISP config is required. See [02-discovery-config.md](user-guides/02-discovery-config.md) for override options.
+```properties
+crisp.broker.registerService = true
+```
+
+The three CRISP resource spaces (`discoverySearchAPI`, `discoveryPathwaysAPI`, `discoveryAutosuggestAPI`) are bootstrapped automatically by the plugin — no manual CRISP configuration is required.
 
 **3. Create a `brxdis:discoveryConfig` document**
 
@@ -116,57 +119,57 @@ hst:parametervalues: ['/content/documents/administration/discovery-config/discov
 
 **5. Wire HST components**
 
-The plugin provides three data-fetching components and three composable view components:
+The plugin provides data-fetching components and composable view components:
 
 **Data-fetching components** (call the Discovery API, populate the request cache):
 
 | Component class | Model keys set | Use |
 |---|---|---|
-| `…component.DiscoverySearchComponent` | `query`, `searchResult` | Search results page |
-| `…component.DiscoveryCategoryComponent` | `categoryId`, `categoryResult` | Category browse page |
-| `…component.DiscoveryRecommendationComponent` | `products`, `widgetId` | Recommendation widget |
-| `…component.DiscoveryProductDetailComponent` | `product`, `similarProducts` | Product detail page |
-| `…component.DiscoveryAutosuggestComponent` | `query`, `autosuggestResult` | Typeahead / autosuggest |
+| `…DiscoverySearchComponent` | `query`, `searchResult`, `autosuggestResult` | Search bar + results page (autosuggest inline) |
+| `…DiscoveryCategoryComponent` | `categoryId`, `categoryResult` | Category browse page |
+| `…DiscoveryRecommendationComponent` | `products`, `widgetId` | Recommendation widget |
+| `…DiscoveryProductDetailComponent` | `product`, `similarProducts` | Product detail page |
+| `…DiscoveryProductHighlightComponent` | `products` | Curated product showcase (up to 4 hand-picked products) |
+| `…DiscoveryCategoryHighlightComponent` | `categories` | Category navigation tiles (up to 4 hand-picked categories) |
 
-**View components** (read from the servlet-request cache, expose focused model slices — add as siblings on the same page):
+**View components** (read from the request cache — add as siblings on the same page):
 
-| Component class | Model key set | Use |
+| Component class | Model keys set | Use |
 |---|---|---|
-| `…component.DiscoveryProductGridComponent` | `products` | Product list only |
-| `…component.DiscoveryFacetComponent` | `facets` | Facet navigation only |
-| `…component.DiscoveryPaginationComponent` | `pagination` | Pagination metadata only |
+| `…DiscoveryProductGridComponent` | `products`, `pagination` | Product list + pagination |
+| `…DiscoveryFacetComponent` | `facets` | Facet navigation only |
 
 All components expose data via both `request.setAttribute()` (FTL) and `request.setModel()` (Page Model API / headless SPA).
 
-**6. Use the plugin FTL templates (optional)**
+**6. Register the plugin FTL templates (optional)**
 
-The site JAR ships ready-to-use Freemarker templates on the classpath. Register them in your `templates.yaml`:
+The webfiles module ships ready-to-use Freemarker templates. Register them in your `templates.yaml`:
 
 ```yaml
 /brxdis-search:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-search.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
 /brxdis-product-grid:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-grid.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-grid.ftl
 /brxdis-facets:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-facets.ftl
-/brxdis-pagination:
-  jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-pagination.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-facets.ftl
 /brxdis-category:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-category.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
 /brxdis-recommendations:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-recommendations.ftl
 /brxdis-product-detail:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-detail.ftl
-/brxdis-autosuggest:
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-detail.ftl
+/brxdis-product-highlight:
   jcr:primaryType: hst:template
-  hst:renderpath: classpath:/freemarker/brxdis/brxdis-autosuggest.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-highlight.ftl
+/brxdis-category-highlight:
+  jcr:primaryType: hst:template
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category-highlight.ftl
 ```
 
 Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required. See [03-search-and-category.md](user-guides/03-search-and-category.md) for the composable wiring pattern.
@@ -181,7 +184,7 @@ Credentials and environment are resolved at runtime using the following preceden
 |---|---|---|
 | 1 (highest) | Environment variable | `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY`, `BRXDIS_ENVIRONMENT` |
 | 2 | JVM system property | `brxdis.accountId`, `brxdis.domainKey`, `brxdis.apiKey`, `brxdis.authKey`, `brxdis.environment` |
-| 3 (lowest) | JCR field on the module config node | Edited via JCR console |
+| 3 (lowest) | JCR field on the config document | Edited via CMS editor |
 
 `AUTH_KEY` is required for v2 Pathways recommendations. When absent, the plugin falls back to the v1 API automatically. `ENVIRONMENT` controls the API subdomain (`PRODUCTION` → `core.dxpapi.com`; `STAGING` → `staging-core.dxpapi.com`).
 
@@ -195,7 +198,7 @@ The CMS ships a visual product picker as an Open UI document field extension. Ed
 
 The picker is bootstrapped automatically via HCM:
 - **Daemon module**: `/hippo:configuration/hippo:modules/brxm-discovery-picker`
-- **JAX-RS endpoints**: `{cms}/ws/discovery/picker/search`, `.../items`, and `.../widgets`
+- **JAX-RS endpoints**: `{cms}/ws/discovery/picker/search`, `.../items`, `.../categories`, and `.../widgets`
 - **Open UI extension node**: `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker`
 
 For wiring the picker into a document type, see [05-product-picker.md](user-guides/05-product-picker.md).
@@ -208,7 +211,7 @@ For wiring the picker into a document type, see [05-product-picker.md](user-guid
 # Compile all modules
 mvn clean compile
 
-# Run all tests (192 site + 13 cms = 205 total)
+# Run all tests (257 site + 21 cms = 278 total)
 mvn clean test
 
 # Run site module tests only
@@ -216,9 +219,6 @@ mvn clean test -pl site
 
 # Run a single test class
 mvn clean test -Dtest=DiscoverySearchComponentTest -pl site
-
-# Run with coverage report
-mvn clean test -Pcoverage
 ```
 
 ---
@@ -233,4 +233,4 @@ mvn clean test -Pcoverage
 | 04 | [Recommendation Widgets](user-guides/04-recommendations.md) |
 | 05 | [Product Picker](user-guides/05-product-picker.md) |
 | 06 | [Credential Injection](user-guides/06-credential-injection.md) |
-| 07 | [Autosuggest / Typeahead](user-guides/07-autosuggest.md) |
+| 07 | [Autosuggest / Search Bar](user-guides/07-autosuggest.md) |

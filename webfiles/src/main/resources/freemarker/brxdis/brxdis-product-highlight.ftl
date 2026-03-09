@@ -4,7 +4,7 @@
 <#assign resolvedProductPage = resolvedProductPage?trim>
 <@hst.headContribution keyHint="brxdis-prodhighlight-css">
 <style>
-.brxdis-prodhighlight{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0}
+.brxdis-prodhighlight{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0;position:relative}
 .brxdis-prodhighlight__title{font-size:1.125rem;font-weight:700;color:#111827;margin:0 0 .875rem}
 .brxdis-prodhighlight__misconfig{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
 .brxdis-prodhighlight__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem}

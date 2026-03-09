@@ -39,11 +39,38 @@
         <constructor-arg ref="brxmdis.configReader"/>
     </bean>
 
-    <!-- Config cache: lazy JCR reads, JVM-lifetime entries, JCR-driven invalidation -->
+    <!--
+      Config cache: lazy JCR reads, JVM-lifetime entries, JCR-driven invalidation.
+      Uses HippoServiceRegistry.getService(HippoRepository.class) internally for system sessions —
+      the javax.jcr.Repository bean is the HST pooled delivery repo and rejects system credentials.
+    -->
     <bean id="brxmdis.configProvider"
           class="org.bloomreach.forge.discovery.site.service.discovery.config.CachingDiscoveryConfigProvider">
         <constructor-arg ref="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver"/>
-        <constructor-arg ref="javax.jcr.Repository"/>
+    </bean>
+
+    <!-- JCR observation listener — invalidates config cache when CMS node changes -->
+    <bean id="brxmdis.configJcrListener"
+          class="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigJcrListener">
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <!-- No javax.jcr.Repository arg — listener obtains a system session via
+             HippoServiceRegistry.getService(HippoRepository.class) at afterPropertiesSet() time.
+             The javax.jcr.Repository bean is the HST pooled delivery repo and rejects system credentials. -->
+    </bean>
+
+    <!--
+      Dedicated pixel executor — bounded pool prevents pixel I/O from starving
+      ForkJoinPool.commonPool() which is shared by CompletableFuture, parallel streams, etc.
+    -->
+    <bean id="brxmdis.pixelExecutor"
+          class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="2"/>
+        <property name="maxPoolSize" value="4"/>
+        <property name="queueCapacity" value="256"/>
+        <property name="threadNamePrefix" value="brxdis-pixel-"/>
+        <property name="rejectedExecutionHandler">
+            <bean class="java.util.concurrent.ThreadPoolExecutor$DiscardOldestPolicy"/>
+        </property>
     </bean>
 
     <!-- Pixel event service — fires async tracking calls to Discovery after each cache-miss result -->
@@ -51,6 +78,7 @@
           class="org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelServiceImpl"
           lazy-init="true">
         <constructor-arg ref="brxmdis.discoveryClient"/>
+        <constructor-arg ref="brxmdis.pixelExecutor"/>
     </bean>
 
     <!-- HST façade — FQCN bean ID for getComponent() lookup -->
