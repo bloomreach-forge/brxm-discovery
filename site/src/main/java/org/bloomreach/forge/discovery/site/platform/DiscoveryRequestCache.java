@@ -3,7 +3,6 @@ package org.bloomreach.forge.discovery.site.platform;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
 
@@ -38,30 +37,6 @@ public final class DiscoveryRequestCache {
 
     public static void putCategoryResponse(HstRequest request, String label, SearchResponse response) {
         ctx(request).setAttribute(ATTR + ".categoryResult." + label, response);
-    }
-
-    /** @deprecated Use {@link #getSearchResponse(HstRequest, String)} */
-    @Deprecated
-    public static Optional<SearchResult> getSearchResult(HstRequest request, String label) {
-        return getSearchResponse(request, label).map(SearchResponse::result);
-    }
-
-    /** @deprecated Use {@link #putSearchResponse(HstRequest, String, SearchResponse)} */
-    @Deprecated
-    public static void putSearchResult(HstRequest request, String label, SearchResult result) {
-        throw new UnsupportedOperationException("Use putSearchResponse(request, label, SearchResponse)");
-    }
-
-    /** @deprecated Use {@link #getCategoryResponse(HstRequest, String)} */
-    @Deprecated
-    public static Optional<SearchResult> getCategoryResult(HstRequest request, String label) {
-        return getCategoryResponse(request, label).map(SearchResponse::result);
-    }
-
-    /** @deprecated Use {@link #putCategoryResponse(HstRequest, String, SearchResponse)} */
-    @Deprecated
-    public static void putCategoryResult(HstRequest request, String label, SearchResult result) {
-        throw new UnsupportedOperationException("Use putCategoryResponse(request, label, SearchResponse)");
     }
 
     // ── Label-presence markers (set by data components before any early return) ──

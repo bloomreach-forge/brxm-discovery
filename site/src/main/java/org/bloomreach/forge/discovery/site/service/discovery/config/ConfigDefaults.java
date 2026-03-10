@@ -11,6 +11,7 @@ public final class ConfigDefaults {
     public static final String BASE_URI = "https://core.dxpapi.com";
     public static final String PATHWAYS_BASE_URI = "https://pathways.dxpapi.com";
     public static final String ENVIRONMENT = "PRODUCTION";
+    public static final String STAGING_ENVIRONMENT = "STAGING";
     public static final int DEFAULT_PAGE_SIZE = 12;
     public static final String DEFAULT_SORT = "";
 }

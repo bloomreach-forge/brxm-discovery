@@ -155,28 +155,24 @@ class CachingDiscoveryConfigProviderTest {
     }
 
     @Test
-    void get_jcrSessionFailure_cachesFallback_avoidsPerRequestSysPropReads() {
+    void get_jcrSessionFailure_doesNotCachePartialConfig_allowsRetry() {
         // Partial config from env/sys props when JCR session is unavailable
         DiscoveryConfig partial = new DiscoveryConfig(
                 null, null, "global-key", null,
                 "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
         String path = "/hippo:configuration/discoveryConfig";
         when(resolver.resolve(null, null)).thenReturn(partial);
+        when(resolver.resolve(session, path)).thenReturn(validConfig);
 
-        CachingDiscoveryConfigProvider.SessionSupplier failingSupplier =
-                () -> { throw new RuntimeException("JCR not yet available"); };
-
-        // First call: session unavailable → falls back to env/sys props
-        DiscoveryConfig result1 = provider.get(path, failingSupplier);
+        // First call: session unavailable → falls back, but does NOT cache
+        DiscoveryConfig result1 = provider.get(path, () -> { throw new RuntimeException("JCR not yet available"); });
         assertSame(partial, result1);
 
-        // Second call: cache hit — resolver NOT called again (no per-request sys-prop reads)
-        DiscoveryConfig result2 = provider.get(path, failingSupplier);
-        assertSame(partial, result2);
+        // Second call: session available → full config resolved and cached
+        DiscoveryConfig result2 = provider.get(path, () -> session);
+        assertSame(validConfig, result2);
 
-        // Stale partial config is safe: patchFromChannelInfo in HstDiscoveryService
-        // always overrides accountId/domainKey from Channel Manager and re-evaluates
-        // per-channel env vars for apiKey/authKey on every request.
-        verify(resolver, times(1)).resolve(null, null);
+        verify(resolver, times(1)).resolve(null, null);     // fallback called once
+        verify(resolver, times(1)).resolve(session, path);  // full resolve on retry
     }
 }

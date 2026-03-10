@@ -18,12 +18,14 @@ import java.util.List;
 @ParametersInfo(type = DiscoveryCategoryHighlightComponentInfo.class)
 public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryComponent {
 
+    private static final int MAX_SLOTS = 4; // supports up to 4 curated category slots
+
     @Override
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         DiscoveryCategoryHighlightComponentInfo info = getComponentParametersInfo(request);
 
-        List<DiscoveryCategoryBean> categories = new ArrayList<>();
+        List<DiscoveryCategoryBean> categories = new ArrayList<>(MAX_SLOTS);
         for (String path : new String[]{
                 info.getDocument1(), info.getDocument2(),
                 info.getDocument3(), info.getDocument4()}) {

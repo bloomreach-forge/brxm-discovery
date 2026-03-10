@@ -81,14 +81,10 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
                 // JCR admin session unavailable (e.g. HippoRepository not yet registered,
                 // or system credentials rejected). Fall back to env/sys props so the component
                 // degrades gracefully rather than crashing.
-                // Cache the fallback so we don't re-read sys props on every request.
-                // Stale partial configs are safe: patchFromChannelInfo always overrides
-                // accountId/domainKey from Channel Manager and re-evaluates per-channel env vars.
+                // Intentionally NOT caching — allow next request to retry JCR once it's available.
                 log.warn("brxm-discovery: Cannot open JCR session for config path '{}' — " +
                         "falling back to environment/system properties. Cause: {}", configPath, e.getMessage());
-                config = resolver.resolve(null, null);
-                cache.put(key, config);
-                return config;
+                return resolver.resolve(null, null);
             }
             try {
                 config = resolver.resolve(session, configPath);

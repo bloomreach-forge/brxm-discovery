@@ -108,12 +108,12 @@ export interface FieldStats {
   count: number;
 }
 
-export interface SearchMetadata {
-  stats: Record<string, FieldStats>;
-  didYouMean: string[] | null;
-  autoCorrectQuery: string | null;
-  redirectUrl: string | null;
-  redirectQuery: string | null;
+export interface Campaign {
+  id: string;
+  name: string;
+  htmlText: string | null;
+  bannerUrl: string | null;
+  imageUrl: string | null;
 }
 
 // ── Autosuggest ───────────────────────────────────────────────────────────────
@@ -143,12 +143,14 @@ export interface SearchComponentModels {
   autoCorrectQuery: string | null;
   redirectUrl: string | null;
   redirectQuery: string | null;
+  campaign: Campaign | null;
   suggestionsEnabled: boolean;
   suggestOnlyMode: boolean;
   resultsPage: string;
   placeholder: string;
   minChars: number;
   debounceMs: number;
+  editMode: boolean;
 }
 
 export interface CategoryComponentModels {
@@ -156,6 +158,8 @@ export interface CategoryComponentModels {
   label: string;
   categoryResult: SearchResult;
   stats: Record<string, FieldStats>;
+  campaign: Campaign | null;
+  editMode: boolean;
 }
 
 export interface ProductGridModels {
@@ -163,12 +167,14 @@ export interface ProductGridModels {
   pagination: PaginationModel;
   label: string;
   labelConnected: boolean;
+  editMode: boolean;
 }
 
 export interface FacetModels {
   facets: Record<string, Facet>;
   label: string;
   labelConnected: boolean;
+  editMode: boolean;
 }
 
 export interface RecommendationModels {
@@ -176,16 +182,31 @@ export interface RecommendationModels {
   widgetId: string;
   label: string;
   dataSource: string;
+  editMode: boolean;
 }
 
 export interface ProductDetailModels {
   product: ProductSummary | null;
+  pid: string;               // resolved PID (empty string when not found)
   label: string;
+  document: unknown | null;  // CMS-internal document bean — do not use in SPA code; use `pid` instead
+  editMode: boolean;
 }
 
-export interface AutosuggestComponentModels {
-  autosuggestResult: AutosuggestResult | null;
-  query: string;
+export interface ProductHighlightModels {
+  products: (ProductSummary | null)[];  // up to 4 slots; null = slot not filled
+  productBeans: unknown[];              // CMS-internal document beans — do not use in SPA code
+  editMode: boolean;
+}
+
+export interface CategoryHighlight {
+  categoryId: string;
+  displayName: string;
+}
+
+export interface CategoryHighlightModels {
+  categories: CategoryHighlight[];
+  editMode: boolean;
 }
 ```
 
@@ -616,18 +637,78 @@ const debouncedFetch = useMemo(
 
 ---
 
+### `DiscoveryProductHighlightComponent` → `ProductHighlightModels`
+
+Renders up to 4 curated product slots sourced from `DiscoveryProductDetailDocument` pickers in Channel Manager. Does **not** call Discovery search — it fetches each product individually by PID using `DiscoveryApiClient.fetchProduct()`.
+
+```tsx
+// ProductHighlight.tsx
+import type { BrComponentContext } from '@bloomreach/react-sdk';
+import type { ProductHighlightModels } from './discovery.types';
+
+export function ProductHighlight({ component }: BrComponentContext) {
+  const { products } = component.getModels<ProductHighlightModels>();
+  const filled = products.filter((p): p is NonNullable<typeof p> => p !== null);
+
+  if (filled.length === 0) return null;
+
+  return (
+    <section className="product-highlight">
+      {filled.map(p => (
+        <article key={p.id}>
+          {p.imageUrl && <img src={p.imageUrl} alt={p.title} />}
+          <h3><a href={`/product?pid=${p.id}`}>{p.title}</a></h3>
+          <p>{p.currency} {p.price?.toFixed(2)}</p>
+        </article>
+      ))}
+    </section>
+  );
+}
+```
+
+**Notes:**
+- `products` is always an array of up to 4 items. Unfilled slots are `null`.
+- Products are fetched individually at render time — no Discovery search results involved.
+
+---
+
+### `DiscoveryCategoryHighlightComponent` → `CategoryHighlightModels`
+
+Renders up to 4 curated category navigation tiles sourced from `DiscoveryCategoryDocument` pickers. Links to the category browse page by `categoryId`.
+
+```tsx
+// CategoryHighlight.tsx
+import type { BrComponentContext } from '@bloomreach/react-sdk';
+import type { CategoryHighlightModels } from './discovery.types';
+
+export function CategoryHighlight({ component }: BrComponentContext) {
+  const { categories } = component.getModels<CategoryHighlightModels>();
+
+  if (categories.length === 0) return null;
+
+  return (
+    <nav className="category-highlight">
+      {categories.map(cat => (
+        <a key={cat.categoryId} href={`/category?categoryId=${cat.categoryId}`}>
+          {cat.displayName || cat.categoryId}
+        </a>
+      ))}
+    </nav>
+  );
+}
+```
+
+**Notes:**
+- `categoryId` is the Discovery category ID (set on the document in Channel Manager).
+- `displayName` is optional editorial label; fall back to `categoryId` if blank.
+
+---
+
 ## Price range slider (stats)
 
 When `statsFields=price` is set on a Search or Category component, `stats.price` is populated:
 
 ```ts
-interface PriceRangeFilter {
-  min: number;
-  max: number;
-  mean: number;
-  count: number;
-}
-
 const priceStats = models.stats?.['price'] as FieldStats | undefined;
 ```
 
@@ -652,6 +733,10 @@ const componentMapping = {
   'DiscoverySearchComponent': SearchBar,
   'DiscoveryFacetComponent': FacetSidebar,
   'DiscoveryProductGridComponent': ProductGrid,
+  'DiscoveryRecommendationComponent': RecommendationsCarousel,
+  'DiscoveryProductDetailComponent': ProductDetail,
+  'DiscoveryProductHighlightComponent': ProductHighlight,
+  'DiscoveryCategoryHighlightComponent': CategoryHighlight,
 };
 
 export function SearchPage() {
@@ -702,6 +787,39 @@ The `ProductGrid` and `FacetSidebar` components from the search page work unchan
 
 ---
 
+## `editMode` and Channel Manager preview
+
+Every component sets `editMode: boolean` in its models. It is `true` only when the page is rendered inside the brXM Channel Manager (preview mode). In normal delivery it is always `false`.
+
+You do not need to render anything special based on this flag — the server already includes diagnostic messages as `brxdis_warning` FTL attributes. In SPA mode you can safely ignore `editMode`, or use it to suppress placeholder states:
+
+```tsx
+const { products, editMode } = component.getModels<ProductHighlightModels>();
+if (!editMode && products.every(p => p === null)) return null;  // hide in delivery, show placeholder in preview
+```
+
+---
+
+## Campaign banners
+
+When a Bloomreach Discovery campaign is active for a search or category query, the `campaign` field is populated. Render it as a promotional banner above the product grid:
+
+```tsx
+const { campaign } = component.getModels<SearchComponentModels>();
+
+{campaign && (
+  <aside className="campaign-banner">
+    {campaign.imageUrl && <img src={campaign.imageUrl} alt={campaign.name} />}
+    {/* htmlText is Bloomreach-controlled rich text; sanitize before rendering */}
+    {campaign.htmlText && <p>{campaign.name}</p>}
+  </aside>
+)}
+```
+
+`campaign` is `null` when no campaign is active for the current query. `campaign.htmlText` may contain HTML — sanitize with DOMPurify before setting innerHTML if you choose to render it.
+
+---
+
 ## Component parameter reference
 
 These are set in Channel Manager and come through as part of the component's HST configuration. They are **not** in `getModels()` — they drive server-side behaviour only. You do not need to read them in your React components.
@@ -710,16 +828,28 @@ These are set in Channel Manager and come through as part of the component's HST
 |---|---|---|---|
 | `DiscoverySearchComponent` | `pageSize` | `12` | Results per page |
 | | `defaultSort` | `""` | Default sort (URL `sort` overrides) |
+| | `catalogName` | `""` | Discovery catalog name for non-product catalogs |
 | | `label` | `"default"` | Links this component to view components with matching `connectTo` |
+| | `placeholder` | `"Search..."` | Input placeholder text (surfaced in `SearchComponentModels`) |
 | | `suggestionsEnabled` | `true` | Whether autosuggest is active |
+| | `suggestionsLimit` | `5` | Max autosuggest results per group |
 | | `resultsPage` | `""` | Redirect search form to a different page |
+| | `statsFields` | `""` | Comma-separated fields to compute stats for (e.g. `price`) |
+| | `autoRedirect` | `false` | Auto-redirect when only one result is returned |
+| | `segment` | `""` | Discovery segment for personalised results |
+| | `exclusionFilter` | `""` | Server-side EFQ filter to exclude items from results |
 | `DiscoveryCategoryComponent` | `pageSize` | `12` | Results per page |
 | | `label` | `"default"` | Links to view components |
+| | `statsFields` | `""` | Fields to compute stats for |
+| | `segment` | `""` | Discovery segment |
+| | `exclusionFilter` | `""` | Server-side EFQ exclusion filter |
 | `DiscoveryProductGridComponent` | `connectTo` | `"default"` | Subscribe to a search or category label |
 | `DiscoveryFacetComponent` | `connectTo` | `"default"` | Subscribe to a search or category label |
 | `DiscoveryRecommendationComponent` | `connectTo` | `"default"` | Used with `dataSource=productDetailBand` |
 | `DiscoveryProductDetailComponent` | `productUrlParam` | `"pid"` | URL param name for the product ID |
 | | `label` | `"default"` | Exposes resolved PID to sibling recommendation components |
+| `DiscoveryProductHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Product Detail Document pickers |
+| `DiscoveryCategoryHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Category Document pickers |
 
 ---
 
@@ -730,6 +860,8 @@ These are set in Channel Manager and come through as part of the component's HST
 | `q` is blank | `searchResult: null`, `autosuggestResult: null` |
 | No category configured (no document, no `?categoryId=`) | `categoryResult.total: 0`, `categoryResult.products: []` |
 | No widget configured on a recommendations component | `products: []`, `widgetId: ""` |
-| No PID resolved on a product detail component | `product: null` |
+| No PID resolved on a product detail component | `product: null`, `pid: ""` |
 | `labelConnected: false` on grid/facets | `products: []` / `facets: {}` — data component not on page |
+| No documents on ProductHighlight | `products: [null, null, null, null]` — all slots empty |
+| No documents on CategoryHighlight | `categories: []` |
 | Discovery API unreachable | `SearchException` thrown server-side → component renders error page |

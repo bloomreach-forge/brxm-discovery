@@ -54,23 +54,4 @@ public class DiscoveryConfigResolver {
 
         return config;
     }
-
-    private static void validateRequiredCredentials(DiscoveryConfig config) {
-        if (isBlank(config.accountId())) {
-            throw new ConfigurationException(
-                    "Discovery accountId is required — set BRXDIS_ACCOUNT_ID env var, -Dbrxdis.accountId, or brxdis:accountId JCR property");
-        }
-        if (isBlank(config.domainKey())) {
-            throw new ConfigurationException(
-                    "Discovery domainKey is required — set BRXDIS_DOMAIN_KEY env var, -Dbrxdis.domainKey, or brxdis:domainKey JCR property");
-        }
-        if (isBlank(config.apiKey())) {
-            throw new ConfigurationException(
-                    "Discovery apiKey is required — set BRXDIS_API_KEY env var, -Dbrxdis.apiKey, or brxdis:apiKey JCR property");
-        }
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
 }

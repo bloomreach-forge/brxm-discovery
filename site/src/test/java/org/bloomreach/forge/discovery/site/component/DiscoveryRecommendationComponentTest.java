@@ -117,16 +117,6 @@ class DiscoveryRecommendationComponentTest {
         verify(request).setAttribute("widgetId", "");
     }
 
-    // ── resolveWidgetId ─────────────────────────────────────────────────
-
-    @Test
-    void resolveWidgetId_fallsBackToUrlParam() {
-        // widgetId from URL param returned when testable component's resolveWidgetId is NOT overridden
-        String result = componentWith("url-widget", 8, null)
-                .resolveWidgetId(request);
-        assertEquals("url-widget", result);
-    }
-
     // ── productDetailBand mode ───────────────────────────────────────────────
 
     @Test
@@ -305,11 +295,6 @@ class DiscoveryRecommendationComponentTest {
         @Override
         protected Optional<String> backfillProductDetailPid(HstRequest request, String label) {
             return backfilledPid;
-        }
-
-        @Override
-        String resolveWidgetId(HstRequest request) {
-            return widgetId;
         }
 
         @Override

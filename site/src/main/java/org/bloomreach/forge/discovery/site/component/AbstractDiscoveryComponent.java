@@ -81,11 +81,18 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         if (!resultEmpty) return;
         HstRequestContext ctx = request.getRequestContext();
         if (ctx != null && ctx.isChannelManagerPreviewRequest()) {
-            String capitalized = Character.toUpperCase(dataSource.charAt(0)) + dataSource.substring(1);
             request.setAttribute("brxdis_warning",
                     "No " + dataSource + " data for label '" + label + "'. " +
-                    "Add a Discovery" + capitalized + "Component with label='" + label + "' to this page.");
+                    "Add a Discovery" + capitalize(dataSource) + "Component with label='" + label + "' to this page.");
         }
+    }
+
+    private static String capitalize(String s) {
+        return (s == null || s.isEmpty()) ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
+    protected static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
     }
 
     /**
@@ -113,50 +120,52 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
      * found, or when the fetch fails (exception is logged as WARN).
      */
     protected Optional<SearchResponse> backfillSearchResponse(HstRequest request, String label) {
+        Optional<SearchResponse> category = backfillCategoryResponse(request, label);
+        if (category.isPresent()) return category;
+        return backfillSearchBrowseResponse(request, label);
+    }
+
+    private Optional<SearchResponse> backfillCategoryResponse(HstRequest request, String label) {
         HstComponentConfiguration catConfig = findDataComponentConfig(request, label, DiscoveryCategoryComponent.class);
-        if (catConfig != null) {
-            String docPath = catConfig.getParameter("document");
-            DiscoveryCategoryBean doc = getHippoBeanForPath(request, docPath, DiscoveryCategoryBean.class);
-            String categoryId = doc != null && doc.getCategoryId() != null && !doc.getCategoryId().isBlank()
-                    ? doc.getCategoryId()
-                    : getPublicRequestParameter(request, DiscoveryCategoryComponent.CAT_ID_PARAM);
-            if (categoryId != null && !categoryId.isBlank()) {
-                int pageSize = parseIntOrDefault(catConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
-                String sort = catConfig.getParameter("defaultSort");
-                List<String> statsFields = parseStatsFields(catConfig.getParameter("statsFields"));
-                String segment = catConfig.getParameter("segment");
-                String efq = catConfig.getParameter("exclusionFilter");
-                try {
-                    return Optional.of(getDiscoveryService()
-                            .browse(request, categoryId, pageSize, sort, label, statsFields, segment, efq));
-                } catch (Exception e) {
-                    log.warn("PPR backfill for category label '{}' failed: {}", label, e.getMessage());
-                }
-            }
-            // categoryId blank — fall through to search branch
+        if (catConfig == null) return Optional.empty();
+        String docPath = catConfig.getParameter("document");
+        DiscoveryCategoryBean doc = getHippoBeanForPath(request, docPath, DiscoveryCategoryBean.class);
+        String categoryId = doc != null && doc.getCategoryId() != null && !doc.getCategoryId().isBlank()
+                ? doc.getCategoryId()
+                : getPublicRequestParameter(request, DiscoveryCategoryComponent.CAT_ID_PARAM);
+        if (categoryId == null || categoryId.isBlank()) return Optional.empty();
+        int pageSize = parseIntOrDefault(catConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
+        String sort = catConfig.getParameter("defaultSort");
+        List<String> statsFields = parseStatsFields(catConfig.getParameter("statsFields"));
+        String segment = catConfig.getParameter("segment");
+        String efq = catConfig.getParameter("exclusionFilter");
+        try {
+            return Optional.of(getDiscoveryService()
+                    .browse(request, categoryId, pageSize, sort, label, statsFields, segment, efq));
+        } catch (Exception e) {
+            log.warn("PPR backfill for category label '{}' failed: {}", label, e.getMessage());
+            return Optional.empty();
         }
+    }
 
+    private Optional<SearchResponse> backfillSearchBrowseResponse(HstRequest request, String label) {
         HstComponentConfiguration searchConfig = findDataComponentConfig(request, label, DiscoverySearchComponent.class);
-        if (searchConfig != null) {
-            String query = getPublicRequestParameter(request, "q");
-            if (query != null && !query.isBlank()) {
-                int pageSize = parseIntOrDefault(searchConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
-                String sort = searchConfig.getParameter("defaultSort");
-                String catalogName = searchConfig.getParameter("catalogName");
-                List<String> statsFields = parseStatsFields(searchConfig.getParameter("statsFields"));
-                String segment = searchConfig.getParameter("segment");
-                String efq = searchConfig.getParameter("exclusionFilter");
-                try {
-                    return Optional.of(getDiscoveryService().search(request, pageSize, sort,
-                            (catalogName != null && !catalogName.isBlank()) ? catalogName : null,
-                            label, statsFields, segment, efq));
-                } catch (Exception e) {
-                    log.warn("PPR backfill for search label '{}' failed: {}", label, e.getMessage());
-                }
-            }
+        if (searchConfig == null) return Optional.empty();
+        String query = getPublicRequestParameter(request, "q");
+        if (query == null || query.isBlank()) return Optional.empty();
+        int pageSize = parseIntOrDefault(searchConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
+        String sort = searchConfig.getParameter("defaultSort");
+        String catalogName = searchConfig.getParameter("catalogName");
+        List<String> statsFields = parseStatsFields(searchConfig.getParameter("statsFields"));
+        String segment = searchConfig.getParameter("segment");
+        String efq = searchConfig.getParameter("exclusionFilter");
+        try {
+            return Optional.of(getDiscoveryService().search(request, pageSize, sort,
+                    blankToNull(catalogName), label, statsFields, segment, efq));
+        } catch (Exception e) {
+            log.warn("PPR backfill for search label '{}' failed: {}", label, e.getMessage());
+            return Optional.empty();
         }
-
-        return Optional.empty();
     }
 
     /**

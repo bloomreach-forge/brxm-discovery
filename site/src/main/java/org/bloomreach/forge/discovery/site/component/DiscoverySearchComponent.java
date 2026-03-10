@@ -59,7 +59,7 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
             String catalogName = info.getCatalogName();
             List<String> statsFields = parseStatsFields(info.getStatsFields());
             SearchResponse searchResponse = svc.search(request, info.getPageSize(), info.getDefaultSort(),
-                    (catalogName != null && !catalogName.isBlank()) ? catalogName : null, label, statsFields,
+                    blankToNull(catalogName), label, statsFields,
                     info.getSegment(), info.getExclusionFilter());
             setModelAndAttribute(request, "searchResult", searchResponse.result());
             setModelAndAttribute(request, "stats", searchResponse.metadata().stats());

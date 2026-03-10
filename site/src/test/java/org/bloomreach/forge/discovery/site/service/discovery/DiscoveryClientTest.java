@@ -841,4 +841,36 @@ class DiscoveryClientTest {
         assertFalse(headers.containsKey("User-Agent"));
         assertTrue(headers.containsKey("Content-Type"));
     }
+
+    // --- staging routing ---
+
+    @Test
+    void search_stagingConfig_usesSearchStagingResourceSpace() throws ResourceException {
+        var stagingConfig = new DiscoveryConfig(
+                "acct123", "myDomain", "secret-key", null,
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "STAGING", 10, "price asc");
+        var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
+        var expectedResponse = new SearchResponse(new SearchResult(List.of(), 0L, 0, 10, Map.of()), SearchMetadata.empty());
+        when(broker.resolve(eq("discoverySearchAPIStaging"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
+        when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
+
+        client.search(query, stagingConfig, ClientContext.EMPTY);
+
+        verify(broker).resolve(eq("discoverySearchAPIStaging"), anyString(), any(ExchangeHint.class));
+    }
+
+    @Test
+    void recommendV2_stagingConfig_usesPathwaysStagingResourceSpace() throws ResourceException {
+        var stagingV2Config = new DiscoveryConfig(
+                "acct123", "myDomain", "secret-key", "my-auth-key",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "STAGING", 10, "price asc");
+        var query = new RecQuery("w-1", null, null, 8);
+        var expectedResult = RecommendationResult.of(List.of());
+        when(broker.resolve(eq("discoveryPathwaysAPIStaging"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
+        when(responseMapper.toRecommendationResult(resource)).thenReturn(expectedResult);
+
+        client.recommend(query, stagingV2Config, ClientContext.EMPTY);
+
+        verify(broker).resolve(eq("discoveryPathwaysAPIStaging"), anyString(), any(ExchangeHint.class));
+    }
 }
