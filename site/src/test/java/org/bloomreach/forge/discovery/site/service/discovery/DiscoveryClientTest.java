@@ -2,7 +2,9 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import org.bloomreach.forge.discovery.site.exception.RecommendationException;
 import org.bloomreach.forge.discovery.site.exception.SearchException;
+import org.onehippo.cms7.crisp.api.exchange.ExchangeHintBuilder;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
@@ -64,7 +66,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
-        SearchResponse response = client.search(query, config);
+        SearchResponse response = client.search(query, config, ClientContext.EMPTY);
 
         assertSame(expectedResult, response.result());
         verify(broker).resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class));
@@ -76,7 +78,7 @@ class DiscoveryClientTest {
         when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class)))
                 .thenThrow(new ResourceException("CRISP failure"));
 
-        assertThrows(SearchException.class, () -> client.search(query, config));
+        assertThrows(SearchException.class, () -> client.search(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -87,7 +89,7 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
-        SearchResponse response = client.search(query, config);
+        SearchResponse response = client.search(query, config, ClientContext.EMPTY);
 
         assertNotNull(response);
     }
@@ -100,7 +102,7 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
-        assertNotNull(client.search(query, config));
+        assertNotNull(client.search(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -111,7 +113,7 @@ class DiscoveryClientTest {
                 any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
-        assertNotNull(client.search(query, config));
+        assertNotNull(client.search(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -123,7 +125,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.search(query, config);
+        client.search(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         String path = pathCaptor.getValue();
@@ -139,7 +141,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.search(query, config);
+        client.search(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertFalse(pathCaptor.getValue().contains("stats.field"), "Should not contain stats.field when not configured");
@@ -155,7 +157,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
-        SearchResponse response = client.category(query, config);
+        SearchResponse response = client.category(query, config, ClientContext.EMPTY);
 
         assertSame(expectedResult, response.result());
         verify(broker).resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class));
@@ -169,7 +171,7 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
-        assertNotNull(client.category(query, config));
+        assertNotNull(client.category(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -178,7 +180,7 @@ class DiscoveryClientTest {
         when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class)))
                 .thenThrow(new ResourceException("CRISP failure"));
 
-        assertThrows(SearchException.class, () -> client.category(query, config));
+        assertThrows(SearchException.class, () -> client.category(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -190,7 +192,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 12)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.category(query, config);
+        client.category(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertTrue(pathCaptor.getValue().contains("stats.field=price"), "Should contain stats.field=price");
@@ -206,7 +208,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.search(query, config);
+        client.search(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertTrue(pathCaptor.getValue().contains("segment=NorthAmerica"));
@@ -220,7 +222,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.search(query, config);
+        client.search(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertFalse(pathCaptor.getValue().contains("segment="), "Should not contain segment param");
@@ -234,7 +236,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 12)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.category(query, config);
+        client.category(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertTrue(pathCaptor.getValue().contains("segment=SouthAmerica"));
@@ -250,7 +252,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.search(query, config);
+        client.search(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertTrue(pathCaptor.getValue().contains("efq="), "Should contain efq param");
@@ -264,7 +266,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResponse(resource, 0, 12)).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        client.category(query, config);
+        client.category(query, config, ClientContext.EMPTY);
 
         verify(broker).resolve(anyString(), pathCaptor.capture(), nullable(ExchangeHint.class));
         assertTrue(pathCaptor.getValue().contains("efq="), "Should contain efq param");
@@ -279,7 +281,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(expected);
 
-        RecommendationResult result = client.recommend(query, config);
+        RecommendationResult result = client.recommend(query, config, ClientContext.EMPTY);
 
         assertSame(expected, result);
         verify(broker).resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class));
@@ -291,7 +293,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class)))
                 .thenThrow(new ResourceException("CRISP failure"));
 
-        assertThrows(RecommendationException.class, () -> client.recommend(query, config));
+        assertThrows(RecommendationException.class, () -> client.recommend(query, config, ClientContext.EMPTY));
     }
 
     // --- recommend v2 ---
@@ -303,7 +305,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(expected);
 
-        RecommendationResult result = client.recommend(query, v2Config);
+        RecommendationResult result = client.recommend(query, v2Config, ClientContext.EMPTY);
 
         assertSame(expected, result);
         verify(broker).resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class));
@@ -315,7 +317,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(RecommendationResult.of(List.of()));
 
-        client.recommend(query, v2Config);
+        client.recommend(query, v2Config, ClientContext.EMPTY);
 
         verify(broker, never()).resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class));
     }
@@ -326,7 +328,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class)))
                 .thenThrow(new ResourceException("CRISP failure"));
 
-        assertThrows(RecommendationException.class, () -> client.recommend(query, v2Config));
+        assertThrows(RecommendationException.class, () -> client.recommend(query, v2Config, ClientContext.EMPTY));
     }
 
     // --- pixel path builders ---
@@ -339,14 +341,15 @@ class DiscoveryClientTest {
                         new ProductSummary("p2", null, null, null, null, null, null)),
                 2L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, null);
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=pageview"), "should contain type=pageview");
         assertTrue(path.contains("ptype=search"), "should contain ptype=search");
-        assertTrue(path.contains("q=shoes"), "should contain query term");
+        assertTrue(path.contains("search_term=shoes"), "should contain search_term");
         assertTrue(path.contains("acct_id=acct123"), "should contain acct_id");
         assertTrue(path.contains("domain_key=myDomain"), "should contain domain_key");
         assertTrue(path.contains("sku=p1,p2"), "should contain comma-separated PIDs");
+        assertTrue(path.contains("version=ss-v0.1"), "should contain version=ss-v0.1");
     }
 
     @Test
@@ -356,12 +359,13 @@ class DiscoveryClientTest {
                 List.of(new ProductSummary("pid1", null, null, null, null, null, null)),
                 1L, 0, 10, Map.of());
 
-        String path = client.buildCategoryPixelPath(query, result, config, null, null);
+        String path = client.buildCategoryPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=pageview"), "should contain type=pageview");
         assertTrue(path.contains("ptype=category"), "should contain ptype=category");
         assertTrue(path.contains("cat_id=cat-99"), "should contain cat_id");
         assertTrue(path.contains("sku=pid1"), "should contain sku");
+        assertTrue(path.contains("version=ss-v0.1"), "should contain version=ss-v0.1");
     }
 
     @Test
@@ -369,7 +373,7 @@ class DiscoveryClientTest {
         var query = new RecQuery("item", "w-123", "ctx-pid", null, 8, null, null, "http://page.com", "http://ref.com", "uid-val");
         var result = new RecommendationResult("rid-abc", List.of(new ProductSummary("prod-1", null, null, null, null, null, null)));
 
-        String path = client.buildWidgetPixelPath(query, result, config, null, null);
+        String path = client.buildWidgetPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=event"), "should contain type=event");
         assertTrue(path.contains("group=widget"), "should contain group=widget");
@@ -380,6 +384,7 @@ class DiscoveryClientTest {
         assertTrue(path.contains("wq=ctx-pid"), "should contain wq");
         assertTrue(path.contains("cookie2=uid-val"), "should contain cookie2");
         assertTrue(path.contains("sku=prod-1"), "should contain sku");
+        assertTrue(path.contains("version=ss-v0.1"), "should contain version=ss-v0.1");
     }
 
     @Test
@@ -387,7 +392,7 @@ class DiscoveryClientTest {
         var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, null);
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=pageview"), "spec requires lowercase 'pageview'");
         assertFalse(path.contains("type=pageView"), "mixed-case 'pageView' is wrong per spec");
@@ -398,7 +403,7 @@ class DiscoveryClientTest {
         var query = new CategoryQuery("cat-1", 0, 10, null, null, null, null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildCategoryPixelPath(query, result, config, null, null);
+        String path = client.buildCategoryPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=pageview"), "spec requires lowercase 'pageview'");
         assertFalse(path.contains("type=pageView"), "mixed-case 'pageView' is wrong per spec");
@@ -409,7 +414,7 @@ class DiscoveryClientTest {
         var query = new RecQuery("item", "w-1", "pid-ctx", "pdp", 8, null, null, "http://page.com", "http://ref.com", "uid-123");
         var result = new RecommendationResult("rid-xyz", List.of(new ProductSummary("p1", null, null, null, null, null, null)));
 
-        String path = client.buildWidgetPixelPath(query, result, config, null, null);
+        String path = client.buildWidgetPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=event"), "widget pixel type must be 'event'");
         assertTrue(path.contains("group=widget"), "group=widget required");
@@ -428,23 +433,25 @@ class DiscoveryClientTest {
         var query = new RecQuery("item", "w-1", null, null, 8, null, null, null, null, null);
         var result = RecommendationResult.of(List.of());
 
-        String path = client.buildWidgetPixelPath(query, result, config, null, null);
+        String path = client.buildWidgetPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertFalse(path.contains("wrid="), "wrid must be absent when widgetResultId is null");
     }
 
     @Test
     void buildProductPageViewPixelPath_hasRequiredParams() {
-        String path = client.buildProductPageViewPixelPath("pid-42", "uid-val", "http://ref.com", "http://page.com", config, null, null);
+        String path = client.buildProductPageViewPixelPath("pid-42", "Blue Sneakers", "uid-val", "http://ref.com", "http://page.com", config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("type=pageview"), "type=pageview required");
         assertTrue(path.contains("ptype=product"), "ptype=product required");
         assertTrue(path.contains("prod_id=pid-42"), "prod_id required");
+        assertTrue(path.contains("prod_name="), "prod_name required");
         assertTrue(path.contains("acct_id=acct123"), "acct_id required");
         assertTrue(path.contains("domain_key=myDomain"), "domain_key required");
         assertTrue(path.contains("cookie2=uid-val"), "tracking: cookie2 required");
         assertTrue(path.contains("ref=http://ref.com"), "tracking: ref required");
         assertTrue(path.contains("url=http://page.com"), "tracking: url required");
+        assertTrue(path.contains("version=ss-v0.1"), "version=ss-v0.1 required");
     }
 
     // --- Phase 2: server-side pixel params ---
@@ -454,7 +461,7 @@ class DiscoveryClientTest {
         var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, null);
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("rand="), "rand nonce required");
         assertTrue(path.contains("client_ts="), "client_ts required");
@@ -466,21 +473,21 @@ class DiscoveryClientTest {
                 "https://example.com/search?q=shoes&page=2");
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, null);
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("url=https://example.com/search"), "url must be base URL only");
         assertFalse(path.contains("url=https://example.com/search?"), "url must not include query string");
     }
 
     @Test
-    void buildSearchPixelPath_includesClientIpAndUserAgent() {
+    void buildSearchPixelPath_includesClientIp() {
         var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, "203.0.113.42", "Mozilla/5.0");
+        String path = client.buildSearchPixelPath(query, result, config, "203.0.113.42", PixelFlags.DISABLED);
 
         assertTrue(path.contains("client_ip=203.0.113.42"), "client_ip required");
-        assertTrue(path.contains("user_agent="), "user_agent required");
+        assertFalse(path.contains("user_agent="), "user_agent must not appear in path (forwarded as header)");
     }
 
     @Test
@@ -488,10 +495,9 @@ class DiscoveryClientTest {
         var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, "", null);
+        String path = client.buildSearchPixelPath(query, result, config, "", PixelFlags.DISABLED);
 
         assertFalse(path.contains("client_ip="), "blank clientIp must be omitted");
-        assertFalse(path.contains("user_agent="), "null userAgent must be omitted");
     }
 
     @Test
@@ -499,23 +505,23 @@ class DiscoveryClientTest {
         var query = new RecQuery("item", "w-1", "ctx-pid", null, 8, null, null, null, null, null);
         var result = RecommendationResult.of(List.of());
 
-        String path = client.buildWidgetPixelPath(query, result, config, "10.0.0.1", "TestAgent/1.0");
+        String path = client.buildWidgetPixelPath(query, result, config, "10.0.0.1", PixelFlags.DISABLED);
 
         assertTrue(path.contains("rand="), "rand required");
         assertTrue(path.contains("client_ts="), "client_ts required");
         assertTrue(path.contains("client_ip=10.0.0.1"), "client_ip required");
-        assertTrue(path.contains("user_agent="), "user_agent required");
+        assertFalse(path.contains("user_agent="), "user_agent must not appear in path (forwarded as header)");
     }
 
     @Test
     void buildProductPageViewPixelPath_serverSideParams_present() {
-        String path = client.buildProductPageViewPixelPath("pid-42", null, null,
-                "https://example.com/product?id=42", config, "192.168.1.1", "Chrome/99");
+        String path = client.buildProductPageViewPixelPath("pid-42", null, null, null,
+                "https://example.com/product?id=42", config, "192.168.1.1", PixelFlags.DISABLED);
 
         assertTrue(path.contains("rand="), "rand required");
         assertTrue(path.contains("client_ts="), "client_ts required");
         assertTrue(path.contains("client_ip=192.168.1.1"), "client_ip required");
-        assertTrue(path.contains("user_agent="), "user_agent required");
+        assertFalse(path.contains("user_agent="), "user_agent must not appear in path (forwarded as header)");
         assertTrue(path.contains("url=https://example.com/product"), "url base required");
         assertFalse(path.contains("url=https://example.com/product?"), "query string must be stripped");
     }
@@ -527,7 +533,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(expectedResult);
 
-        RecommendationResult result = client.recommend(query, config);
+        RecommendationResult result = client.recommend(query, config, ClientContext.EMPTY);
 
         assertNotNull(result);
         assertEquals("rid-1", result.widgetResultId());
@@ -542,7 +548,7 @@ class DiscoveryClientTest {
                 .toList();
         var result = new SearchResult(manyProducts, 25L, 0, 25, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, null);
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         long skuCount = java.util.Arrays.stream(
                 path.substring(path.indexOf("sku=") + 4).split(",")).count();
@@ -554,7 +560,8 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoveryPixelAPI"), anyString(), any(ExchangeHint.class)))
                 .thenThrow(new ResourceException("CRISP failure"));
 
-        assertDoesNotThrow(() -> client.firePixelEvent("/pix.gif?type=pageView", config));
+        assertDoesNotThrow(() -> client.firePixelEvent("/pix.gif?type=pageView", config, ClientContext.EMPTY,
+                new PixelFlags(true, false, false, "US")));
     }
 
     @Test
@@ -563,22 +570,48 @@ class DiscoveryClientTest {
         var query = new SearchQuery("shoes", 0, 10, null, null, "uid%3Dfoo%3Av%3D15.0", null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, null);
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
 
         assertTrue(path.contains("cookie2=uid=foo:v=15.0"), "brUid2 must be URL-decoded before appending");
         assertFalse(path.contains("cookie2=uid%3Dfoo"), "double-encoded value must not appear in path");
     }
 
+
+    // ── PixelFlags appended to pixel paths ──────────────────────────────────
+
     @Test
-    void buildSearchPixelPath_userAgent_notPreEncoded() {
-        // user_agent must be passed raw; CRISP handles encoding — pre-encoding causes double-encoding
+    void buildSearchPixelPath_withTestData_appendsParam() {
         var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        String path = client.buildSearchPixelPath(query, result, config, null, "Mozilla/5.0 (Mac)");
+        String path = client.buildSearchPixelPath(query, result, config, null,
+                new PixelFlags(true, true, false, "US"));
 
-        assertTrue(path.contains("user_agent=Mozilla/5.0 (Mac)"), "user_agent must not be pre-encoded");
-        assertFalse(path.contains("user_agent=Mozilla%2F5.0"), "pre-encoded slash causes double-encoding on wire");
+        assertTrue(path.contains("&test_data=true"), "test_data=true must be appended");
+        assertFalse(path.contains("debug=true"), "debug must be absent");
+    }
+
+    @Test
+    void buildSearchPixelPath_withDebug_appendsParam() {
+        var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
+        var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+
+        String path = client.buildSearchPixelPath(query, result, config, null,
+                new PixelFlags(true, false, true, "US"));
+
+        assertTrue(path.contains("&debug=true"), "debug=true must be appended");
+        assertFalse(path.contains("test_data=true"), "test_data must be absent");
+    }
+
+    @Test
+    void buildSearchPixelPath_noFlags_noExtraParams() {
+        var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
+        var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+
+        String path = client.buildSearchPixelPath(query, result, config, null, PixelFlags.DISABLED);
+
+        assertFalse(path.contains("test_data="), "test_data must be absent when not set");
+        assertFalse(path.contains("debug="), "debug must be absent when not set");
     }
 
     // ── toV2WidgetType ───────────────────────────────────────────────────────
@@ -613,7 +646,7 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(RecommendationResult.of(List.of()));
 
-        assertNotNull(client.recommend(query, config));
+        assertNotNull(client.recommend(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -623,7 +656,7 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResult(resource, 0, 1))
                 .thenReturn(new SearchResult(List.of(), 0L, 0, 1, Map.of()));
 
-        assertNotNull(client.fetchProduct("pid-1", null, config));
+        assertNotNull(client.fetchProduct("pid-1", null, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -668,7 +701,7 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toAutosuggestResult(resource)).thenReturn(expected);
 
-        AutosuggestResult result = client.autosuggest(query, config);
+        AutosuggestResult result = client.autosuggest(query, config, ClientContext.EMPTY);
 
         assertSame(expected, result);
         verify(broker).resolve(eq("discoveryAutosuggestAPI"), anyString(), any(ExchangeHint.class));
@@ -687,7 +720,7 @@ class DiscoveryClientTest {
         ), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toAutosuggestResult(resource)).thenReturn(expected);
 
-        AutosuggestResult result = client.autosuggest(query, config);
+        AutosuggestResult result = client.autosuggest(query, config, ClientContext.EMPTY);
 
         assertSame(expected, result);
     }
@@ -701,7 +734,7 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toAutosuggestResult(resource)).thenReturn(expected);
 
-        AutosuggestResult result = client.autosuggest(query, config);
+        AutosuggestResult result = client.autosuggest(query, config, ClientContext.EMPTY);
 
         assertSame(expected, result);
     }
@@ -712,7 +745,7 @@ class DiscoveryClientTest {
         when(broker.resolve(eq("discoveryAutosuggestAPI"), anyString(), any(ExchangeHint.class)))
                 .thenThrow(new ResourceException("CRISP failure"));
 
-        assertThrows(SearchException.class, () -> client.autosuggest(query, config));
+        assertThrows(SearchException.class, () -> client.autosuggest(query, config, ClientContext.EMPTY));
     }
 
     @Test
@@ -724,8 +757,88 @@ class DiscoveryClientTest {
                 .thenReturn(resource);
         when(responseMapper.toAutosuggestResult(resource)).thenReturn(expected);
 
-        AutosuggestResult result = client.autosuggest(query, config);
+        AutosuggestResult result = client.autosuggest(query, config, ClientContext.EMPTY);
 
         assertSame(expected, result);
+    }
+
+    // ── buildHint / buildV2Hint ────────────────────────────────────────────────
+
+    @Test
+    void buildHint_withClientContext_includesAllThreeHeaders() {
+        var ctx = new ClientContext("Mozilla/5.0", "en-US,en;q=0.9", "203.0.113.42");
+
+        ExchangeHint hint = DiscoveryClientImpl.buildHint(ctx);
+
+        var headers = hint.getRequestHeaders();
+        assertTrue(headers.containsKey("User-Agent"), "User-Agent header should be present");
+        assertEquals("Mozilla/5.0", headers.get("User-Agent").get(0));
+        assertTrue(headers.containsKey("Accept-Language"), "Accept-Language header should be present");
+        assertEquals("en-US,en;q=0.9", headers.get("Accept-Language").get(0));
+        assertTrue(headers.containsKey("X-Forwarded-For"), "X-Forwarded-For header should be present");
+        assertEquals("203.0.113.42", headers.get("X-Forwarded-For").get(0));
+    }
+
+    @Test
+    void buildHint_withEmptyContext_noClientHeaders() {
+        ExchangeHint hint = DiscoveryClientImpl.buildHint(ClientContext.EMPTY);
+
+        var headers = hint.getRequestHeaders();
+        assertFalse(headers.containsKey("User-Agent"), "User-Agent must be absent for EMPTY ctx");
+        assertFalse(headers.containsKey("Accept-Language"), "Accept-Language must be absent for EMPTY ctx");
+        assertFalse(headers.containsKey("X-Forwarded-For"), "X-Forwarded-For must be absent for EMPTY ctx");
+        assertTrue(headers.containsKey("Content-Type"), "Content-Type must always be present");
+    }
+
+    @Test
+    void buildHint_withPartialContext_onlyPresent() {
+        var ctx = new ClientContext("Mozilla/5.0", null, "");
+
+        ExchangeHint hint = DiscoveryClientImpl.buildHint(ctx);
+
+        var headers = hint.getRequestHeaders();
+        assertTrue(headers.containsKey("User-Agent"), "User-Agent should be present");
+        assertFalse(headers.containsKey("Accept-Language"), "null Accept-Language must be absent");
+        assertFalse(headers.containsKey("X-Forwarded-For"), "blank X-Forwarded-For must be absent");
+    }
+
+    @Test
+    void buildV2Hint_withClientContext_includesAuthKeyAndClientHeaders() {
+        var ctx = new ClientContext("TestBrowser/1.0", "de-DE", "10.0.0.1");
+
+        ExchangeHint hint = DiscoveryClientImpl.buildV2Hint(v2Config, ctx);
+
+        var headers = hint.getRequestHeaders();
+        assertTrue(headers.containsKey("auth-key"), "auth-key header required for v2");
+        assertEquals("my-auth-key", headers.get("auth-key").get(0));
+        assertTrue(headers.containsKey("User-Agent"));
+        assertEquals("TestBrowser/1.0", headers.get("User-Agent").get(0));
+        assertTrue(headers.containsKey("X-Forwarded-For"));
+        assertEquals("10.0.0.1", headers.get("X-Forwarded-For").get(0));
+    }
+
+    @Test
+    void firePixelEvent_usesEuResourceSpace_whenRegionIsEU() throws Exception {
+        client.firePixelEvent("/pix.gif?type=pageview", config, ClientContext.EMPTY,
+                new PixelFlags(true, false, false, "EU"));
+        verify(broker).resolve(eq("discoveryPixelAPIEU"), anyString(), any(ExchangeHint.class));
+        verify(broker, never()).resolve(eq("discoveryPixelAPI"), anyString(), any(ExchangeHint.class));
+    }
+
+    @Test
+    void firePixelEvent_usesUsResourceSpace_byDefault() throws Exception {
+        client.firePixelEvent("/pix.gif?type=pageview", config, ClientContext.EMPTY,
+                new PixelFlags(true, false, false, "US"));
+        verify(broker).resolve(eq("discoveryPixelAPI"), anyString(), any(ExchangeHint.class));
+        verify(broker, never()).resolve(eq("discoveryPixelAPIEU"), anyString(), any(ExchangeHint.class));
+    }
+
+    @Test
+    void buildHint_nullContext_noClientHeaders() {
+        ExchangeHint hint = DiscoveryClientImpl.buildHint(null);
+
+        var headers = hint.getRequestHeaders();
+        assertFalse(headers.containsKey("User-Agent"));
+        assertTrue(headers.containsKey("Content-Type"));
     }
 }

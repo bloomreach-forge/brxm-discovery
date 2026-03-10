@@ -72,6 +72,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Spring Web (UriComponentsBuilder for query-param assembly in DiscoveryClientImpl) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>${spring.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Guava -->
         <dependency>
             <groupId>com.google.guava</groupId>

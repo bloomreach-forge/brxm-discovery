@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.service.discovery.pixel;
 
+import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
@@ -31,35 +32,40 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
 
     @Override
     public void fireSearchEvent(SearchQuery query, SearchResult result, DiscoveryConfig config,
-                                String clientIp, String userAgent) {
-        String path = client.buildSearchPixelPath(query, result, config, clientIp, userAgent);
-        executor.execute(() -> fireQuietly(path, config));
+                                String clientIp, ClientContext ctx, PixelFlags flags) {
+        if (!flags.enabled()) return;
+        String path = client.buildSearchPixelPath(query, result, config, clientIp, flags);
+        executor.execute(() -> fireQuietly(path, config, ctx, flags));
     }
 
     @Override
     public void fireCategoryEvent(CategoryQuery query, SearchResult result, DiscoveryConfig config,
-                                  String clientIp, String userAgent) {
-        String path = client.buildCategoryPixelPath(query, result, config, clientIp, userAgent);
-        executor.execute(() -> fireQuietly(path, config));
+                                  String clientIp, ClientContext ctx, PixelFlags flags) {
+        if (!flags.enabled()) return;
+        String path = client.buildCategoryPixelPath(query, result, config, clientIp, flags);
+        executor.execute(() -> fireQuietly(path, config, ctx, flags));
     }
 
     @Override
     public void fireWidgetEvent(RecQuery query, RecommendationResult result, DiscoveryConfig config,
-                                String clientIp, String userAgent) {
-        String path = client.buildWidgetPixelPath(query, result, config, clientIp, userAgent);
-        executor.execute(() -> fireQuietly(path, config));
+                                String clientIp, ClientContext ctx, PixelFlags flags) {
+        if (!flags.enabled()) return;
+        String path = client.buildWidgetPixelPath(query, result, config, clientIp, flags);
+        executor.execute(() -> fireQuietly(path, config, ctx, flags));
     }
 
     @Override
-    public void fireProductPageViewEvent(String pid, String brUid2, String refUrl, String url,
-                                          DiscoveryConfig config, String clientIp, String userAgent) {
-        String path = client.buildProductPageViewPixelPath(pid, brUid2, refUrl, url, config, clientIp, userAgent);
-        executor.execute(() -> fireQuietly(path, config));
+    public void fireProductPageViewEvent(String pid, String prodName, String brUid2, String refUrl, String url,
+                                          DiscoveryConfig config, String clientIp,
+                                          ClientContext ctx, PixelFlags flags) {
+        if (!flags.enabled()) return;
+        String path = client.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, url, config, clientIp, flags);
+        executor.execute(() -> fireQuietly(path, config, ctx, flags));
     }
 
-    private void fireQuietly(String path, DiscoveryConfig config) {
+    private void fireQuietly(String path, DiscoveryConfig config, ClientContext ctx, PixelFlags flags) {
         try {
-            client.firePixelEvent(path, config);
+            client.firePixelEvent(path, config, ctx, flags);
         } catch (Exception e) {
             log.warn("Discovery pixel event failed — path={}: {}", path, e.getMessage());
         }

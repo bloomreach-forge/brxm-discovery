@@ -2,6 +2,8 @@ package org.bloomreach.forge.discovery.site.service.discovery.config;
 
 import com.google.common.base.CaseFormat;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -12,6 +14,7 @@ import java.util.stream.Collectors;
 
 public class DiscoveryConfigReader {
 
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryConfigReader.class);
     private final Function<String, String> envLookup;
 
     public DiscoveryConfigReader() {
@@ -77,15 +80,21 @@ public class DiscoveryConfigReader {
                 .collect(Collectors.joining("_"));
         String fromEnv = envLookup.apply(envVar);
         if (fromEnv != null && !fromEnv.isBlank()) {
+            log.debug("[credential] {}={} (from env var {})", jcrProp, "set", envVar);
             return fromEnv;
         }
         String fromSys = System.getProperty(sysProp);
         if (fromSys != null && !fromSys.isBlank()) {
+            log.debug("[credential] {}={} (from sys prop {})", jcrProp, "set", sysProp);
             return fromSys;
         }
         if (node.isPresent() && node.get().hasProperty(jcrProp)) {
-            return node.get().getProperty(jcrProp).getString();
+            String fromJcr = node.get().getProperty(jcrProp).getString();
+            log.debug("[credential] {}='{}' (from JCR; blank={})", jcrProp,
+                    fromJcr != null && !fromJcr.isBlank() ? "set" : fromJcr, fromJcr == null || fromJcr.isBlank());
+            return fromJcr;
         }
+        log.debug("[credential] {} not found in env/sys/JCR — returning null", jcrProp);
         return null;
     }
 

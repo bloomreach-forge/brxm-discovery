@@ -178,17 +178,29 @@ Each template injects scoped CSS via `<@hst.headContribution>` — no external s
 
 ## Credential Injection
 
-Credentials and environment are resolved at runtime using the following precedence (highest to lowest):
+Credentials are resolved per-request with different precedence per dimension:
 
-| Priority | Mechanism | Keys |
-|---|---|---|
-| 1 (highest) | Environment variable | `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY`, `BRXDIS_ENVIRONMENT` |
-| 2 | JVM system property | `brxdis.accountId`, `brxdis.domainKey`, `brxdis.apiKey`, `brxdis.authKey`, `brxdis.environment` |
-| 3 (lowest) | JCR field on the config document | Edited via CMS editor |
+**Account ID and Domain Key** (non-secret channel identifiers):
 
-`AUTH_KEY` is required for v2 Pathways recommendations. When absent, the plugin falls back to the v1 API automatically. `ENVIRONMENT` controls the API subdomain (`PRODUCTION` → `core.dxpapi.com`; `STAGING` → `staging-core.dxpapi.com`).
+| Priority | Mechanism |
+|---|---|
+| 1 (highest) | Channel Manager — `discoveryAccountId`, `discoveryDomainKey` on the mount |
+| 2 | Environment variable — `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` |
+| 3 | JVM system property — `brxdis.accountId`, `brxdis.domainKey` |
+| 4 (lowest) | JCR field on the config document |
 
-Environment variables are the recommended approach for production. See [06-credential-injection.md](user-guides/06-credential-injection.md) for deployment patterns.
+**API Key and Auth Key** (secrets — never stored in Channel Manager):
+
+| Priority | Mechanism |
+|---|---|
+| 1 (highest) | Per-channel env var — name set via `discoveryApiKeyEnvVar` / `discoveryAuthKeyEnvVar` in Channel Manager |
+| 2 | Global environment variable — `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
+| 3 | JVM system property — `brxdis.apiKey`, `brxdis.authKey` |
+| 4 (lowest) | JCR field on the config document |
+
+`AUTH_KEY` is only required for v2 Pathways recommendations; when absent the plugin uses the v1 API automatically. `ENVIRONMENT` controls the API subdomain (`PRODUCTION` → `core.dxpapi.com`; `STAGING` → `staging-core.dxpapi.com`).
+
+For multi-channel deployments, set `discoveryAccountId`/`discoveryDomainKey` in Channel Manager and point `discoveryApiKeyEnvVar` at a channel-specific server env var. See [06-credential-injection.md](user-guides/06-credential-injection.md) for deployment patterns.
 
 ---
 
@@ -211,7 +223,7 @@ For wiring the picker into a document type, see [05-product-picker.md](user-guid
 # Compile all modules
 mvn clean compile
 
-# Run all tests (257 site + 21 cms = 278 total)
+# Run all tests
 mvn clean test
 
 # Run site module tests only

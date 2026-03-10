@@ -3,6 +3,7 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 import org.bloomreach.forge.discovery.site.exception.RecommendationException;
 import org.bloomreach.forge.discovery.site.exception.SearchException;
 import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
@@ -20,10 +21,14 @@ import org.onehippo.cms7.crisp.api.resource.ResourceException;
 import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Owns the full HTTP contract for all Discovery API calls.
@@ -51,6 +56,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     private static final String PATHWAYS_RESOURCE_SPACE = "discoveryPathwaysAPI";
     private static final String AUTOSUGGEST_RESOURCE_SPACE = "discoveryAutosuggestAPI";
     private static final String PIXEL_RESOURCE_SPACE = "discoveryPixelAPI";
+    private static final String PIXEL_RESOURCE_SPACE_EU = "discoveryPixelAPIEU";
 
     /**
      * Valid v2 Pathways widget type path segments.
@@ -81,11 +87,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryConfig config) {
+    public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryConfig config, ClientContext ctx) {
         String path = buildAutosuggestPath(query, config);
         log.debug("Discovery autosuggest [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(AUTOSUGGEST_RESOURCE_SPACE, path, getHint());
+            Resource resource = getBroker().resolve(AUTOSUGGEST_RESOURCE_SPACE, path, buildHint(ctx));
             AutosuggestResult result = responseMapper.toAutosuggestResult(resource);
             log.debug("Discovery autosuggest returned {} query suggestions [request_id={}]",
                     result.querySuggestions().size(), requestId(path));
@@ -98,11 +104,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public SearchResponse search(SearchQuery query, DiscoveryConfig config) {
+    public SearchResponse search(SearchQuery query, DiscoveryConfig config, ClientContext ctx) {
         String path = buildSearchPath(query, config);
         log.debug("Discovery search [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, getHint());
+            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery search returned {} results [request_id={}]",
                     response.result().total(), requestId(path));
@@ -115,11 +121,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public SearchResponse category(CategoryQuery query, DiscoveryConfig config) {
+    public SearchResponse category(CategoryQuery query, DiscoveryConfig config, ClientContext ctx) {
         String path = buildCategoryPath(query, config);
         log.debug("Discovery category browse [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, getHint());
+            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery category returned {} results [request_id={}]",
                     response.result().total(), requestId(path));
@@ -135,19 +141,19 @@ public class DiscoveryClientImpl implements DiscoveryClient {
      * Routes to v2 Pathways API when {@code config.authKey()} is present; otherwise v1.
      */
     @Override
-    public RecommendationResult recommend(RecQuery query, DiscoveryConfig config) {
+    public RecommendationResult recommend(RecQuery query, DiscoveryConfig config, ClientContext ctx) {
         if (config.authKey() != null && !config.authKey().isBlank()) {
-            return recommendV2(query, config);
+            return recommendV2(query, config, ctx);
         }
-        return recommendV1(query, config);
+        return recommendV1(query, config, ctx);
     }
 
     @Override
-    public Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryConfig config) {
+    public Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryConfig config, ClientContext ctx) {
         String path = buildFetchProductPath(pid, url, config);
         log.debug("Discovery fetchProduct [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, getHint());
+            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResult result = responseMapper.toSearchResult(resource, 0, 1);
             log.debug("Discovery fetchProduct pid='{}' found={} [request_id={}]",
                     pid, !result.products().isEmpty(), requestId(path));
@@ -159,11 +165,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private RecommendationResult recommendV1(RecQuery query, DiscoveryConfig config) {
+    private RecommendationResult recommendV1(RecQuery query, DiscoveryConfig config, ClientContext ctx) {
         String path = buildRecommendationPath(query, config);
         log.debug("Discovery recommendations v1 [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, getHint());
+            Resource resource = getBroker().resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v1 returned {} products [request_id={}]",
                     result.products().size(), requestId(path));
@@ -175,11 +181,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private RecommendationResult recommendV2(RecQuery query, DiscoveryConfig config) {
+    private RecommendationResult recommendV2(RecQuery query, DiscoveryConfig config, ClientContext ctx) {
         String path = buildRecommendationV2Path(query, config);
         log.debug("Discovery recommendations v2 (Pathways) [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(PATHWAYS_RESOURCE_SPACE, path, getV2Hint(config));
+            Resource resource = getBroker().resolve(PATHWAYS_RESOURCE_SPACE, path, buildV2Hint(config, ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v2 returned {} products [request_id={}]",
                     result.products().size(), requestId(path));
@@ -204,73 +210,89 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         return path.replaceAll("auth_key=[^&]*", "auth_key=***");
     }
 
-    private static ExchangeHint getHint() {
-        return ExchangeHintBuilder.create()
-                .methodName("GET")
-                .requestHeader("Content-Type", "application/json")
-                .build();
+    private static boolean isForwardClientHeaders() {
+        return Boolean.parseBoolean(System.getProperty("brxdis.forwardClientHeaders", "true"));
     }
 
-    private static ExchangeHint getV2Hint(DiscoveryConfig config) {
-        ExchangeHintBuilder builder = ExchangeHintBuilder.create()
+    static ExchangeHint buildHint(ClientContext ctx) {
+        ExchangeHintBuilder hintBuilder = ExchangeHintBuilder.create()
+                .methodName("GET")
+                .requestHeader("Content-Type", "application/json");
+        if (isForwardClientHeaders()) applyClientHeaders(hintBuilder, ctx);
+        return hintBuilder.build();
+    }
+
+    static ExchangeHint buildV2Hint(DiscoveryConfig config, ClientContext ctx) {
+        ExchangeHintBuilder hintBuilder = ExchangeHintBuilder.create()
                 .methodName("GET")
                 .requestHeader("Content-Type", "application/json");
         if (config.authKey() != null && !config.authKey().isBlank()) {
-            builder.requestHeader("auth-key", config.authKey());
+            hintBuilder.requestHeader("auth-key", config.authKey());
         }
-        return builder.build();
+        if (isForwardClientHeaders()) applyClientHeaders(hintBuilder, ctx);
+        return hintBuilder.build();
+    }
+
+    private static void applyClientHeaders(ExchangeHintBuilder hintBuilder, ClientContext ctx) {
+        if (ctx == null) return;
+        if (ctx.userAgent() != null && !ctx.userAgent().isBlank())
+            hintBuilder.requestHeader("User-Agent", ctx.userAgent());
+        if (ctx.acceptLanguage() != null && !ctx.acceptLanguage().isBlank())
+            hintBuilder.requestHeader("Accept-Language", ctx.acceptLanguage());
+        if (ctx.xForwardedFor() != null && !ctx.xForwardedFor().isBlank())
+            hintBuilder.requestHeader("X-Forwarded-For", ctx.xForwardedFor());
     }
 
     private String buildSearchPath(SearchQuery query, DiscoveryConfig config) {
-        StringBuilder sb = new StringBuilder(SEARCH_PATH);
-        appendCommonParams(sb, config);
-        sb.append("&request_type=search");
-        sb.append("&search_type=keyword");
-        sb.append("&q=").append(query.query() != null ? query.query() : "*");
-        sb.append("&request_id=").append(java.util.UUID.randomUUID());
-        sb.append("&fl=").append(DEFAULT_FIELDS);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(SEARCH_PATH);
+        appendCommonParams(builder, config);
+        builder.queryParam("request_type", "search")
+               .queryParam("search_type", "keyword")
+               .queryParam("q", query.query() != null ? query.query() : "*")
+               .queryParam("request_id", UUID.randomUUID())
+               .queryParam("fl", DEFAULT_FIELDS);
         if (query.catalogName() != null && !query.catalogName().isBlank()) {
-            sb.append("&catalog_name=").append(query.catalogName());
+            builder.queryParam("catalog_name", query.catalogName());
         }
-        appendTracking(sb, query.brUid2(), query.refUrl(), query.url());
-        appendPagination(sb, query.page(), query.pageSize());
-        appendSort(sb, query.sort());
-        appendFilters(sb, query.filters());
-        appendStatsFields(sb, query.statsFields());
-        appendSegment(sb, query.segment());
-        appendEfq(sb, query.efq());
-        return sb.toString();
+        appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
+        appendPagination(builder, query.page(), query.pageSize());
+        appendSort(builder, query.sort());
+        appendFilters(builder, query.filters());
+        appendStatsFields(builder, query.statsFields());
+        appendSegment(builder, query.segment());
+        appendEfq(builder, query.efq());
+        return builder.build(false).toUriString();
     }
 
     private String buildAutosuggestPath(AutosuggestQuery query, DiscoveryConfig config) {
-        StringBuilder sb = new StringBuilder(AUTOSUGGEST_PATH);
-        appendCommonParams(sb, config);
-        sb.append("&request_type=suggest");
-        sb.append("&q=").append(query.query() != null ? query.query() : "");
-        sb.append("&request_id=").append(java.util.UUID.randomUUID());
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(AUTOSUGGEST_PATH);
+        appendCommonParams(builder, config);
         String catalogViews = (query.catalogViews() != null && !query.catalogViews().isBlank())
                 ? query.catalogViews() : config.domainKey();
-        sb.append("&catalog_views=").append(catalogViews);
-        appendTracking(sb, query.brUid2(), query.refUrl(), query.url());
-        return sb.toString();
+        builder.queryParam("request_type", "suggest")
+               .queryParam("q", query.query() != null ? query.query() : "")
+               .queryParam("request_id", UUID.randomUUID())
+               .queryParam("catalog_views", catalogViews);
+        appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
+        return builder.build(false).toUriString();
     }
 
     private String buildCategoryPath(CategoryQuery query, DiscoveryConfig config) {
-        StringBuilder sb = new StringBuilder(CATEGORY_PATH);
-        appendCommonParams(sb, config);
-        sb.append("&request_type=search");
-        sb.append("&search_type=category");
-        sb.append("&q=").append(query.categoryId() != null ? query.categoryId() : "");
-        sb.append("&request_id=").append(java.util.UUID.randomUUID());
-        sb.append("&fl=").append(DEFAULT_FIELDS);
-        appendTracking(sb, query.brUid2(), query.refUrl(), query.url());
-        appendPagination(sb, query.page(), query.pageSize());
-        appendSort(sb, query.sort());
-        appendFilters(sb, query.filters());
-        appendStatsFields(sb, query.statsFields());
-        appendSegment(sb, query.segment());
-        appendEfq(sb, query.efq());
-        return sb.toString();
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(CATEGORY_PATH);
+        appendCommonParams(builder, config);
+        builder.queryParam("request_type", "search")
+               .queryParam("search_type", "category")
+               .queryParam("q", query.categoryId() != null ? query.categoryId() : "")
+               .queryParam("request_id", UUID.randomUUID())
+               .queryParam("fl", DEFAULT_FIELDS);
+        appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
+        appendPagination(builder, query.page(), query.pageSize());
+        appendSort(builder, query.sort());
+        appendFilters(builder, query.filters());
+        appendStatsFields(builder, query.statsFields());
+        appendSegment(builder, query.segment());
+        appendEfq(builder, query.efq());
+        return builder.build(false).toUriString();
     }
 
     /**
@@ -289,134 +311,146 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     private String buildRecommendationPath(RecQuery query, DiscoveryConfig config) {
         String widgetType = toV2WidgetType(query.widgetType());
         String widgetId = query.widgetId() != null ? query.widgetId() : "";
-        StringBuilder sb = new StringBuilder(RECS_PATH);
-        sb.append("/").append(widgetType);
-        sb.append("/").append(widgetId);
-        appendCommonParams(sb, config);
-        sb.append("&request_id=").append(java.util.UUID.randomUUID());
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(RECS_PATH + "/" + widgetType + "/" + widgetId);
+        appendCommonParams(builder, config);
+        builder.queryParam("request_id", UUID.randomUUID());
         if (query.contextProductId() != null && !query.contextProductId().isBlank()) {
-            sb.append("&item_ids=").append(query.contextProductId());
+            builder.queryParam("item_ids", query.contextProductId());
         }
         if (query.contextPageType() != null && !query.contextPageType().isBlank()) {
-            sb.append("&type=").append(query.contextPageType());
+            builder.queryParam("type", query.contextPageType());
         }
-        sb.append("&rows=").append(query.limit());
+        builder.queryParam("rows", query.limit());
         String fields = (query.fields() != null && !query.fields().isBlank()) ? query.fields() : DEFAULT_FIELDS;
-        sb.append("&fl=").append(fields);
-        return sb.toString();
+        builder.queryParam("fl", fields);
+        return builder.build(false).toUriString();
     }
 
     private String buildRecommendationV2Path(RecQuery query, DiscoveryConfig config) {
         String widgetType = toV2WidgetType(query.widgetType());
         String widgetId = query.widgetId() != null ? query.widgetId() : "";
-        StringBuilder sb = new StringBuilder(RECS_PATH);
-        sb.append("/").append(widgetType);
-        sb.append("/").append(widgetId);
         // v2: account_id + domain_key only — auth is the auth-key header, NOT auth_key query param
-        sb.append("?account_id=").append(config.accountId());
-        sb.append("&domain_key=").append(config.domainKey());
-        sb.append("&request_id=").append(java.util.UUID.randomUUID());
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(RECS_PATH + "/" + widgetType + "/" + widgetId)
+                .queryParam("account_id", config.accountId())
+                .queryParam("domain_key", config.domainKey())
+                .queryParam("request_id", UUID.randomUUID());
         if (query.url() != null && !query.url().isBlank()) {
-            sb.append("&url=").append(query.url());
+            builder.queryParam("url", query.url());
         }
         if (query.refUrl() != null && !query.refUrl().isBlank()) {
-            sb.append("&ref_url=").append(query.refUrl());
+            builder.queryParam("ref_url", query.refUrl());
         }
         if (query.brUid2() != null && !query.brUid2().isBlank()) {
-            sb.append("&_br_uid_2=").append(query.brUid2());
+            builder.queryParam("_br_uid_2", query.brUid2());
         }
         if (query.contextProductId() != null && !query.contextProductId().isBlank()) {
-            sb.append("&item_ids=").append(query.contextProductId());
+            builder.queryParam("item_ids", query.contextProductId());
         }
         if (query.contextPageType() != null && !query.contextPageType().isBlank()) {
-            sb.append("&context.page_type=").append(query.contextPageType());
+            builder.queryParam("context.page_type", query.contextPageType());
         }
-        sb.append("&rows=").append(query.limit());
+        builder.queryParam("rows", query.limit());
         String fields = (query.fields() != null && !query.fields().isBlank()) ? query.fields() : DEFAULT_FIELDS;
-        sb.append("&fields=").append(fields);
+        builder.queryParam("fields", fields);
         if (query.filters() != null && !query.filters().isBlank()) {
-            sb.append("&filter=").append(query.filters());
+            builder.queryParam("filter", query.filters());
         }
-        return sb.toString();
+        return builder.build(false).toUriString();
     }
 
     // ── Pixel events ────────────────────────────────────────────────────────────
 
     @Override
     public String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryConfig config,
-                                       String clientIp, String userAgent) {
-        StringBuilder sb = new StringBuilder(PIXEL_PATH);
-        appendPixelCommonParams(sb, config);
-        sb.append("&type=pageview");
-        sb.append("&ptype=search");
+                                       String clientIp, PixelFlags flags) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
+        appendPixelCommonParams(builder, config);
+        builder.queryParam("type", "pageview")
+               .queryParam("ptype", "search");
         if (query.query() != null && !query.query().isBlank()) {
-            sb.append("&q=").append(query.query());
+            builder.queryParam("search_term", query.query());
         }
-        appendPixelTracking(sb, query.brUid2(), query.refUrl(), query.url(), clientIp, userAgent);
-        appendPixelSkus(sb, result.products());
-        return sb.toString();
+        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.url(), clientIp);
+        appendPixelSkus(builder, result.products());
+        appendPixelFlags(builder, flags);
+        return builder.build(false).toUriString();
     }
 
     @Override
     public String buildCategoryPixelPath(CategoryQuery query, SearchResult result, DiscoveryConfig config,
-                                         String clientIp, String userAgent) {
-        StringBuilder sb = new StringBuilder(PIXEL_PATH);
-        appendPixelCommonParams(sb, config);
-        sb.append("&type=pageview");
-        sb.append("&ptype=category");
+                                         String clientIp, PixelFlags flags) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
+        appendPixelCommonParams(builder, config);
+        builder.queryParam("type", "pageview")
+               .queryParam("ptype", "category");
         if (query.categoryId() != null && !query.categoryId().isBlank()) {
-            sb.append("&cat_id=").append(query.categoryId());
+            builder.queryParam("cat_id", query.categoryId());
         }
-        appendPixelTracking(sb, query.brUid2(), query.refUrl(), query.url(), clientIp, userAgent);
-        appendPixelSkus(sb, result.products());
-        return sb.toString();
+        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.url(), clientIp);
+        appendPixelSkus(builder, result.products());
+        appendPixelFlags(builder, flags);
+        return builder.build(false).toUriString();
     }
 
     @Override
     public String buildWidgetPixelPath(RecQuery query, RecommendationResult result, DiscoveryConfig config,
-                                       String clientIp, String userAgent) {
-        StringBuilder sb = new StringBuilder(PIXEL_PATH);
-        appendPixelCommonParams(sb, config);
-        sb.append("&type=event");
-        sb.append("&group=widget");
-        sb.append("&etype=view");
+                                       String clientIp, PixelFlags flags) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
+        appendPixelCommonParams(builder, config);
+        builder.queryParam("type", "event")
+               .queryParam("group", "widget")
+               .queryParam("etype", "view");
         if (query.widgetId() != null && !query.widgetId().isBlank()) {
-            sb.append("&wid=").append(query.widgetId());
+            builder.queryParam("wid", query.widgetId());
         }
         if (query.widgetType() != null && !query.widgetType().isBlank()) {
-            sb.append("&wty=").append(query.widgetType());
+            builder.queryParam("wty", query.widgetType());
         }
         if (result.widgetResultId() != null && !result.widgetResultId().isBlank()) {
-            sb.append("&wrid=").append(result.widgetResultId());
+            builder.queryParam("wrid", result.widgetResultId());
         }
         if (query.contextProductId() != null && !query.contextProductId().isBlank()) {
-            sb.append("&wq=").append(query.contextProductId());
+            builder.queryParam("wq", query.contextProductId());
         }
-        appendPixelTracking(sb, query.brUid2(), query.refUrl(), query.url(), clientIp, userAgent);
-        appendPixelSkus(sb, result.products());
-        return sb.toString();
+        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.url(), clientIp);
+        appendPixelSkus(builder, result.products());
+        appendPixelFlags(builder, flags);
+        return builder.build(false).toUriString();
     }
 
     @Override
-    public String buildProductPageViewPixelPath(String pid, String brUid2, String refUrl, String url,
-                                                 DiscoveryConfig config, String clientIp, String userAgent) {
-        StringBuilder sb = new StringBuilder(PIXEL_PATH);
-        appendPixelCommonParams(sb, config);
-        sb.append("&type=pageview");
-        sb.append("&ptype=product");
-        sb.append("&prod_id=").append(pid);
-        appendPixelTracking(sb, brUid2, refUrl, url, clientIp, userAgent);
-        return sb.toString();
+    public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl, String url,
+                                                 DiscoveryConfig config, String clientIp, PixelFlags flags) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
+        appendPixelCommonParams(builder, config);
+        builder.queryParam("type", "pageview")
+               .queryParam("ptype", "product")
+               .queryParam("prod_id", pid);
+        if (prodName != null && !prodName.isBlank()) {
+            builder.queryParam("prod_name", prodName);
+        }
+        appendPixelTracking(builder, brUid2, refUrl, url, clientIp);
+        appendPixelFlags(builder, flags);
+        return builder.build(false).toUriString();
+    }
+
+    private static void appendPixelFlags(UriComponentsBuilder builder, PixelFlags flags) {
+        if (flags.testData()) builder.queryParam("test_data", "true");
+        if (flags.debug())    builder.queryParam("debug", "true");
+    }
+
+    private static String pixelResourceSpace(PixelFlags flags) {
+        return "EU".equals(flags.region()) ? PIXEL_RESOURCE_SPACE_EU : PIXEL_RESOURCE_SPACE;
     }
 
     /**
      * Fires a pixel GET via the CRISP broker; catches {@link ResourceException} and logs at WARN.
      */
     @Override
-    public void firePixelEvent(String pixelPath, DiscoveryConfig config) {
+    public void firePixelEvent(String pixelPath, DiscoveryConfig config, ClientContext ctx, PixelFlags flags) {
         log.debug("Discovery pixel event: {}", pixelPath);
         try {
-            getBroker().resolve(PIXEL_RESOURCE_SPACE, pixelPath, getHint());
+            getBroker().resolve(pixelResourceSpace(flags), pixelPath, buildHint(ctx));
         } catch (ResourceException e) {
             if (e.getMessage() != null && e.getMessage().startsWith("JSON processing error")) {
                 // CRISP tries to parse the image/gif response as JSON — HTTP 200 was received, pixel fired OK
@@ -427,12 +461,12 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private static void appendPixelCommonParams(StringBuilder sb, DiscoveryConfig config) {
-        sb.append("?acct_id=").append(config.accountId());
-        sb.append("&domain_key=").append(config.domainKey());
+    private static void appendPixelCommonParams(UriComponentsBuilder builder, DiscoveryConfig config) {
+        builder.queryParam("acct_id", config.accountId())
+               .queryParam("domain_key", config.domainKey());
     }
 
-    private static void appendPixelSkus(StringBuilder sb, List<ProductSummary> products) {
+    private static void appendPixelSkus(UriComponentsBuilder builder, List<ProductSummary> products) {
         if (products == null || products.isEmpty()) {
             return;
         }
@@ -443,113 +477,111 @@ public class DiscoveryClientImpl implements DiscoveryClient {
                 .reduce((a, b) -> a + "," + b)
                 .orElse(null);
         if (skus != null) {
-            sb.append("&sku=").append(skus);
+            builder.queryParam("sku", skus);
         }
     }
 
-    private static void appendCommonParams(StringBuilder sb, DiscoveryConfig config) {
-        sb.append("?account_id=").append(config.accountId());
-        sb.append("&domain_key=").append(config.domainKey());
+    private static void appendCommonParams(UriComponentsBuilder builder, DiscoveryConfig config) {
+        builder.queryParam("account_id", config.accountId())
+               .queryParam("domain_key", config.domainKey());
         if (config.apiKey() != null && !config.apiKey().isBlank()) {
-            sb.append("&auth_key=").append(config.apiKey());
+            builder.queryParam("auth_key", config.apiKey());
         }
     }
 
-    private static void appendTracking(StringBuilder sb, String brUid2, String refUrl, String url) {
+    private static void appendTracking(UriComponentsBuilder builder, String brUid2, String refUrl, String url) {
         if (brUid2 != null && !brUid2.isBlank()) {
-            sb.append("&_br_uid_2=").append(brUid2);
+            builder.queryParam("_br_uid_2", brUid2);
         }
         if (refUrl != null && !refUrl.isBlank()) {
-            sb.append("&ref_url=").append(refUrl);
+            builder.queryParam("ref_url", refUrl);
         }
         if (url != null && !url.isBlank()) {
-            sb.append("&url=").append(url);
+            builder.queryParam("url", url);
         }
     }
 
-    private static void appendPixelTracking(StringBuilder sb, String brUid2, String refUrl, String url,
-                                             String clientIp, String userAgent) {
+    private static void appendPixelTracking(UriComponentsBuilder builder, String brUid2, String refUrl,
+                                             String url, String clientIp) {
         if (brUid2 != null && !brUid2.isBlank()) {
             // Cookie arrives from browser already percent-encoded; decode once so CRISP single-encodes correctly
-            String decodedBrUid2 = java.net.URLDecoder.decode(brUid2, java.nio.charset.StandardCharsets.UTF_8);
-            sb.append("&cookie2=").append(decodedBrUid2);
+            String decodedBrUid2 = URLDecoder.decode(brUid2, StandardCharsets.UTF_8);
+            builder.queryParam("cookie2", decodedBrUid2);
         }
         if (refUrl != null && !refUrl.isBlank()) {
-            sb.append("&ref=").append(refUrl);
+            builder.queryParam("ref", refUrl);
         }
         if (url != null && !url.isBlank()) {
-            int idx = url.indexOf('?');
-            sb.append("&url=").append(idx >= 0 ? url.substring(0, idx) : url);
+            int queryStart = url.indexOf('?');
+            builder.queryParam("url", queryStart >= 0 ? url.substring(0, queryStart) : url);
         }
-        sb.append("&rand=").append(java.util.UUID.randomUUID());
-        sb.append("&client_ts=").append(System.currentTimeMillis());
+        builder.queryParam("version", "ss-v0.1")
+               .queryParam("rand", UUID.randomUUID())
+               .queryParam("client_ts", System.currentTimeMillis());
         if (clientIp != null && !clientIp.isBlank()) {
-            sb.append("&client_ip=").append(clientIp);
-        }
-        if (userAgent != null && !userAgent.isBlank()) {
-            sb.append("&user_agent=").append(userAgent);
+            builder.queryParam("client_ip", clientIp);
         }
     }
 
-    private static void appendPagination(StringBuilder sb, int page, int pageSize) {
-        sb.append("&start=").append((long) page * pageSize);
-        sb.append("&rows=").append(pageSize);
+    private static void appendPagination(UriComponentsBuilder builder, int page, int pageSize) {
+        builder.queryParam("start", (long) page * pageSize)
+               .queryParam("rows", pageSize);
     }
 
-    private static void appendSort(StringBuilder sb, String sort) {
+    private static void appendSort(UriComponentsBuilder builder, String sort) {
         if (sort != null && !sort.isBlank()) {
-            sb.append("&sort=").append(sort);
+            builder.queryParam("sort", sort);
         }
     }
 
-    private static void appendStatsFields(StringBuilder sb, List<String> statsFields) {
+    private static void appendStatsFields(UriComponentsBuilder builder, List<String> statsFields) {
         if (statsFields == null) return;
         for (String field : statsFields) {
             if (field != null && !field.isBlank()) {
-                sb.append("&stats.field=").append(field);
+                builder.queryParam("stats.field", field);
             }
         }
     }
 
-    private static void appendSegment(StringBuilder sb, String segment) {
+    private static void appendSegment(UriComponentsBuilder builder, String segment) {
         if (segment != null && !segment.isBlank()) {
-            sb.append("&segment=").append(java.net.URLEncoder.encode(segment, java.nio.charset.StandardCharsets.UTF_8));
+            builder.queryParam("segment", segment);
         }
     }
 
-    private static void appendEfq(StringBuilder sb, String efq) {
+    private static void appendEfq(UriComponentsBuilder builder, String efq) {
         if (efq != null && !efq.isBlank()) {
-            sb.append("&efq=").append(java.net.URLEncoder.encode(efq, java.nio.charset.StandardCharsets.UTF_8));
+            builder.queryParam("efq", efq);
         }
     }
 
-    private static void appendFilters(StringBuilder sb, Map<String, List<String>> filters) {
+    private static void appendFilters(UriComponentsBuilder builder, Map<String, List<String>> filters) {
         if (filters == null) {
             return;
         }
         for (Map.Entry<String, List<String>> entry : filters.entrySet()) {
             for (String value : entry.getValue()) {
-                sb.append("&fq=").append(entry.getKey()).append(":\"").append(value).append("\"");
+                builder.queryParam("fq", entry.getKey() + ":\"" + value + "\"");
             }
         }
     }
 
     private String buildFetchProductPath(String pid, String url, DiscoveryConfig config) {
-        StringBuilder sb = new StringBuilder(SEARCH_PATH);
-        appendCommonParams(sb, config);
-        sb.append("&search_type=keyword");
-        sb.append("&request_type=search");
-        sb.append("&request_id=").append(java.util.UUID.randomUUID());
-        sb.append("&q=*");
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(SEARCH_PATH);
+        appendCommonParams(builder, config);
+        builder.queryParam("search_type", "keyword")
+               .queryParam("request_type", "search")
+               .queryParam("request_id", UUID.randomUUID())
+               .queryParam("q", "*");
         if (pid != null && !pid.isBlank()) {
-            sb.append("&efq=pid:(").append(pid).append(")");
+            builder.queryParam("efq", "pid:(" + pid + ")");
         }
         if (url != null && !url.isBlank()) {
-            sb.append("&url=").append(url);
+            builder.queryParam("url", url);
         }
-        sb.append("&fl=").append(DEFAULT_FIELDS);
-        sb.append("&rows=1");
-        return sb.toString();
+        builder.queryParam("fl", DEFAULT_FIELDS)
+               .queryParam("rows", 1);
+        return builder.build(false).toUriString();
     }
 
     /**

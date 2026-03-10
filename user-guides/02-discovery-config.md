@@ -1,22 +1,46 @@
 # Discovery Configuration
 
-Configuration lives on a `brxdis:discoveryConfig` JCR document created in the CMS. Credentials can be overridden by environment variables or JVM system properties — the JCR document is the last resort and acts as a CMS-editable fallback.
+Configuration lives on a `brxdis:discoveryConfig` JCR document created in the CMS. Channel Manager parameters on the mount act as the per-channel source of truth for account identifiers and point to server-side secret env vars for API keys.
 
 ---
 
 ## Field reference
 
-### Credentials (resolved: env var → sys prop → JCR)
+### Channel identifiers — `accountId` and `domainKey`
+
+Resolved per-request in this order (highest wins):
+
+| Priority | Source | How to set |
+|---|---|---|
+| 1 (highest) | Channel Manager | `discoveryAccountId`, `discoveryDomainKey` on the mount |
+| 2 | Environment variable | `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` |
+| 3 | JVM system property | `brxdis.accountId`, `brxdis.domainKey` |
+| 4 (lowest) | JCR document | `brxdis:accountId`, `brxdis:domainKey` |
+
+Channel Manager wins whenever non-blank. This allows different channels to use different Discovery accounts without separate JVM deployments.
+
+### API secrets — `apiKey` and `authKey`
+
+Resolved per-request in this order:
+
+| Priority | Source | How to set |
+|---|---|---|
+| 1 (highest) | Per-channel env var | Name specified in `discoveryApiKeyEnvVar` / `discoveryAuthKeyEnvVar` on the mount |
+| 2 | Global environment variable | `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
+| 3 | JVM system property | `brxdis.apiKey`, `brxdis.authKey` |
+| 4 (lowest) | JCR document | `brxdis:apiKey`, `brxdis:authKey` |
+
+`discoveryApiKeyEnvVar` stores the **name** of an env var (e.g. `PACIFICHOME_API_KEY`), not the key value itself. The secret lives only in the server environment. Multi-channel deployments can point each channel's mount at a different env var.
+
+### Other credentials
 
 | JCR property | Env var | System property | Description |
 |---|---|---|---|
-| `brxdis:accountId` | `BRXDIS_ACCOUNT_ID` | `brxdis.accountId` | Bloomreach Discovery account ID |
-| `brxdis:domainKey` | `BRXDIS_DOMAIN_KEY` | `brxdis.domainKey` | Discovery domain key (catalog identifier) |
-| `brxdis:apiKey` | `BRXDIS_API_KEY` | `brxdis.apiKey` | Discovery API key for authenticated requests |
-| `brxdis:authKey` | `BRXDIS_AUTH_KEY` | `brxdis.authKey` | Auth key for v2 Pathways API (`auth-key` header). Optional — when absent, the plugin uses the v1 API. |
 | `brxdis:environment` | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `PRODUCTION` (default) or `STAGING`. Drives API subdomain switching. |
 
-`accountId`, `domainKey`, and `apiKey` are required. If none of the three resolution sources provide them, a `ConfigurationException` is thrown at request time.
+### Required fields
+
+`accountId`, `domainKey`, and `apiKey` are required. If none of the resolution sources provide them after all layers are evaluated, a `ConfigurationException` is thrown at request time.
 
 ### Structural config (resolved: JCR → coded default)
 
@@ -33,15 +57,13 @@ Structural fields are edited in the CMS on the `brxdis:discoveryConfig` document
 
 ## Credential injection
 
-Credentials are resolved in this precedence (highest wins):
+See the field tables above for full per-dimension precedence. The recommended setup for a multi-channel production deployment:
 
-| Priority | Source | When to use |
-|---|---|---|
-| 1 | Environment variable | Containers, Kubernetes, CI/CD pipelines |
-| 2 | JVM system property | Local development, shell scripts |
-| 3 | JCR document field | CMS-editable fallback; per-channel override |
+- Set `discoveryAccountId` and `discoveryDomainKey` in Channel Manager — each channel's mount points to its own Discovery account.
+- Set `discoveryApiKeyEnvVar=MY_CHANNEL_API_KEY` in Channel Manager — the actual secret lives in the server environment, never in JCR.
+- Use global env vars (`BRXDIS_API_KEY`) as a single-channel fallback or for local development.
 
-Leave the JCR field blank when injecting from the environment. See [06-credential-injection.md](06-credential-injection.md) for deployment-specific guidance.
+See [06-credential-injection.md](06-credential-injection.md) for deployment-specific patterns.
 
 ---
 
@@ -91,4 +113,6 @@ definitions:
 
 All HST components read `discoveryConfigPath` from the resolved mount. When absent or pointing to a missing document, they fall back to env/sys + coded defaults.
 
-If you run multiple channels with different Discovery accounts, set `discoveryConfigPath` to different document paths on each mount. The config is JVM-lifetime cached per path and invalidated automatically when the CMS document changes — no JVM restart required.
+If you run multiple channels with different Discovery accounts, set `discoveryConfigPath` to different document paths on each mount and set `discoveryAccountId`/`discoveryDomainKey` in Channel Manager on each mount.
+
+**Cache behaviour:** structural config (`baseUri`, `defaultPageSize`, `defaultSort`) is JVM-lifetime cached per `discoveryConfigPath`. The cache is invalidated automatically when you save the `brxdis:discoveryConfig` document in the CMS — no JVM restart required. Changes are not instant; they take effect on the first request that arrives after the save triggers cache invalidation. Credentials (`accountId`, `domainKey`, `apiKey`, `authKey`) are re-evaluated from Channel Manager and server env vars on every request, so credential changes in Channel Manager or the server environment are picked up without a CMS save.

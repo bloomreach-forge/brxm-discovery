@@ -153,4 +153,30 @@ class CachingDiscoveryConfigProviderTest {
         assertSame(validConfig, result);
         verify(resolver).resolve(null, null);
     }
+
+    @Test
+    void get_jcrSessionFailure_cachesFallback_avoidsPerRequestSysPropReads() {
+        // Partial config from env/sys props when JCR session is unavailable
+        DiscoveryConfig partial = new DiscoveryConfig(
+                null, null, "global-key", null,
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
+        String path = "/hippo:configuration/discoveryConfig";
+        when(resolver.resolve(null, null)).thenReturn(partial);
+
+        CachingDiscoveryConfigProvider.SessionSupplier failingSupplier =
+                () -> { throw new RuntimeException("JCR not yet available"); };
+
+        // First call: session unavailable → falls back to env/sys props
+        DiscoveryConfig result1 = provider.get(path, failingSupplier);
+        assertSame(partial, result1);
+
+        // Second call: cache hit — resolver NOT called again (no per-request sys-prop reads)
+        DiscoveryConfig result2 = provider.get(path, failingSupplier);
+        assertSame(partial, result2);
+
+        // Stale partial config is safe: patchFromChannelInfo in HstDiscoveryService
+        // always overrides accountId/domainKey from Channel Manager and re-evaluates
+        // per-channel env vars for apiKey/authKey on every request.
+        verify(resolver, times(1)).resolve(null, null);
+    }
 }

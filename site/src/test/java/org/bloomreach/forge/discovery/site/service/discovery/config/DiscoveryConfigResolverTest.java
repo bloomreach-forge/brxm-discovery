@@ -84,19 +84,20 @@ class DiscoveryConfigResolverTest {
     }
 
     @Test
-    void resolve_noCredentialsAnywhere_throwsConfigurationException() {
+    void resolve_noCredentialsAnywhere_returnsPartialConfig() {
         DiscoveryConfig noCredentials = new DiscoveryConfig(
                 null, null, null, null,
                 "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
                 12, "");
         when(configReader.readWithDefaults()).thenReturn(noCredentials);
 
-        assertThrows(ConfigurationException.class,
-                () -> resolver.resolve(session, null));
+        DiscoveryConfig result = resolver.resolve(session, null);
+
+        assertSame(noCredentials, result);
     }
 
     @Test
-    void resolve_missingAccountId_throwsConfigurationException() throws RepositoryException {
+    void resolve_missingAccountId_returnsPartialConfig() throws RepositoryException {
         DiscoveryConfig noCreds = new DiscoveryConfig(
                 null, "domain", "key", null,
                 "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
@@ -104,12 +105,13 @@ class DiscoveryConfigResolverTest {
         when(session.getNode("/path")).thenReturn(configNode);
         when(configReader.read(configNode)).thenReturn(noCreds);
 
-        assertThrows(ConfigurationException.class,
-                () -> resolver.resolve(session, "/path"));
+        DiscoveryConfig result = resolver.resolve(session, "/path");
+
+        assertSame(noCreds, result);
     }
 
     @Test
-    void resolve_missingDomainKey_throwsConfigurationException() throws RepositoryException {
+    void resolve_missingDomainKey_returnsPartialConfig() throws RepositoryException {
         DiscoveryConfig noCreds = new DiscoveryConfig(
                 "acct", null, "key", null,
                 "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
@@ -117,12 +119,13 @@ class DiscoveryConfigResolverTest {
         when(session.getNode("/path")).thenReturn(configNode);
         when(configReader.read(configNode)).thenReturn(noCreds);
 
-        assertThrows(ConfigurationException.class,
-                () -> resolver.resolve(session, "/path"));
+        DiscoveryConfig result = resolver.resolve(session, "/path");
+
+        assertSame(noCreds, result);
     }
 
     @Test
-    void resolve_missingApiKey_throwsConfigurationException() throws RepositoryException {
+    void resolve_missingApiKey_returnsPartialConfig() throws RepositoryException {
         DiscoveryConfig noCreds = new DiscoveryConfig(
                 "acct", "domain", null, null,
                 "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
@@ -130,7 +133,8 @@ class DiscoveryConfigResolverTest {
         when(session.getNode("/path")).thenReturn(configNode);
         when(configReader.read(configNode)).thenReturn(noCreds);
 
-        assertThrows(ConfigurationException.class,
-                () -> resolver.resolve(session, "/path"));
+        DiscoveryConfig result = resolver.resolve(session, "/path");
+
+        assertSame(noCreds, result);
     }
 }

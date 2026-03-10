@@ -4,33 +4,45 @@ This guide covers every supported method for injecting Discovery API credentials
 
 ## Resolution precedence
 
-`DiscoveryConfigReader` resolves each credential in this order, stopping at the first non-blank value:
+Credentials are resolved in two tiers.
+
+### Channel identifiers (`accountId`, `domainKey`)
+
+Applied per-request. Channel Manager is the authoritative source so that different mounts can use different Discovery accounts.
 
 ```
-BRXDIS_ACCOUNT_ID (env var)
-  → brxdis.accountId (system property)
-    → brxdis:accountId (JCR module config node)
+discoveryAccountId / discoveryDomainKey  (Channel Manager — wins if non-blank)
+  → BRXDIS_ACCOUNT_ID / BRXDIS_DOMAIN_KEY  (global env var)
+    → brxdis.accountId / brxdis.domainKey  (JVM system property)
+      → brxdis:accountId / brxdis:domainKey  (JCR document field)
 ```
 
-| Priority | Source | When to use |
-|---|---|---|
-| 1 | Environment variable | Containers, Kubernetes, CI/CD pipelines |
-| 2 | JVM system property | Local development, shell scripts |
-| 3 | JCR module config node | CMS-editable fallback |
+### API secrets (`apiKey`, `authKey`)
+
+Applied per-request. Per-channel env var names are stored in Channel Manager; the secret values live only on the server.
+
+```
+env var named by discoveryApiKeyEnvVar / discoveryAuthKeyEnvVar  (per-channel env var — wins if non-blank)
+  → BRXDIS_API_KEY / BRXDIS_AUTH_KEY  (global env var)
+    → brxdis.apiKey / brxdis.authKey  (JVM system property)
+      → brxdis:apiKey / brxdis:authKey  (JCR document field)
+```
 
 ---
 
 ## Credential reference
 
-| Credential | Env var | System property | JCR property | Required |
-|---|---|---|---|---|
-| Account ID | `BRXDIS_ACCOUNT_ID` | `brxdis.accountId` | `brxdis:accountId` | Yes |
-| Domain Key | `BRXDIS_DOMAIN_KEY` | `brxdis.domainKey` | `brxdis:domainKey` | Yes |
-| API Key | `BRXDIS_API_KEY` | `brxdis.apiKey` | `brxdis:apiKey` | Yes |
-| Auth Key | `BRXDIS_AUTH_KEY` | `brxdis.authKey` | `brxdis:authKey` | No (enables v2 Pathways) |
-| Environment | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `brxdis:environment` | No (default: `PRODUCTION`) |
+| Credential | Channel Manager param | Global env var | System property | JCR property | Required |
+|---|---|---|---|---|---|
+| Account ID | `discoveryAccountId` | `BRXDIS_ACCOUNT_ID` | `brxdis.accountId` | `brxdis:accountId` | Yes |
+| Domain Key | `discoveryDomainKey` | `BRXDIS_DOMAIN_KEY` | `brxdis.domainKey` | `brxdis:domainKey` | Yes |
+| API Key | `discoveryApiKeyEnvVar` (env var name) | `BRXDIS_API_KEY` | `brxdis.apiKey` | `brxdis:apiKey` | Yes |
+| Auth Key | `discoveryAuthKeyEnvVar` (env var name) | `BRXDIS_AUTH_KEY` | `brxdis.authKey` | `brxdis:authKey` | No (enables v2 Pathways) |
+| Environment | — | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `brxdis:environment` | No (default: `PRODUCTION`) |
 
 `authKey` is only required when using the v2 Pathways recommendations API. When absent, the plugin falls back to v1 automatically — no error is thrown. `environment` accepts `PRODUCTION` or `STAGING`; the value drives API subdomain selection.
+
+> **Note on `discoveryApiKeyEnvVar`:** this Channel Manager field stores the **name** of an environment variable (e.g. `PACIFICHOME_API_KEY`), not the key value itself. The actual secret must be present in the server's environment. This keeps secrets out of the CMS database while allowing per-channel key configuration.
 
 ## Pixel base URI override
 
@@ -176,17 +188,41 @@ Then in Cargo `<systemProperties>`:
 
 ---
 
-## Method 3: JCR document field (last resort)
+## Method 3: JCR document field (last resort for secrets)
 
 If no env var or system property is set, `DiscoveryConfigReader` falls back to the value stored in the `brxdis:discoveryConfig` JCR document.
 
 Use this when:
 - You cannot inject env vars at the infrastructure level.
-- You need per-channel credentials (create one config doc per channel; the `discoveryConfigPath` mount param selects which one is used).
+- You need per-channel structural config (base URIs, page size, sort) — create one config doc per channel.
 
-Drawbacks:
+Drawbacks for secrets:
 - Credentials are stored in the JCR repository (persisted in the filestore, exported by auto-export in dev, visible to CMS admins).
-- Changes require a CMS edit + publish rather than a config change.
+- Changes require a CMS document save. The updated value is cached at JVM lifetime — subsequent requests pick it up automatically, but there is no instant live update.
+
+---
+
+## Method 4: Channel Manager parameters (recommended for multi-channel)
+
+Set `discoveryAccountId` and `discoveryDomainKey` directly on the HST mount via Channel Manager. These override the global env/sys/JCR values on a per-channel basis.
+
+For API secrets, set `discoveryApiKeyEnvVar` to the name of a server-side env var (e.g. `PACIFICHOME_API_KEY`). The secret itself stays in the server environment.
+
+```
+Channel Manager → mount → channel properties:
+  discoveryAccountId    = 6413
+  discoveryDomainKey    = pacifichome
+  discoveryApiKeyEnvVar = PACIFICHOME_API_KEY     ← env var name, not the key
+  discoveryAuthKeyEnvVar = PACIFICHOME_AUTH_KEY   ← optional, for v2 Pathways
+```
+
+Server environment:
+```bash
+PACIFICHOME_API_KEY=your-actual-api-key
+PACIFICHOME_AUTH_KEY=your-actual-auth-key
+```
+
+This is the recommended pattern for a deployment hosting multiple Discovery channels on one JVM.
 
 ---
 
@@ -194,5 +230,6 @@ Drawbacks:
 
 - Never commit `local.properties` — it is listed in `demo/.gitignore`.
 - Never check in HCM content YAML files with real credentials. The bootstrapped `discovery-config.yaml` uses empty strings deliberately.
-- For production, prefer method 1 (env vars). Secrets managers (AWS Secrets Manager, HashiCorp Vault) can inject env vars at container startup without ever writing the value to disk.
-- The JCR fallback is provided for convenience; it is not recommended for production environments that handle real customer data.
+- For production, prefer method 1 (global env vars) or method 4 (Channel Manager + per-channel env vars). Secrets managers (AWS Secrets Manager, HashiCorp Vault) can inject env vars at container startup without ever writing the value to disk.
+- The JCR fallback is provided for convenience; it is not recommended for storing secrets in production environments that handle real customer data.
+- Credential changes in Channel Manager or server env vars take effect on the next request — no CMS save or JVM restart required.

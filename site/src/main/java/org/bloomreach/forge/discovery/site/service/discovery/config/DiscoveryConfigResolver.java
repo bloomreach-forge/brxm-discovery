@@ -52,7 +52,6 @@ public class DiscoveryConfigResolver {
             }
         }
 
-        validateRequiredCredentials(config);
         return config;
     }
 
