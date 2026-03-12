@@ -5,7 +5,7 @@ import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
+import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HstDiscoveryServiceTest {
 
-    @Mock DiscoveryClient client;
+    @Mock DiscoveryApiClient client;
     @Mock DiscoveryConfigProvider configProvider;
     @Mock DiscoveryPixelService pixelService;
     @Mock HstRequest request;

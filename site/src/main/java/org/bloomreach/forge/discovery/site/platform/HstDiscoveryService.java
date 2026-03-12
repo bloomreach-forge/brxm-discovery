@@ -5,8 +5,8 @@ import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
@@ -44,12 +44,12 @@ public class HstDiscoveryService {
     private static final Logger log = LoggerFactory.getLogger(HstDiscoveryService.class);
     public static final String BR_UID_2 = "_br_uid_2";
 
-    private final DiscoveryClient client;
+    private final DiscoveryApiClient client;
     private final DiscoveryPixelService pixelService;
     private final SoREnrichmentProvider enrichmentProvider;
     private final DiscoveryRuntimeContextFactory runtimeContextFactory;
 
-    public HstDiscoveryService(DiscoveryClient client,
+    public HstDiscoveryService(DiscoveryApiClient client,
                                DiscoveryConfigProvider configProvider,
                                DiscoveryPixelService pixelService,
                                SoREnrichmentProvider enrichmentProvider) {

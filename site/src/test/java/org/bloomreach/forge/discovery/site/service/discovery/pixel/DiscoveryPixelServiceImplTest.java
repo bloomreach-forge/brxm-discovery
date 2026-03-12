@@ -3,7 +3,7 @@ package org.bloomreach.forge.discovery.site.service.discovery.pixel;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
+import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryPixelTransport;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DiscoveryPixelServiceImplTest {
 
-    @Mock DiscoveryClient client;
+    @Mock DiscoveryPixelTransport client;
 
     private DiscoveryPixelServiceImpl service;
     private DiscoveryCredentials credentials;

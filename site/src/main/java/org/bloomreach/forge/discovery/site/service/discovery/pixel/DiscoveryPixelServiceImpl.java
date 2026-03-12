@@ -3,7 +3,7 @@ package org.bloomreach.forge.discovery.site.service.discovery.pixel;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
+import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryPixelTransport;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
@@ -18,14 +18,14 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPixelServiceImpl.class);
 
-    private final DiscoveryClient client;
+    private final DiscoveryPixelTransport client;
     private final Executor executor;
 
-    public DiscoveryPixelServiceImpl(DiscoveryClient client) {
+    public DiscoveryPixelServiceImpl(DiscoveryPixelTransport client) {
         this(client, ForkJoinPool.commonPool());
     }
 
-    public DiscoveryPixelServiceImpl(DiscoveryClient client, Executor executor) {
+    public DiscoveryPixelServiceImpl(DiscoveryPixelTransport client, Executor executor) {
         this.client = client;
         this.executor = executor;
     }
