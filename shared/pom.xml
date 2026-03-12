@@ -34,6 +34,19 @@
             <artifactId>hippo-services</artifactId>
         </dependency>
 
+        <!-- CRISP API/core (shared config-backed resolver) -->
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-addon-crisp-api</artifactId>
+        </dependency>
+        <!-- CRISP core (shared config-backed resolver) -->
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-addon-crisp-core</artifactId>
+            <version>${hippo.release.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

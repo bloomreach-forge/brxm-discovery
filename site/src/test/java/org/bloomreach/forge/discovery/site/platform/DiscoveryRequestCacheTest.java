@@ -217,6 +217,27 @@ class DiscoveryRequestCacheTest {
         assertTrue(DiscoveryRequestCache.getProductResult(request, "default").isEmpty());
     }
 
+    @Test
+    void putAndGet_fetchedProductByPid_roundTrips() {
+        DiscoveryRequestCache.putFetchedProduct(request, "sku-1", product);
+
+        Optional<ProductSummary> got = DiscoveryRequestCache.getFetchedProduct(request, "sku-1");
+
+        assertTrue(got.isPresent());
+        assertSame(product, got.get());
+    }
+
+    @Test
+    void fetchedProducts_areIndependentByPid() {
+        ProductSummary p2 = new ProductSummary("p-2", "U", null, null, null, null, Map.of());
+        DiscoveryRequestCache.putFetchedProduct(request, "sku-1", product);
+        DiscoveryRequestCache.putFetchedProduct(request, "sku-2", p2);
+
+        assertSame(product, DiscoveryRequestCache.getFetchedProduct(request, "sku-1").orElseThrow());
+        assertSame(p2, DiscoveryRequestCache.getFetchedProduct(request, "sku-2").orElseThrow());
+        assertTrue(DiscoveryRequestCache.getFetchedProduct(request, "missing").isEmpty());
+    }
+
     // ── band-aware recommendations ──────────────────────────────────────────
 
     @Test

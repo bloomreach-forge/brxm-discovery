@@ -15,8 +15,8 @@ When `brxm-discovery-cms` is on the CMS classpath, HCM bootstraps:
 - **`discoveryProductPicker`** Open UI extension node at
   `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker`
 - **Picker daemon module** at
-  `/hippo:configuration/hippo:modules/brxm-discovery-picker`
-  which registers the JAX-RS endpoint `{cms}/ws/discovery/picker/search` and `.../items`
+  `/hippo:configuration/hippo:modules/brxm-discovery`
+  which registers the JAX-RS endpoints `{cms}/ws/discovery/picker/search`, `.../items`, `.../categories`, and `.../widgets`
 - **Static HTML/JS app** served at
   `{cms}/discovery-picker/index.html`
 
@@ -59,7 +59,7 @@ The field will store the **product ID (PID)** returned by Discovery — a plain 
 2. The iframe loads the `@bloomreach/ui-extension` SDK and calls `UiExtension.register()`.
 3. The picker reads the current field value (`ui.document.field.getValue()`) and pre-selects it if present.
 4. The picker calls `GET {cms}/ws/discovery/picker/search?q=...` via `fetch` with session cookies.
-5. The backend (`DiscoveryPickerResource`) reads the global `brxdis:discoveryConfig` node, calls the Discovery API, and returns a slim product list.
+5. The backend (`DiscoveryPickerResource`) resolves Discovery config server-side, calls the Discovery API, and returns a slim product list.
 6. When the editor clicks a product card, the picker calls `ui.document.field.setValue(productId)`.
 
 The stored value is a single PID string (e.g. `"SKU-12345"`).

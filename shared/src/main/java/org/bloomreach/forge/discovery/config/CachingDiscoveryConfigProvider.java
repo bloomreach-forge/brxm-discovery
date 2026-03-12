@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.config;
 
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
 import org.hippoecm.repository.HippoRepository;
 import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.slf4j.Logger;
@@ -46,6 +47,31 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
     }
 
     @Override
+    public DiscoverySettings settings() {
+        return settings(() -> {
+            HippoRepository hippoRepo = HippoServiceRegistry.getService(HippoRepository.class);
+            if (hippoRepo == null) {
+                throw new IllegalStateException("HippoRepository not yet registered in HippoServiceRegistry");
+            }
+            return hippoRepo.login(new SimpleCredentials("system", new char[0]));
+        });
+    }
+
+    @Override
+    public DiscoverySettings settings(Session session) {
+        if (session == null) {
+            return settings();
+        }
+        try {
+            return currentBaseConfig(() -> resolver.resolve(session)).settings();
+        } catch (Exception e) {
+            log.warn("brxm-discovery: Cannot read settings via provided JCR session — falling back to defaults. Cause: {}",
+                    e.getMessage());
+            return resolver.resolveDefaults().settings();
+        }
+    }
+
+    @Override
     public void invalidate() {
         if (cachedConfig != null) {
             cachedConfig = null;
@@ -83,13 +109,42 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
         }
     }
 
+    DiscoverySettings settings(SessionSupplier sessionSupplier) {
+        DiscoveryConfig config = cachedConfig;
+        if (config != null) {
+            return config.settings();
+        }
+        Session session;
+        try {
+            session = sessionSupplier.get();
+        } catch (Exception e) {
+            log.warn("brxm-discovery: Cannot open JCR session for settings — falling back to defaults. Cause: {}",
+                    e.getMessage());
+            return resolver.resolveDefaults().settings();
+        }
+        try {
+            return currentBaseConfig(() -> resolver.resolve(session)).settings();
+        } catch (Exception e) {
+            if (e instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw new IllegalStateException("Unexpected checked exception while resolving Discovery settings", e);
+        } finally {
+            session.logout();
+        }
+    }
+
     private DiscoveryConfig currentConfig(ConfigLoader loader) throws Exception {
+        return resolver.applyEnvSysCredentials(currentBaseConfig(loader));
+    }
+
+    private DiscoveryConfig currentBaseConfig(ConfigLoader loader) throws Exception {
         DiscoveryConfig config = cachedConfig;
         if (config == null) {
             config = loader.load();
             cachedConfig = config;
         }
-        return resolver.applyEnvSysCredentials(config);
+        return config;
     }
 
     @FunctionalInterface

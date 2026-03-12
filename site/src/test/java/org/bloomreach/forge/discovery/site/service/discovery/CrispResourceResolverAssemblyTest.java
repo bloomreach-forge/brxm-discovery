@@ -13,7 +13,7 @@ class CrispResourceResolverAssemblyTest {
     private static final String SIMPLE_RESOLVER_CLASS =
             "org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver";
     private static final String CONFIG_BACKED_RESOLVER_CLASS =
-            "org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver";
+            "org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver";
 
     @Test
     void siteFallbackResolvers_useGenericSpacesAndConfigBackedApiResolvers() throws Exception {

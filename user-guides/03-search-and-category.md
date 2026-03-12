@@ -12,13 +12,13 @@ Both components cache results on the underlying servlet request (`DiscoveryReque
 
 `DiscoverySearchComponent` also handles autosuggest inline — it calls the Autosuggest API when `suggestionsEnabled = true` and exposes `autosuggestResult` alongside the main search result. No separate autosuggest component is needed.
 
-Credentials are resolved from the global `brxdis:discoveryConfig` JCR node — see [02-discovery-config.md](02-discovery-config.md).
+Credentials are resolved from the shared Discovery config (`env -> sys -> JCR`) — see [02-discovery-config.md](02-discovery-config.md).
 
 ---
 
 ## HST configuration
 
-### 1. Register the components and templates
+### 1. Register the components
 
 In your project's HCM site config:
 
@@ -38,19 +38,7 @@ definitions:
         hst:template: brxdis-category
 ```
 
-**`templates.yaml`**
-
-```yaml
-definitions:
-  config:
-    /hst:hst/hst:configurations/<your-site>/hst:templates:
-      /brxdis-search:
-        jcr:primaryType: hst:template
-        hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
-      /brxdis-category:
-        jcr:primaryType: hst:template
-        hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
-```
+The bundled `brxdis-search` and `brxdis-category` templates are auto-registered under `hst:default`. Add your own `templates.yaml` only if you want to override them.
 
 ### 2. Add sitemap entries
 
@@ -194,7 +182,7 @@ When a view component (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent
 
 ## Plugin FTL templates
 
-All `brxdis-*` templates are bundled inside `brxm-discovery-site` and auto-registered under `hst:default` by the plugin's HCM config — no manual `templates.yaml` entries required. Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
+All `brxdis-*` templates are bundled inside `brxm-discovery-site` and auto-registered under `hst:default`. Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
 
 **Monolithic templates** (`brxdis-search.ftl`, `brxdis-category.ftl`): single component renders the full page — search form/bar, suggestion dropdown, facet sidebar, product grid, and pagination all in one template. Use for quick integration.
 

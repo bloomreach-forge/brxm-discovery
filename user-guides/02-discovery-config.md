@@ -1,6 +1,6 @@
 # Discovery Configuration
 
-Configuration lives in a single `brxdis:discoveryConfig` JCR node at a fixed global path. All channels share this node. Credentials use a three-tier env var → sys prop → JCR resolution; structural config uses JCR → coded defaults.
+Configuration lives in a single `brxdis:discoveryConfig` JCR node at a fixed global path. All channels share this node. Credentials resolve with `env -> sys -> JCR` precedence. Structural settings resolve from JCR when present and otherwise fall back to environment-aware defaults.
 
 ---
 
@@ -32,22 +32,23 @@ Resolved per-request in this order:
 
 | JCR property | Env var | System property | Description |
 |---|---|---|---|
-| `brxdis:environment` | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `PRODUCTION` (default) or `STAGING`. Drives API subdomain switching. |
+| `brxdis:environment` | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `PRODUCTION` (default) or `STAGING`. Selects the default Discovery endpoints when explicit base URIs are not set. |
 
 ### Required fields
 
 `accountId`, `domainKey`, and `apiKey` are required. If none of the resolution sources provide them after all layers are evaluated, a `ConfigurationException` is thrown at request time.
 
-### Structural config (resolved: JCR → coded default)
+### Structural config (resolved: JCR -> environment-aware default)
 
 | JCR property | Default | Description |
 |---|---|---|
-| `brxdis:baseUri` | `https://core.dxpapi.com` | Base URL of the Discovery Search/Category API |
-| `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` | Base URL of the Pathways recommendations API |
+| `brxdis:baseUri` | `https://core.dxpapi.com` or `https://staging-core.dxpapi.com` | Base URL of the Discovery Search/Category API |
+| `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` or `https://staging-pathways.dxpapi.com` | Base URL of the Pathways recommendations API |
+| `brxdis:autosuggestBaseUri` | `https://suggest.dxpapi.com` or `https://staging-suggest.dxpapi.com` | Base URL of the Autosuggest API |
 | `brxdis:defaultPageSize` | `12` | Results per page when not specified in the request |
 | `brxdis:defaultSort` | `` | Default sort expression, e.g. `price asc`. Blank = relevance. |
 
-Structural fields are edited in the CMS on the `brxdis:discoveryConfig` node. Coded defaults apply when the property is absent — no JCR node is required to run the plugin if credentials are supplied via environment variables.
+Structural fields are edited in the CMS on the `brxdis:discoveryConfig` node. If a base URI property is absent, the plugin derives the default from `environment`.
 
 ---
 
@@ -72,6 +73,7 @@ definitions:
       brxdis:authKey: ''
       brxdis:baseUri: 'https://core.dxpapi.com'
       brxdis:pathwaysBaseUri: 'https://pathways.dxpapi.com'
+      brxdis:autosuggestBaseUri: 'https://suggest.dxpapi.com'
       brxdis:environment: 'PRODUCTION'
       brxdis:defaultPageSize: 12
       brxdis:defaultSort: ''
@@ -101,32 +103,33 @@ If the global config node is missing, the plugin builds `DiscoveryConfig` entire
 
 ## CRISP resource spaces
 
-The CMS module bootstraps all three CRISP resource spaces automatically via `cms/src/main/resources/hcm-config/brxdis-crisp.yaml`. No manual CRISP configuration is required in your host project.
+The CMS module bootstraps the Discovery CRISP resource spaces automatically via `cms/src/main/resources/hcm-config/brxdis-crisp.yaml`. The site also ships matching fallback resolver beans. Both runtimes now use the same config-backed resolver model.
 
 | Resource space | Base URI | Used for |
 |---|---|---|
-| `discoverySearchAPI` | `https://core.dxpapi.com` | Search, category browse, widget listing, v1 recommendations |
-| `discoveryPathwaysAPI` | `https://pathways.dxpapi.com` | v2 Pathways recommendations (requires `authKey`) |
-| `discoveryAutosuggestAPI` | `https://suggest.dxpapi.com` | Autosuggest / typeahead |
+| `discoverySearchAPI` | Resolved from `brxdis:baseUri` or environment default | Search, category browse, widget listing, v1 recommendations |
+| `discoveryPathwaysAPI` | Resolved from `brxdis:pathwaysBaseUri` or environment default | v2 Pathways recommendations |
+| `discoveryAutosuggestAPI` | Resolved from `brxdis:autosuggestBaseUri` or environment default | Autosuggest / typeahead |
 
-The `account_id`, `domain_key`, and `auth-key` parameters are added per-request — they do not go in the CRISP config.
+The request credentials are added per request. `account_id` and `domain_key` go in the query string, `auth_key` is used for standard Discovery requests, and the Pathways v2 call sends `auth-key` as a header.
 
 ### Overriding base URIs (staging / private cloud)
 
-If you need a non-default base URI (e.g. a staging endpoint), override the CRISP property in your host project's HCM config:
+Set the Discovery config properties instead of editing CRISP nodes directly:
 
 ```yaml
 definitions:
   config:
-    /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoverySearchAPI:
-      crisp:propvalues:
-        - 'https://staging-core.dxpapi.com'
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      brxdis:baseUri: 'https://custom-core.example'
+      brxdis:pathwaysBaseUri: 'https://custom-pathways.example'
+      brxdis:autosuggestBaseUri: 'https://custom-suggest.example'
 ```
 
 ---
 
 ## Cache behaviour
 
-Structural config (`baseUri`, `defaultPageSize`, `defaultSort`) is JVM-lifetime cached. The cache is invalidated automatically when you save the `brxdis:discoveryConfig` node in the CMS — no JVM restart required. Changes take effect on the first request after the save triggers cache invalidation.
+The resolved base config is cached at JVM lifetime and invalidated automatically when you save the `brxdis:discoveryConfig` node in the CMS.
 
-Credentials (`accountId`, `domainKey`, `apiKey`, `authKey`) are also cached at JVM lifetime and invalidated by the same CMS-save event. To pick up credential changes from env vars / sys props without a CMS save, trigger an invalidation by making a trivial edit to the JCR config node.
+Credential overrides from env vars and system properties are re-applied each time the provider is read, so env/sys credential changes do not depend on a JCR save. Structural JCR settings (`baseUri`, `pathwaysBaseUri`, `autosuggestBaseUri`, `defaultPageSize`, `defaultSort`) still depend on cache invalidation after a CMS save.

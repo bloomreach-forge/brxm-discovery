@@ -81,16 +81,17 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     @Override
     public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
         String path = buildAutosuggestPath(query, credentials);
-        log.debug("Discovery autosuggest [request_id={}]: {}", requestId(path), redactPath(path));
+        RequestLogContext requestLog = requestLog(path);
+        log.debug("Discovery autosuggest [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = broker.resolve(AUTOSUGGEST_RESOURCE_SPACE, path, buildHint(ctx));
             AutosuggestResult result = responseMapper.toAutosuggestResult(resource);
             log.debug("Discovery autosuggest returned {} query suggestions [request_id={}]",
-                    result.querySuggestions().size(), requestId(path));
+                    result.querySuggestions().size(), requestLog.requestId());
             return result;
         } catch (ResourceException e) {
             log.error("Discovery autosuggest failed [request_id={}] for path {}: {}",
-                    requestId(path), redactPath(path), e.getMessage());
+                    requestLog.requestId(), requestLog.redactedPath(), e.getMessage());
             throw new SearchException("Autosuggest request failed: " + e.getMessage(), e);
         }
     }
@@ -98,16 +99,17 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     @Override
     public SearchResponse search(SearchQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
         String path = buildSearchPath(query, credentials);
-        log.debug("Discovery search [request_id={}]: {}", requestId(path), redactPath(path));
+        RequestLogContext requestLog = requestLog(path);
+        log.debug("Discovery search [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = broker.resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery search returned {} results [request_id={}]",
-                    response.result().total(), requestId(path));
+                    response.result().total(), requestLog.requestId());
             return response;
         } catch (ResourceException e) {
             log.error("Discovery search failed [request_id={}] for path {}: {}",
-                    requestId(path), redactPath(path), e.getMessage());
+                    requestLog.requestId(), requestLog.redactedPath(), e.getMessage());
             throw new SearchException("Search request failed: " + e.getMessage(), e);
         }
     }
@@ -115,16 +117,17 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     @Override
     public SearchResponse category(CategoryQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
         String path = buildCategoryPath(query, credentials);
-        log.debug("Discovery category browse [request_id={}]: {}", requestId(path), redactPath(path));
+        RequestLogContext requestLog = requestLog(path);
+        log.debug("Discovery category browse [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = broker.resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery category returned {} results [request_id={}]",
-                    response.result().total(), requestId(path));
+                    response.result().total(), requestLog.requestId());
             return response;
         } catch (ResourceException e) {
             log.error("Discovery category failed [request_id={}] for path {}: {}",
-                    requestId(path), redactPath(path), e.getMessage());
+                    requestLog.requestId(), requestLog.redactedPath(), e.getMessage());
             throw new SearchException("Category request failed: " + e.getMessage(), e);
         }
     }
@@ -143,48 +146,51 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     @Override
     public Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryCredentials credentials, ClientContext ctx) {
         String path = buildFetchProductPath(pid, url, credentials);
-        log.debug("Discovery fetchProduct [request_id={}]: {}", requestId(path), redactPath(path));
+        RequestLogContext requestLog = requestLog(path);
+        log.debug("Discovery fetchProduct [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = broker.resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResult result = responseMapper.toSearchResult(resource, 0, 1);
             log.debug("Discovery fetchProduct pid='{}' found={} [request_id={}]",
-                    pid, !result.products().isEmpty(), requestId(path));
+                    pid, !result.products().isEmpty(), requestLog.requestId());
             return result.products().isEmpty() ? Optional.empty() : Optional.of(result.products().get(0));
         } catch (ResourceException e) {
             log.warn("Discovery fetchProduct failed [request_id={}] for pid '{}': {}",
-                    requestId(path), pid, e.getMessage());
+                    requestLog.requestId(), pid, e.getMessage());
             throw new SearchException("fetchProduct request failed: " + e.getMessage(), e);
         }
     }
 
     private RecommendationResult recommendV1(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
         String path = buildRecommendationPath(query, credentials);
-        log.debug("Discovery recommendations v1 [request_id={}]: {}", requestId(path), redactPath(path));
+        RequestLogContext requestLog = requestLog(path);
+        log.debug("Discovery recommendations v1 [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = broker.resolve(SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v1 returned {} products [request_id={}]",
-                    result.products().size(), requestId(path));
+                    result.products().size(), requestLog.requestId());
             return result;
         } catch (ResourceException e) {
             log.error("Discovery recommendations v1 failed [request_id={}] for path {}: {}",
-                    requestId(path), redactPath(path), e.getMessage());
+                    requestLog.requestId(), requestLog.redactedPath(), e.getMessage());
             throw new RecommendationException("Recommendation request failed: " + e.getMessage(), e);
         }
     }
 
     private RecommendationResult recommendV2(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
         String path = buildRecommendationV2Path(query, credentials);
-        log.debug("Discovery recommendations v2 (Pathways) [request_id={}]: {}", requestId(path), redactPath(path));
+        RequestLogContext requestLog = requestLog(path);
+        log.debug("Discovery recommendations v2 (Pathways) [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = broker.resolve(PATHWAYS_RESOURCE_SPACE, path, buildV2Hint(credentials, ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v2 returned {} products [request_id={}]",
-                    result.products().size(), requestId(path));
+                    result.products().size(), requestLog.requestId());
             return result;
         } catch (ResourceException e) {
             log.error("Discovery recommendations v2 failed [request_id={}] for path {}: {}",
-                    requestId(path), redactPath(path), e.getMessage());
+                    requestLog.requestId(), requestLog.redactedPath(), e.getMessage());
             throw new RecommendationException("Pathways recommendation request failed: " + e.getMessage(), e);
         }
     }
@@ -194,7 +200,16 @@ public class DiscoveryClientImpl implements DiscoveryClient {
      * value replaced by {@code ***}. Safe to pass to log statements.
      */
     static String redactPath(String path) {
-        return path.replaceAll("auth_key=[^&]*", "auth_key=***");
+        int start = path.indexOf("auth_key=");
+        if (start < 0) {
+            return path;
+        }
+        int valueStart = start + "auth_key=".length();
+        int end = path.indexOf('&', valueStart);
+        if (end < 0) {
+            end = path.length();
+        }
+        return path.substring(0, valueStart) + "***" + path.substring(end);
     }
 
     private static boolean isForwardClientHeaders() {
@@ -422,5 +437,12 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         int valueStart = start + "request_id=".length();
         int end = path.indexOf('&', valueStart);
         return end < 0 ? path.substring(valueStart) : path.substring(valueStart, end);
+    }
+
+    private static RequestLogContext requestLog(String path) {
+        return new RequestLogContext(requestId(path), redactPath(path));
+    }
+
+    private record RequestLogContext(String requestId, String redactedPath) {
     }
 }

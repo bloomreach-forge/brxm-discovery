@@ -1,194 +1,86 @@
 # brxm-discovery
 
-**Bloomreach Discovery integration plugin for brXM (Hippo CMS) 16.6.5**
+Bloomreach Discovery integration plugin for brXM 16.7.0.
 
-Bloomreach Discovery acts as the search brain — indexing the product catalog (fed by your external commerce system via connectors), resolving queries, surfacing facets, and powering recommendation widgets. brXM acts as the content brain — managing editorial content and channel configuration, storing product references by ID. This plugin is the glue: it exposes CRISP-backed HST components for search, category browse, and recommendations, and provides editors with a visual product picker inside the CMS editor — all without syncing any product catalog data into brXM.
+This repository keeps Discovery search, category, recommendations, autosuggest, and the CMS picker aligned around one shared config model. CMS and site both resolve Discovery settings from the same env/sys/JCR precedence, and CRISP now uses generic resource spaces whose base URIs come from that shared config instead of duplicated production/staging resolver definitions.
 
----
+## What it provides
 
-## Table of Contents
-
-- [Prerequisites](#prerequisites)
-- [Maven Coordinates](#maven-coordinates)
-- [Module Layout](#module-layout)
-- [Quick Start](#quick-start)
-- [Credential Injection](#credential-injection)
-- [Product Picker](#product-picker)
-- [Build Commands](#build-commands)
-- [User Guides](#user-guides)
-
----
+- `cms/`: product picker UI, picker REST endpoints, HCM bootstrap, platform CRISP definitions
+- `site/`: HST components, CRISP-backed client, pixel service, bundled Freemarker templates
+- `shared/`: config model, request builders, shared query models, CRISP config-backed resolver
+- `hcm-site/`: site HCM bootstrap for bundled templates
+- `demo/`: runnable reference project
 
 ## Prerequisites
 
 | Requirement | Version / Notes |
 |---|---|
-| brXM (Hippo CMS) | 16.6.5 |
-| Java | 17 (LTS) |
-| Maven | 3.8+ (no wrapper; use `mvn` directly) |
-| CRISP addon | Must be enabled in the site webapp |
-| Bloomreach Discovery account | Account ID, Domain Key, API Key, and Auth Key (v2 Pathways) |
+| brXM | 16.7.0 |
+| Java | 17 |
+| Maven | 3.8+ |
+| CRISP addons | Repository addon in CMS runtime, HST addon in site runtime |
 
----
+## Quick start
 
-## Maven Coordinates
-
-All platform dependencies (`hst-api`, `crisp-api`, `hippo-repository-api`, etc.) are `provided` scope — the host project supplies them at runtime.
-
-**Bloomreach Maven repositories** (add to your `pom.xml` or `settings.xml` if not already present):
-
-```xml
-<repositories>
-  <repository>
-    <id>bloomreach</id>
-    <url>https://maven.bloomreach.com/maven2/</url>
-  </repository>
-  <repository>
-    <id>bloomreach-enterprise</id>
-    <url>https://maven.bloomreach.com/maven2-enterprise/</url>
-  </repository>
-</repositories>
-```
-
-**CMS module** (add to your CMS webapp dependencies):
-
-```xml
-<dependency>
-  <groupId>org.bloomreach.forge.discovery</groupId>
-  <artifactId>brxm-discovery-cms</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-</dependency>
-```
-
-**Site module** (add to your site webapp and components JAR):
-
-```xml
-<dependency>
-  <groupId>org.bloomreach.forge.discovery</groupId>
-  <artifactId>brxm-discovery-site</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-</dependency>
-```
-
----
-
-## Module Layout
-
-```
-brxm-discovery/                          (aggregator POM, packaging=pom)
-├── cms/                                 (brxm-discovery-cms — jar)
-│   └── JCR node types, editor template, picker daemon module, Open UI extension
-├── site/                                (brxm-discovery-site — jar)
-│   └── Domain model, services, CRISP integration, HST components, bundled FTL templates
-└── demo/                                (standalone Maven project)
-    └── Full brXM project for local end-to-end testing
-```
-
----
-
-## Quick Start
-
-**1. Add dependencies**
-
-Add `brxm-discovery-cms` to your CMS webapp and `brxm-discovery-site` to your site webapp as shown in [Maven Coordinates](#maven-coordinates).
-
-**2. Configure the CRISP broker**
-
-Enable the CRISP broker in your **site** webapp `hst-config.properties`:
+1. Add `brxm-discovery-cms` to the CMS webapp and `brxm-discovery-site` to the site components/webapp.
+2. Enable the site CRISP broker in `hst-config.properties`:
 
 ```properties
-crisp.broker.registerService = true
+crisp.broker.registerService=true
 ```
 
-This registers `ResourceServiceBroker` into `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
+3. Provide credentials through env vars, system properties, or the global config node at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`.
+4. Wire the HST components into your page config.
 
-The three CRISP resource spaces (`discoverySearchAPI`, `discoveryPathwaysAPI`, `discoveryAutosuggestAPI`) are bootstrapped automatically by the plugin — no manual CRISP configuration is required.
+The plugin bootstraps generic CRISP spaces automatically:
+- `discoverySearchAPI`
+- `discoveryPathwaysAPI`
+- `discoveryAutosuggestAPI`
 
-**3. Create the global config node (optional)**
+Their active base URIs come from shared Discovery config. `environment=STAGING` switches defaults to the staging endpoints when explicit `brxdis:*BaseUri` properties are not set.
 
-Create a `brxdis:discoveryConfig` node at the fixed global path — all channels share it. Credentials can alternatively be supplied entirely via env vars / sys props.
+## Config summary
 
-```yaml
-definitions:
-  config:
-    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
-      jcr:primaryType: brxdis:discoveryConfig
-      brxdis:accountId: 'your-account-id'
-      brxdis:domainKey: 'your-domain-key'
-      brxdis:defaultPageSize: 12
-```
+Credentials resolve in this order:
 
-See [06-credential-injection.md](user-guides/06-credential-injection.md) for the full property reference and deployment patterns.
+`env var -> system property -> JCR`
 
-**4. Wire HST components**
+Supported keys:
 
-See [00-quick-start.md](user-guides/00-quick-start.md) for a step-by-step walkthrough from a blank brXM project to first search results in the browser — including catalog YAML, sitemap, page composition, and bean scanning setup.
+- `BRXDIS_ACCOUNT_ID` / `brxdis.accountId` / `brxdis:accountId`
+- `BRXDIS_DOMAIN_KEY` / `brxdis.domainKey` / `brxdis:domainKey`
+- `BRXDIS_API_KEY` / `brxdis.apiKey` / `brxdis:apiKey`
+- `BRXDIS_AUTH_KEY` / `brxdis.authKey` / `brxdis:authKey`
+- `BRXDIS_ENVIRONMENT` / `brxdis.environment` / `brxdis:environment`
 
-**6. Use the bundled FTL templates (optional)**
+Structural settings live on the same global node:
 
-All `brxdis-*` templates are bundled in `brxm-discovery-site` and auto-registered under `hst:default` by the plugin's HCM config — no manual `templates.yaml` entries required. Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required. See [03-search-and-category.md](user-guides/03-search-and-category.md) for the composable wiring pattern.
+- `brxdis:baseUri`
+- `brxdis:pathwaysBaseUri`
+- `brxdis:autosuggestBaseUri`
+- `brxdis:defaultPageSize`
+- `brxdis:defaultSort`
 
----
-
-## Credential Injection
-
-All credentials are resolved from a single global JCR config node at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`. No per-channel configuration is required.
-
-**Account ID, Domain Key, API Key, Auth Key** — all resolved with the same three-tier chain:
-
-| Priority | Mechanism |
-|---|---|
-| 1 (highest) | Environment variable — `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
-| 2 | JVM system property — `brxdis.accountId`, `brxdis.domainKey`, `brxdis.apiKey`, `brxdis.authKey` |
-| 3 (lowest) | JCR global node field — `brxdis:accountId`, `brxdis:domainKey`, `brxdis:apiKey`, `brxdis:authKey` |
-
-`AUTH_KEY` is only required for v2 Pathways recommendations; when absent the plugin uses the v1 API automatically. `ENVIRONMENT` controls the API subdomain (`PRODUCTION` → `core.dxpapi.com`; `STAGING` → `staging-core.dxpapi.com`).
-
-See [06-credential-injection.md](user-guides/06-credential-injection.md) for deployment patterns.
-
----
-
-## Product Picker
-
-The CMS ships a visual product picker as an Open UI document field extension. Editors search the Discovery catalog directly inside the brXM editor and store the selected product ID (PID) in any `String` document field — no full product data is persisted in brXM.
-
-The picker is bootstrapped automatically via HCM:
-- **Daemon module**: `/hippo:configuration/hippo:modules/brxm-discovery`
-- **JAX-RS endpoints**: `{cms}/ws/discovery/picker/search`, `.../items`, `.../categories`, and `.../widgets`
-- **Open UI extension node**: `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker`
-
-For wiring the picker into a document type, see [05-product-picker.md](user-guides/05-product-picker.md).
-
----
-
-## Build Commands
+## Build
 
 ```bash
-# Compile all modules
-mvn clean compile
-
-# Run all tests
 mvn clean test
-
-# Run site module tests only
-mvn clean test -pl site
-
-# Run a single test class
-mvn clean test -Dtest=DiscoverySearchComponentTest -pl site
 ```
 
----
+```bash
+mvn -pl shared,cms,site -am test
+```
 
-## User Guides
+## User guides
 
-| # | Guide |
-|---|---|
-| 01 | [Installation & Maven Setup](user-guides/01-installation.md) |
-| 02 | [Discovery Config & CRISP Resource Space](user-guides/02-discovery-config.md) |
-| 03 | [Search & Category Pages](user-guides/03-search-and-category.md) |
-| 04 | [Recommendation Widgets](user-guides/04-recommendations.md) |
-| 05 | [Product Picker](user-guides/05-product-picker.md) |
-| 06 | [Credential Injection](user-guides/06-credential-injection.md) |
-| 07 | [Autosuggest / Search Bar](user-guides/07-autosuggest.md) |
-| 08 | [React SPA Integration](user-guides/08-react-spa-integration.md) |
-| 09 | [Pixel Tracking](user-guides/09-pixel-tracking.md) |
+- [Quick Start](user-guides/00-quick-start.md)
+- [Installation](user-guides/01-installation.md)
+- [Discovery Configuration](user-guides/02-discovery-config.md)
+- [Search and Category](user-guides/03-search-and-category.md)
+- [Recommendations](user-guides/04-recommendations.md)
+- [Product Picker](user-guides/05-product-picker.md)
+- [Credential Injection](user-guides/06-credential-injection.md)
+- [Autosuggest](user-guides/07-autosuggest.md)
+- [React / SPA Integration](user-guides/08-react-spa-integration.md)
+- [Pixel Tracking](user-guides/09-pixel-tracking.md)

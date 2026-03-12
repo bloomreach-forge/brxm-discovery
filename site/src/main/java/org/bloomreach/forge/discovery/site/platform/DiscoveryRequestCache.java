@@ -93,6 +93,14 @@ public final class DiscoveryRequestCache {
         return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productDetailResult." + label));
     }
 
+    public static void putFetchedProduct(HstRequest request, String pid, ProductSummary product) {
+        ctx(request).setAttribute(ATTR + ".productLookup." + pid, product);
+    }
+
+    public static Optional<ProductSummary> getFetchedProduct(HstRequest request, String pid) {
+        return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productLookup." + pid));
+    }
+
     public static void markProductDetailBandPresent(HstRequest request, String label) {
         ctx(request).setAttribute(ATTR + ".label.productDetail." + label, Boolean.TRUE);
     }

@@ -4,12 +4,12 @@
 
 | Requirement | Version |
 |---|---|
-| brXM / Hippo CMS | 16.6.5 |
+| brXM / Hippo CMS | 16.7.0 |
 | Java | 17 (LTS) |
 | Maven | 3.8+ |
-| CRISP addon | enabled in site WAR |
+| CRISP addon | repository addon in CMS runtime, HST addon in site runtime |
 
-The CRISP addon (`hippo-addon-crisp-repository` + `hippo-addon-crisp-hst`) must be on the classpath of your site webapp. It ships with the standard `hippo-package-site-dependencies` BOM.
+The CRISP addons (`hippo-addon-crisp-repository` and `hippo-addon-crisp-hst`) must be available in the host project runtimes. They ship with the standard Bloomreach dependency sets.
 
 ---
 
@@ -70,7 +70,7 @@ This JAR provides Spring beans auto-registered via `META-INF/hst-assembly/overri
 | `CachingDiscoveryConfigProvider` | JVM-lifetime config cache, JCR-observation-invalidated |
 | `DiscoveryConfigJcrListener` | Invalidates config cache on CMS node changes (no restart needed) |
 | `DiscoveryConfigResolver` | Two-tier config resolution (env/sys/JCR + coded defaults) |
-| `DiscoveryWidgetServiceImpl` | Widget listing from merchant widgets API (5-min in-process cache) |
+| `ConfigBackedDiscoveryResourceResolver` | CRISP resolver that reads active base URIs from shared Discovery config |
 | `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on a dedicated bounded thread pool |
 
 **HST components** (reference by fully-qualified class name in your HST config):
@@ -108,10 +108,10 @@ On first startup, HCM applies the following from `brxm-discovery-cms.jar` and `b
 | `brxdis:discoveryConfig` document type | `/hippo:namespaces/brxdis/discoveryConfig` |
 | Picker daemon module | `/hippo:configuration/hippo:modules/brxm-discovery` |
 | `discoveryProductPicker` Open UI extension | `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker` |
-| CRISP resource spaces (all 3) | `/hippo:configuration/hippo:modules/crispregistry/…` |
-| **All 10 plugin FTL templates** | `/hst:hst/hst:configurations/hst:default/hst:templates/brxdis-*` |
+| CRISP resource spaces (generic search/pathways/autosuggest/pixel) | `/hippo:configuration/hippo:modules/crispregistry/…` |
+| Bundled plugin FTL templates | `/hst:hst/hst:configurations/hst:default/hst:templates/brxdis-*` |
 
-The template nodes are registered under `hst:default` — the universal base configuration — so every site configuration that inherits from it (the standard brXM setup) gets them automatically. No per-project template YAML is required.
+The template nodes are registered under `hst:default`, so every site configuration that inherits from it gets them automatically. No per-project `templates.yaml` is required unless you want to override the bundled templates.
 
 You still need to:
 1. **Enable the CRISP broker** in your **site** webapp `hst-config.properties`:

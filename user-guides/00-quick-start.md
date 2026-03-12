@@ -1,6 +1,6 @@
 # Quick Start: Zero to Functional Search Page
 
-This guide walks through every step from an empty brXM 16.6.5 project to a working search results page in the browser. Each step is self-contained — no prior knowledge of the plugin is assumed.
+This guide walks through every step from an empty brXM 16.7.0 project to a working search results page in the browser.
 
 > **Fastest alternative**: The `demo/` directory at the root of this repository is a fully pre-wired brXM project. Run `cd demo && mvn clean install && mvn -P cargo.run cargo:run` to see the plugin working before touching your own project.
 
@@ -53,9 +53,9 @@ In your **site** webapp `hst-config.properties`:
 crisp.broker.registerService = true
 ```
 
-This registers `ResourceServiceBroker` into `HippoServiceRegistry` at startup. Without it, all Discovery API calls will throw `ConfigurationException` at request time.
+This registers `ResourceServiceBroker` into `HippoServiceRegistry` at startup. Without it, Discovery API calls will fail at request time.
 
-The three CRISP resource spaces (`discoverySearchAPI`, `discoveryPathwaysAPI`, `discoveryAutosuggestAPI`) are bootstrapped automatically by the plugin via HCM — no manual CRISP configuration is needed.
+The plugin bootstraps the generic CRISP resource spaces (`discoverySearchAPI`, `discoveryPathwaysAPI`, `discoveryAutosuggestAPI`) automatically. Their active base URIs come from the shared Discovery config, so you do not need separate production and staging CRISP definitions in your project.
 
 ---
 
@@ -70,7 +70,7 @@ mvn -P cargo.run cargo:run \
   -Dbrxdis.apiKey=YOUR_API_KEY
 ```
 
-For production, use environment variables (`BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`) or a JCR config document — see [06-credential-injection.md](06-credential-injection.md) for deployment patterns including per-channel secrets.
+For production, use environment variables (`BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`) or the global Discovery config node — see [06-credential-injection.md](06-credential-injection.md) for deployment patterns.
 
 ---
 
@@ -162,7 +162,7 @@ definitions:
 
 ---
 
-## Step 7 — Verify
+## Step 6 — Verify
 
 Start the site webapp and open:
 
@@ -193,8 +193,8 @@ brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 
 | Guide | Topic |
 |---|---|
-| [02-discovery-config.md](02-discovery-config.md) | Config document fields, JCR structure, hot-reload |
+| [02-discovery-config.md](02-discovery-config.md) | Config document fields, defaults, and CRISP wiring |
 | [03-search-and-category.md](03-search-and-category.md) | Full parameter reference for search and category components |
 | [04-recommendations.md](04-recommendations.md) | Recommendation widgets, v2 Pathways API |
-| [06-credential-injection.md](06-credential-injection.md) | Multi-channel credential patterns, env var naming |
+| [06-credential-injection.md](06-credential-injection.md) | Credential precedence and deployment patterns |
 | [07-autosuggest.md](07-autosuggest.md) | Autosuggest dropdown, suggest-only mode |

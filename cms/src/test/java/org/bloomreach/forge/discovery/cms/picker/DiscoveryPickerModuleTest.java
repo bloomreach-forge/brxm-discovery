@@ -1,69 +1,56 @@
 package org.bloomreach.forge.discovery.cms.picker;
 
-import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.onehippo.cms7.services.HippoServiceRegistry;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryPickerModuleTest {
 
-    private static final String SEARCH_NODE_PATH =
-            "/hippo:configuration/hippo:modules/crispregistry/" +
-            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoverySearchAPI";
-    private static final String PATHWAYS_NODE_PATH =
-            "/hippo:configuration/hippo:modules/crispregistry/" +
-            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPathwaysAPI";
-    private static final String AUTOSUGGEST_NODE_PATH =
-            "/hippo:configuration/hippo:modules/crispregistry/" +
-            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryAutosuggestAPI";
     private static final String PIXEL_NODE_PATH =
             "/hippo:configuration/hippo:modules/crispregistry/" +
             "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPixelAPI";
 
     @Mock Session session;
-    @Mock Node searchNode;
-    @Mock Node pathwaysNode;
-    @Mock Node autosuggestNode;
     @Mock Node pixelNode;
+    @Mock DiscoveryConfigProvider configProvider;
 
     @AfterEach
-    void clearSysProp() {
+    void clearState() {
         System.clearProperty("brxdis.pixelBaseUri");
+        HippoServiceRegistry.unregister(configProvider, DiscoveryConfigProvider.class);
     }
 
     @Test
-    void initialize_syncsDiscoveryBaseUrisFromResolvedConfig() throws RepositoryException {
-        DiscoveryConfig config = new DiscoveryConfig(
-                "acct", "domain", "api", "auth",
-                "https://staging-core.dxpapi.com",
-                "https://staging-pathways.dxpapi.com",
-                "https://staging-suggest.dxpapi.com",
-                "STAGING", 12, "");
-        when(session.nodeExists(SEARCH_NODE_PATH)).thenReturn(true);
-        when(session.nodeExists(PATHWAYS_NODE_PATH)).thenReturn(true);
-        when(session.nodeExists(AUTOSUGGEST_NODE_PATH)).thenReturn(true);
-        when(session.getNode(SEARCH_NODE_PATH)).thenReturn(searchNode);
-        when(session.getNode(PATHWAYS_NODE_PATH)).thenReturn(pathwaysNode);
-        when(session.getNode(AUTOSUGGEST_NODE_PATH)).thenReturn(autosuggestNode);
-
+    void registerConfigProvider_exposesProviderViaHippoServiceRegistry() {
         DiscoveryPickerModule module = new DiscoveryPickerModule(key -> null);
-        module.applyCrispBaseUriOverrides(session, config);
+        module.registerConfigProvider(configProvider);
 
-        verify(searchNode).setProperty(eq("crisp:propvalues"), eq(new String[]{"https://staging-core.dxpapi.com"}));
-        verify(pathwaysNode).setProperty(eq("crisp:propvalues"), eq(new String[]{"https://staging-pathways.dxpapi.com"}));
-        verify(autosuggestNode).setProperty(eq("crisp:propvalues"), eq(new String[]{"https://staging-suggest.dxpapi.com"}));
-        verify(session).save();
+        assertNotNull(HippoServiceRegistry.getService(DiscoveryConfigProvider.class));
+    }
+
+    @Test
+    void unregisterConfigProvider_removesProviderFromHippoServiceRegistry() {
+        DiscoveryPickerModule module = new DiscoveryPickerModule(key -> null);
+        module.registerConfigProvider(configProvider);
+
+        module.unregisterConfigProvider(configProvider);
+
+        assertNull(HippoServiceRegistry.getService(DiscoveryConfigProvider.class));
     }
 
     @Test

@@ -35,6 +35,7 @@ import javax.jcr.Session;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -302,6 +303,30 @@ class HstDiscoveryServiceTest {
 
         service.fetchProduct(request, "pid-99");
 
+        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void fetchProduct_usesRequestCacheOnSecondCall() {
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(java.util.Optional.of(product));
+
+        Optional<ProductSummary> first = service.fetchProduct(request, "pid-42");
+        Optional<ProductSummary> second = service.fetchProduct(request, "pid-42");
+
+        assertTrue(first.isPresent());
+        assertSame(first.get(), second.orElseThrow());
+        verify(client, times(1)).fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class));
+        verify(pixelService, times(1)).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), anyString(),
+                eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+    }
+
+    @Test
+    void fetchProduct_blankPid_returnsEmptyWithoutCallingClient() {
+        assertTrue(service.fetchProduct(request, " ").isEmpty());
+
+        verify(client, never()).fetchProduct(anyString(), anyString(), any(), any());
         verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 

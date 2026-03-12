@@ -232,6 +232,14 @@ public class HstDiscoveryService {
     }
 
     public Optional<ProductSummary> fetchProduct(HstRequest request, String pid) {
+        if (pid == null || pid.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<ProductSummary> cached = DiscoveryRequestCache.getFetchedProduct(request, pid);
+        if (cached.isPresent()) {
+            return cached;
+        }
+
         DiscoveryConfig config = configFor(request.getRequestContext());
         DiscoveryCredentials credentials = config.credentials();
         String url = pageUrl(request);
@@ -240,19 +248,25 @@ public class HstDiscoveryService {
         ClientContext ctx = clientContext(request);
         PixelFlags pixelFlags = resolvePixelFlags(request);
         Optional<ProductSummary> result = client.fetchProduct(pid, url, credentials, ctx);
-        if (result.isPresent()) {
-            if (pixelService != null && pixelFlags.enabled()) {
-                String clientIp = extractClientIp(request);
-                String prodName = result.get().title();
-                pixelService.fireProductPageViewEvent(pid, prodName, brUid2, refUrl, url,
-                        credentials, clientIp, ctx, pixelFlags);
-            }
-            if (enrichmentProvider != null) {
-                List<ProductSummary> enriched = enrichmentProvider.enrich(List.of(result.get()));
-                return enriched.isEmpty() ? Optional.empty() : Optional.of(enriched.get(0));
-            }
+        if (result.isEmpty()) {
+            return Optional.empty();
         }
-        return result;
+
+        ProductSummary product = result.get();
+        if (pixelService != null && pixelFlags.enabled()) {
+            String clientIp = extractClientIp(request);
+            pixelService.fireProductPageViewEvent(pid, product.title(), brUid2, refUrl, url,
+                    credentials, clientIp, ctx, pixelFlags);
+        }
+        if (enrichmentProvider != null) {
+            List<ProductSummary> enriched = enrichmentProvider.enrich(List.of(product));
+            if (enriched.isEmpty()) {
+                return Optional.empty();
+            }
+            product = enriched.get(0);
+        }
+        DiscoveryRequestCache.putFetchedProduct(request, pid, product);
+        return Optional.of(product);
     }
 
     // ── Autosuggest (real-time, no caching, no pixels) ────────────────────────

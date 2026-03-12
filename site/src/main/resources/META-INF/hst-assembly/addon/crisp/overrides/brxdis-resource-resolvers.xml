@@ -28,7 +28,7 @@
 
   <bean id="discoverySearchAPI"
         parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver"
+        class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
     <property name="configProvider" ref="brxmdis.configProvider"/>
@@ -37,7 +37,7 @@
 
   <bean id="discoveryPathwaysAPI"
         parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver"
+        class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
     <property name="configProvider" ref="brxmdis.configProvider"/>
@@ -46,7 +46,7 @@
 
   <bean id="discoveryAutosuggestAPI"
         parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver"
+        class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
     <property name="configProvider" ref="brxmdis.configProvider"/>

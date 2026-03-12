@@ -8,8 +8,8 @@ import org.bloomreach.forge.discovery.config.CachingDiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigJcrListener;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigReader;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigResolver;
-import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
+import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.onehippo.repository.jaxrs.CXFRepositoryJaxrsEndpoint;
 import org.onehippo.repository.jaxrs.RepositoryJaxrsEndpoint;
 import org.onehippo.repository.jaxrs.RepositoryJaxrsService;
@@ -17,7 +17,6 @@ import org.onehippo.repository.modules.DaemonModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.net.http.HttpClient;
@@ -39,22 +38,13 @@ public class DiscoveryPickerModule implements DaemonModule {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPickerModule.class);
 
     static final String ENDPOINT_ADDRESS = "/discovery/picker";
-    static final String SEARCH_CRISP_NODE =
-            "/hippo:configuration/hippo:modules/crispregistry/" +
-            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoverySearchAPI";
-    static final String PATHWAYS_CRISP_NODE =
-            "/hippo:configuration/hippo:modules/crispregistry/" +
-            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPathwaysAPI";
-    static final String AUTOSUGGEST_CRISP_NODE =
-            "/hippo:configuration/hippo:modules/crispregistry/" +
-            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryAutosuggestAPI";
-
     private static final String PIXEL_CRISP_NODE =
             "/hippo:configuration/hippo:modules/crispregistry/" +
             "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPixelAPI";
 
     private final Function<String, String> envLookup;
     private HttpClient httpClient;
+    private DiscoveryConfigProvider configProvider;
     private DiscoveryConfigJcrListener configListener;
 
     public DiscoveryPickerModule() {
@@ -69,7 +59,9 @@ public class DiscoveryPickerModule implements DaemonModule {
     @Override
     public void initialize(Session session) throws RepositoryException {
         DiscoveryConfigResolver configResolver = new DiscoveryConfigResolver(new DiscoveryConfigReader());
-        applyCrispBaseUriOverrides(session, configResolver.resolve(session));
+        if (applyPixelBaseUriOverride(session)) {
+            session.save();
+        }
 
         httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
@@ -77,9 +69,11 @@ public class DiscoveryPickerModule implements DaemonModule {
 
         Function<String, String> httpGateway = new DiscoveryHttpGateway(httpClient);
 
-        CachingDiscoveryConfigProvider configProvider =
+        CachingDiscoveryConfigProvider localConfigProvider =
                 new CachingDiscoveryConfigProvider(configResolver);
-        configListener = new DiscoveryConfigJcrListener(configProvider);
+        configProvider = localConfigProvider;
+        registerConfigProvider(configProvider);
+        configListener = new DiscoveryConfigJcrListener(localConfigProvider);
         configListener.start();
 
         DiscoveryPickerResource resource = new DiscoveryPickerResource(
@@ -93,41 +87,6 @@ public class DiscoveryPickerModule implements DaemonModule {
 
         RepositoryJaxrsService.addEndpoint(endpoint);
         log.info("brxm-discovery: registered picker endpoint at {}", ENDPOINT_ADDRESS);
-    }
-
-    void applyCrispBaseUriOverrides(Session session, DiscoveryConfig config) {
-        DiscoverySettings settings = config.settings();
-        boolean changed = false;
-        changed |= updateCrispBaseUri(session, SEARCH_CRISP_NODE, settings.baseUri(), "search");
-        changed |= updateCrispBaseUri(session, PATHWAYS_CRISP_NODE, settings.pathwaysBaseUri(), "pathways");
-        changed |= updateCrispBaseUri(session, AUTOSUGGEST_CRISP_NODE, settings.autosuggestBaseUri(), "autosuggest");
-        changed |= applyPixelBaseUriOverride(session);
-        if (changed) {
-            try {
-                session.save();
-            } catch (RepositoryException e) {
-                log.warn("brxm-discovery: failed to persist CRISP base URI overrides", e);
-            }
-        }
-    }
-
-    private boolean updateCrispBaseUri(Session session, String nodePath, String baseUri, String label) {
-        if (baseUri == null || baseUri.isBlank()) {
-            return false;
-        }
-        try {
-            if (!session.nodeExists(nodePath)) {
-                log.warn("brxm-discovery: {} CRISP node not found — base URI sync skipped", label);
-                return false;
-            }
-            Node node = session.getNode(nodePath);
-            node.setProperty("crisp:propvalues", new String[]{baseUri});
-            log.info("brxm-discovery: {} CRISP base URI set to {}", label, baseUri);
-            return true;
-        } catch (RepositoryException e) {
-            log.warn("brxm-discovery: failed to sync {} CRISP base URI", label, e);
-            return false;
-        }
     }
 
     boolean applyPixelBaseUriOverride(Session session) {
@@ -160,6 +119,18 @@ public class DiscoveryPickerModule implements DaemonModule {
             configListener.close();
             configListener = null;
         }
+        if (configProvider != null) {
+            unregisterConfigProvider(configProvider);
+            configProvider = null;
+        }
         log.info("brxm-discovery: unregistered picker endpoint");
+    }
+
+    void registerConfigProvider(DiscoveryConfigProvider provider) {
+        HippoServiceRegistry.registerService(provider, DiscoveryConfigProvider.class);
+    }
+
+    void unregisterConfigProvider(DiscoveryConfigProvider provider) {
+        HippoServiceRegistry.unregisterService(provider, DiscoveryConfigProvider.class);
     }
 }

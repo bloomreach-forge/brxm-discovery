@@ -10,15 +10,11 @@ definitions:
                xsi:schemaLocation="http://www.springframework.org/schema/beans
                                    http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
           <bean parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-                class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+                class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver">
             <property name="cacheEnabled" value="false"/>
-            <property name="baseUri" value="${crisp.discoverySearchAPI.baseUri}"/>
+            <property name="api" value="search"/>
           </bean>
         </beans>
-      crisp:propnames:
-        - crisp.discoverySearchAPI.baseUri
-      crisp:propvalues:
-        - 'https://core.dxpapi.com'
     /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPathwaysAPI:
       jcr:primaryType: crisp:resourceresolver
       crisp:sitescopes:
@@ -29,15 +25,11 @@ definitions:
                xsi:schemaLocation="http://www.springframework.org/schema/beans
                                    http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
           <bean parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-                class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+                class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver">
             <property name="cacheEnabled" value="false"/>
-            <property name="baseUri" value="${crisp.discoveryPathwaysAPI.baseUri}"/>
+            <property name="api" value="pathways"/>
           </bean>
         </beans>
-      crisp:propnames:
-        - crisp.discoveryPathwaysAPI.baseUri
-      crisp:propvalues:
-        - 'https://pathways.dxpapi.com'
     /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryAutosuggestAPI:
       jcr:primaryType: crisp:resourceresolver
       crisp:sitescopes:
@@ -48,15 +40,11 @@ definitions:
                xsi:schemaLocation="http://www.springframework.org/schema/beans
                                    http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
           <bean parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-                class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+                class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver">
             <property name="cacheEnabled" value="false"/>
-            <property name="baseUri" value="${crisp.discoveryAutosuggestAPI.baseUri}"/>
+            <property name="api" value="autosuggest"/>
           </bean>
         </beans>
-      crisp:propnames:
-        - crisp.discoveryAutosuggestAPI.baseUri
-      crisp:propvalues:
-        - 'https://suggest.dxpapi.com'
     /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPixelAPI:
       jcr:primaryType: crisp:resourceresolver
       crisp:sitescopes:
