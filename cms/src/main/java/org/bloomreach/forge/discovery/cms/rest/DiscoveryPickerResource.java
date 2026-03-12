@@ -22,6 +22,9 @@ import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.request.DiscoveryCoreRequestFactory;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestSpec;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
 import javax.jcr.Session;
@@ -29,7 +32,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.UUID;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -58,10 +60,9 @@ import java.util.function.Function;
 public class DiscoveryPickerResource {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String SEARCH_PATH = "/api/v1/core/";
     private static final String WIDGETS_PATH = "/api/v1/merchant/widgets";
-    private static final String DEFAULT_FIELDS = "pid,title,brand,price,sale_price,thumb_image,url,description";
     private static final int MAX_PAGE_SIZE = 100;
+    private static final DiscoveryCoreRequestFactory CORE_REQUEST_FACTORY = new DiscoveryCoreRequestFactory();
 
     // CXF injects a per-request proxy into this field even though the resource is a singleton.
     @Context
@@ -90,8 +91,8 @@ public class DiscoveryPickerResource {
         DiscoveryConfig config = resolveConfig();
         DiscoveryCredentials credentials = config.credentials();
         DiscoverySettings settings = config.settings();
-        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), Map.of(), null, null, null);
-        String url = buildSearchUrl(query, settings, credentials, requestUrl(), brUid2());
+        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), Map.of(), brUid2(), null, requestUrl());
+        String url = buildCoreUrl(settings, CORE_REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return parseSearchResponse(json, page, safePageSize);
     }
@@ -120,11 +121,10 @@ public class DiscoveryPickerResource {
 
         DiscoveryConfig config = resolveConfig();
         DiscoveryCredentials credentials = config.credentials();
-        DiscoverySettings settings = config.settings();
         // fq=pid:"id1"&fq=pid:"id2" — multiple values produce OR within same field
         SearchQuery query = new SearchQuery("*", 0, pidList.size(), null,
-                Map.of("pid", pidList), null, null, null);
-        String url = buildSearchUrl(query, settings, credentials, requestUrl(), brUid2());
+                Map.of("pid", pidList), brUid2(), null, requestUrl());
+        String url = buildCoreUrl(config.settings(), CORE_REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return parseSearchResponse(json, 0, pidList.size());
     }
@@ -152,63 +152,16 @@ public class DiscoveryPickerResource {
     @Path("/categories")
     public List<PickerCategoryDto> categories() {
         DiscoveryConfig config = resolveConfig();
-        String url = buildCategoryUrl(config.settings(), config.credentials(), requestUrl(), brUid2());
+        CategoryQuery query = new CategoryQuery("", 0, 0, null, Map.of(), brUid2(), null, requestUrl());
+        String url = buildCoreUrl(config.settings(), CORE_REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
         return parseCategoryMapResponse(json);
     }
 
-    private static String buildSearchUrl(SearchQuery query, DiscoverySettings settings,
-                                         DiscoveryCredentials credentials,
-                                         String requestUrl, String brUid2) {
-        UriBuilder ub = UriBuilder.fromUri(settings.baseUri())
-                .path(SEARCH_PATH)
-                .queryParam("account_id", credentials.accountId())
-                .queryParam("domain_key", credentials.domainKey());
-        if (credentials.apiKey() != null && !credentials.apiKey().isBlank()) {
-            ub.queryParam("auth_key", credentials.apiKey());
-        }
-        ub.queryParam("request_type", "search")
-          .queryParam("search_type", "keyword")
-          .queryParam("q", query.query() != null ? query.query() : "*")
-          .queryParam("fl", DEFAULT_FIELDS)
-          .queryParam("_br_uid_2", brUid2)
-          .queryParam("url", requestUrl)
-          .queryParam("start", (long) query.page() * query.pageSize())
-          .queryParam("rows", query.pageSize());
-        if (query.sort() != null && !query.sort().isBlank()) {
-            ub.queryParam("sort", query.sort());
-        }
-        if (query.filters() != null) {
-            for (Map.Entry<String, List<String>> entry : query.filters().entrySet()) {
-                for (String value : entry.getValue()) {
-                    ub.queryParam("fq", entry.getKey() + ":\"" + value + "\"");
-                }
-            }
-        }
-        return ub.build().toString();
-    }
-
-    private static String buildCategoryUrl(DiscoverySettings settings,
-                                           DiscoveryCredentials credentials,
-                                           String requestUrl, String brUid2) {
-        UriBuilder ub = UriBuilder.fromUri(settings.baseUri())
-                .path(SEARCH_PATH)
-                .queryParam("account_id", credentials.accountId())
-                .queryParam("domain_key", credentials.domainKey());
-        if (credentials.apiKey() != null && !credentials.apiKey().isBlank()) {
-            ub.queryParam("auth_key", credentials.apiKey());
-        }
-        // q="" (empty) means root/all categories for search_type=category.
-        // rows=0 so only category_map is returned (no product docs needed for the picker).
-        return ub.queryParam("request_type", "search")
-                 .queryParam("search_type", "category")
-                 .queryParam("q", "")
-                 .queryParam("fl", DEFAULT_FIELDS)
-                 .queryParam("_br_uid_2", brUid2)
-                 .queryParam("url", requestUrl)
-                 .queryParam("start", 0)
-                 .queryParam("rows", 0)
-                 .build().toString();
+    private static String buildCoreUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {
+        UriBuilder builder = UriBuilder.fromUri(settings.baseUri()).path(request.path());
+        request.forEachQueryParameter((name, value) -> builder.queryParam(name, value));
+        return builder.build().toString();
     }
 
     /** Per-request UID derived from the CMS base URL; falls back to localhost when not in a live request (tests). */
@@ -218,7 +171,7 @@ public class DiscoveryPickerResource {
 
     /** Generates a fresh UUID-based tracking value per request. */
     private static String brUid2() {
-        return "uid=" + UUID.randomUUID();
+        return "uid=" + java.util.UUID.randomUUID();
     }
 
     private DiscoveryConfig resolveConfig() {

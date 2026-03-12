@@ -6,8 +6,8 @@
   Beans here are accessible via:
       HstServices.getComponentManager().getComponent(ClassName.class.getName())
 
-  The CRISP ResourceServiceBroker is NOT referenced here — DiscoveryClientImpl obtains it
-  at request time via HippoServiceRegistry to avoid cross addon-context dependency issues.
+  The Discovery client remains constructor-injected, but the CRISP broker is resolved through
+  a local factory bean because the addon broker lives in the HST runtime component manager.
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -26,9 +26,19 @@
         </constructor-arg>
     </bean>
 
+    <bean id="brxmdis.resourceServiceBrokerFactory"
+          class="org.bloomreach.forge.discovery.site.service.discovery.CrispResourceServiceBrokerFactory"
+          lazy-init="true"/>
+
+    <bean id="brxmdis.resourceServiceBroker"
+          factory-bean="brxmdis.resourceServiceBrokerFactory"
+          factory-method="getObject"
+          lazy-init="true"/>
+
     <bean id="brxmdis.discoveryClient"
           class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl"
           lazy-init="true">
+        <constructor-arg ref="brxmdis.resourceServiceBroker"/>
         <constructor-arg ref="brxmdis.responseMapper"/>
     </bean>
 

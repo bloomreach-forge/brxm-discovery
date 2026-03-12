@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
@@ -42,7 +43,14 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     protected <T> T lookupService(Class<T> type) {
-        return type.cast(HstServices.getComponentManager().getComponent(type.getName()));
+        if (!HstServices.isAvailable() || HstServices.getComponentManager() == null) {
+            throw new ConfigurationException("HST component manager is not available while resolving service: " + type.getName());
+        }
+        Object component = HstServices.getComponentManager().getComponent(type.getName());
+        if (component == null) {
+            throw new ConfigurationException("Required HST service is not available: " + type.getName());
+        }
+        return type.cast(component);
     }
 
     /**

@@ -1,10 +1,11 @@
 package org.bloomreach.forge.discovery.site.service.discovery;
 
-import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.exception.RecommendationException;
 import org.bloomreach.forge.discovery.exception.SearchException;
 import org.bloomreach.forge.discovery.config.ConfigDefaults;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.request.DiscoveryCoreRequestFactory;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestSpec;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
@@ -20,7 +21,6 @@ import org.onehippo.cms7.crisp.api.exchange.ExchangeHint;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHintBuilder;
 import org.onehippo.cms7.crisp.api.resource.Resource;
 import org.onehippo.cms7.crisp.api.resource.ResourceException;
-import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -28,7 +28,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,8 +46,6 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryClientImpl.class);
 
     private static final String AUTOSUGGEST_PATH = "/api/v2/suggest/";
-    private static final String SEARCH_PATH = "/api/v1/core/";
-    private static final String CATEGORY_PATH = "/api/v1/core/";
     private static final String RECS_PATH = "/api/v2/widgets";
     private static final String PIXEL_PATH = "/pix.gif";
     private static final String DEFAULT_FIELDS = "pid,title,brand,price,sale_price,thumb_image,url,description";
@@ -89,18 +86,17 @@ public class DiscoveryClientImpl implements DiscoveryClient {
 
     private final ResourceServiceBroker broker;
     private final DiscoveryResponseMapper responseMapper;
+    private final DiscoveryCoreRequestFactory coreRequestFactory;
 
-    public DiscoveryClientImpl(DiscoveryResponseMapper responseMapper) {
-        this.broker = null; // resolved lazily via HippoServiceRegistry in getBroker()
-        this.responseMapper = responseMapper;
+    public DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper) {
+        this(broker, responseMapper, new DiscoveryCoreRequestFactory());
     }
 
-    /**
-     * Used by tests — broker injected directly.
-     */
-    public DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper) {
+    DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper,
+                        DiscoveryCoreRequestFactory coreRequestFactory) {
         this.broker = broker;
         this.responseMapper = responseMapper;
+        this.coreRequestFactory = coreRequestFactory;
     }
 
     @Override
@@ -108,7 +104,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         String path = buildAutosuggestPath(query, credentials);
         log.debug("Discovery autosuggest [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(credentials) ? AUTOSUGGEST_RESOURCE_SPACE_STAGING : AUTOSUGGEST_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = broker.resolve(isStaging(credentials) ? AUTOSUGGEST_RESOURCE_SPACE_STAGING : AUTOSUGGEST_RESOURCE_SPACE, path, buildHint(ctx));
             AutosuggestResult result = responseMapper.toAutosuggestResult(resource);
             log.debug("Discovery autosuggest returned {} query suggestions [request_id={}]",
                     result.querySuggestions().size(), requestId(path));
@@ -125,7 +121,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         String path = buildSearchPath(query, credentials);
         log.debug("Discovery search [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = broker.resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery search returned {} results [request_id={}]",
                     response.result().total(), requestId(path));
@@ -142,7 +138,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         String path = buildCategoryPath(query, credentials);
         log.debug("Discovery category browse [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = broker.resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery category returned {} results [request_id={}]",
                     response.result().total(), requestId(path));
@@ -170,7 +166,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         String path = buildFetchProductPath(pid, url, credentials);
         log.debug("Discovery fetchProduct [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = broker.resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResult result = responseMapper.toSearchResult(resource, 0, 1);
             log.debug("Discovery fetchProduct pid='{}' found={} [request_id={}]",
                     pid, !result.products().isEmpty(), requestId(path));
@@ -186,7 +182,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         String path = buildRecommendationPath(query, credentials);
         log.debug("Discovery recommendations v1 [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = broker.resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v1 returned {} products [request_id={}]",
                     result.products().size(), requestId(path));
@@ -202,7 +198,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         String path = buildRecommendationV2Path(query, credentials);
         log.debug("Discovery recommendations v2 (Pathways) [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(credentials) ? PATHWAYS_RESOURCE_SPACE_STAGING : PATHWAYS_RESOURCE_SPACE, path, buildV2Hint(credentials, ctx));
+            Resource resource = broker.resolve(isStaging(credentials) ? PATHWAYS_RESOURCE_SPACE_STAGING : PATHWAYS_RESOURCE_SPACE, path, buildV2Hint(credentials, ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v2 returned {} products [request_id={}]",
                     result.products().size(), requestId(path));
@@ -216,19 +212,6 @@ public class DiscoveryClientImpl implements DiscoveryClient {
 
     private static boolean isStaging(DiscoveryCredentials credentials) {
         return ConfigDefaults.STAGING_ENVIRONMENT.equalsIgnoreCase(credentials.environment());
-    }
-
-    private ResourceServiceBroker getBroker() {
-        if (broker != null) return broker;
-        ResourceServiceBroker b = HippoServiceRegistry.getService(ResourceServiceBroker.class);
-        if (b == null) {
-            throw new ConfigurationException(
-                "CRISP ResourceServiceBroker not found in HippoServiceRegistry. " +
-                "Ensure crisp.broker.registerService=true is set in the site webapp " +
-                "WEB-INF/hst-config.properties (Cargo/dev) or CMS webapp hst-config.properties " +
-                "(shared-module production deployment).");
-        }
-        return b;
     }
 
     /**
@@ -273,24 +256,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     private String buildSearchPath(SearchQuery query, DiscoveryCredentials credentials) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(SEARCH_PATH);
-        appendCommonParams(builder, credentials);
-        builder.queryParam("request_type", REQUEST_TYPE_SEARCH)
-               .queryParam("search_type", REQUEST_TYPE_KEYWORD)
-               .queryParam("q", query.query() != null ? query.query() : "*")
-               .queryParam("request_id", UUID.randomUUID())
-               .queryParam("fl", DEFAULT_FIELDS);
-        if (query.catalogName() != null && !query.catalogName().isBlank()) {
-            builder.queryParam("catalog_name", query.catalogName());
-        }
-        appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
-        appendPagination(builder, query.page(), query.pageSize());
-        appendSort(builder, query.sort());
-        appendFilters(builder, query.filters());
-        appendStatsFields(builder, query.statsFields());
-        appendSegment(builder, query.segment());
-        appendEfq(builder, query.efq());
-        return builder.build(false).toUriString();
+        return toRelativePath(coreRequestFactory.search(query, credentials));
     }
 
     private String buildAutosuggestPath(AutosuggestQuery query, DiscoveryCredentials credentials) {
@@ -307,21 +273,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     private String buildCategoryPath(CategoryQuery query, DiscoveryCredentials credentials) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(CATEGORY_PATH);
-        appendCommonParams(builder, credentials);
-        builder.queryParam("request_type", REQUEST_TYPE_SEARCH)
-               .queryParam("search_type", REQUEST_TYPE_CATEGORY)
-               .queryParam("q", query.categoryId() != null ? query.categoryId() : "")
-               .queryParam("request_id", UUID.randomUUID())
-               .queryParam("fl", DEFAULT_FIELDS);
-        appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
-        appendPagination(builder, query.page(), query.pageSize());
-        appendSort(builder, query.sort());
-        appendFilters(builder, query.filters());
-        appendStatsFields(builder, query.statsFields());
-        appendSegment(builder, query.segment());
-        appendEfq(builder, query.efq());
-        return builder.build(false).toUriString();
+        return toRelativePath(coreRequestFactory.category(query, credentials));
     }
 
     /**
@@ -479,7 +431,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     public void firePixelEvent(String pixelPath, ClientContext ctx, PixelFlags flags) {
         log.debug("Discovery pixel event: {}", pixelPath);
         try {
-            getBroker().resolve(pixelResourceSpace(flags), pixelPath, buildHint(ctx));
+            broker.resolve(pixelResourceSpace(flags), pixelPath, buildHint(ctx));
         } catch (ResourceException e) {
             if (e.getMessage() != null && e.getMessage().startsWith("JSON processing error")) {
                 // CRISP tries to parse the image/gif response as JSON — HTTP 200 was received, pixel fired OK
@@ -552,64 +504,13 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private static void appendPagination(UriComponentsBuilder builder, int page, int pageSize) {
-        builder.queryParam("start", (long) page * pageSize)
-               .queryParam("rows", pageSize);
-    }
-
-    private static void appendSort(UriComponentsBuilder builder, String sort) {
-        if (sort != null && !sort.isBlank()) {
-            builder.queryParam("sort", sort);
-        }
-    }
-
-    private static void appendStatsFields(UriComponentsBuilder builder, List<String> statsFields) {
-        if (statsFields == null) return;
-        for (String field : statsFields) {
-            if (field != null && !field.isBlank()) {
-                builder.queryParam("stats.field", field);
-            }
-        }
-    }
-
-    private static void appendSegment(UriComponentsBuilder builder, String segment) {
-        if (segment != null && !segment.isBlank()) {
-            builder.queryParam("segment", segment);
-        }
-    }
-
-    private static void appendEfq(UriComponentsBuilder builder, String efq) {
-        if (efq != null && !efq.isBlank()) {
-            builder.queryParam("efq", efq);
-        }
-    }
-
-    private static void appendFilters(UriComponentsBuilder builder, Map<String, List<String>> filters) {
-        if (filters == null) {
-            return;
-        }
-        for (Map.Entry<String, List<String>> entry : filters.entrySet()) {
-            for (String value : entry.getValue()) {
-                builder.queryParam("fq", entry.getKey() + ":\"" + value + "\"");
-            }
-        }
-    }
-
     private String buildFetchProductPath(String pid, String url, DiscoveryCredentials credentials) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(SEARCH_PATH);
-        appendCommonParams(builder, credentials);
-        builder.queryParam("search_type", REQUEST_TYPE_KEYWORD)
-               .queryParam("request_type", REQUEST_TYPE_SEARCH)
-               .queryParam("request_id", UUID.randomUUID())
-               .queryParam("q", "*");
-        if (pid != null && !pid.isBlank()) {
-            builder.queryParam("efq", "pid:(" + pid + ")");
-        }
-        if (url != null && !url.isBlank()) {
-            builder.queryParam("url", url);
-        }
-        builder.queryParam("fl", DEFAULT_FIELDS)
-               .queryParam("rows", 1);
+        return toRelativePath(coreRequestFactory.productLookup(pid, url, credentials));
+    }
+
+    private static String toRelativePath(DiscoveryRequestSpec request) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(request.path());
+        request.forEachQueryParameter((name, value) -> builder.queryParam(name, value));
         return builder.build(false).toUriString();
     }
 

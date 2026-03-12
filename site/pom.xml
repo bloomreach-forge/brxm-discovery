@@ -47,6 +47,16 @@
             <groupId>org.onehippo.cms7</groupId>
             <artifactId>hippo-repository-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-cms7-commons</artifactId>
+            <version>${hippo.release.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-services</artifactId>
+        </dependency>
 
         <!-- JCR -->
         <dependency>
@@ -62,12 +72,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-        </dependency>
-
-        <!-- Hippo Services (HippoServiceRegistry — needed for CRISP broker lookup) -->
-        <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-services</artifactId>
         </dependency>
 
         <!-- Spring Web (UriComponentsBuilder for query-param assembly in DiscoveryClientImpl) -->
@@ -88,6 +92,7 @@
         <dependency>
             <groupId>org.onehippo.cms7</groupId>
             <artifactId>hippo-addon-crisp-mock</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- Test -->
