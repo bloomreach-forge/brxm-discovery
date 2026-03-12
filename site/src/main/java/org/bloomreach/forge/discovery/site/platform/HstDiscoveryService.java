@@ -4,8 +4,6 @@ import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
-import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
-import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
@@ -21,19 +19,12 @@ import org.bloomreach.forge.discovery.search.model.SearchQuery;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.service.discovery.sor.SoREnrichmentProvider;
-import org.hippoecm.hst.configuration.hosting.Mount;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
-import jakarta.servlet.http.Cookie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.bloomreach.forge.discovery.request.DiscoveryRequestFactory.toV2WidgetType;
@@ -54,18 +45,18 @@ public class HstDiscoveryService {
     public static final String BR_UID_2 = "_br_uid_2";
 
     private final DiscoveryClient client;
-    private final DiscoveryConfigProvider configProvider;
     private final DiscoveryPixelService pixelService;
     private final SoREnrichmentProvider enrichmentProvider;
+    private final DiscoveryRuntimeContextFactory runtimeContextFactory;
 
     public HstDiscoveryService(DiscoveryClient client,
                                DiscoveryConfigProvider configProvider,
                                DiscoveryPixelService pixelService,
                                SoREnrichmentProvider enrichmentProvider) {
         this.client = client;
-        this.configProvider = configProvider;
         this.pixelService = pixelService;
         this.enrichmentProvider = enrichmentProvider;
+        this.runtimeContextFactory = new DiscoveryRuntimeContextFactory(configProvider);
     }
 
     // ── Request-based API (used by HST components) ─────────────────────────────
@@ -96,15 +87,10 @@ public class HstDiscoveryService {
     public SearchResponse search(HstRequest request, int componentPageSize, String componentSort,
                                  String catalogName, String label, List<String> statsFields,
                                  String componentSegment, String efq) {
-        DiscoveryConfig config = configFor(request.getRequestContext());
-        DiscoveryCredentials credentials = config.credentials();
-        DiscoverySettings settings = config.settings();
-        String brUid2 = cookieValue(request, BR_UID_2);
-        String url = pageUrl(request);
-        String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
+        DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         SearchQuery baseQuery = QueryParamParser.toSearchQuery(
-                paramProvider(request), settings, componentPageSize, componentSort, catalogName,
-                brUid2, refUrl, url);
+                runtimeContext.paramProvider(), runtimeContext.settings(), componentPageSize, componentSort, catalogName,
+                runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
         SearchQuery query = statsFields != null && !statsFields.isEmpty()
                 ? baseQuery.withStatsFields(statsFields) : baseQuery;
         if (query.segment() == null && componentSegment != null && !componentSegment.isBlank()) {
@@ -114,16 +100,14 @@ public class HstDiscoveryService {
             query = query.withEfq(efq);
         }
         final SearchQuery finalQuery = query;
-        ClientContext ctx = clientContext(request);
-        PixelFlags pixelFlags = resolvePixelFlags(request);
         return DiscoveryRequestCache.getSearchResponse(request, label)
                 .orElseGet(() -> {
-                    SearchResponse fresh = client.search(finalQuery, credentials, ctx);
+                    SearchResponse fresh = client.search(finalQuery, runtimeContext.credentials(), runtimeContext.clientContext());
                     fresh = applyEnrichment(fresh);
                     DiscoveryRequestCache.putSearchResponse(request, label, fresh);
-                    if (pixelService != null && pixelFlags.enabled()) {
-                        String clientIp = extractClientIp(request);
-                        pixelService.fireSearchEvent(finalQuery, fresh.result(), credentials, clientIp, ctx, pixelFlags);
+                    if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+                        pixelService.fireSearchEvent(finalQuery, fresh.result(), runtimeContext.credentials(),
+                                runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
                     }
                     return fresh;
                 });
@@ -153,15 +137,10 @@ public class HstDiscoveryService {
                                  int componentPageSize, String componentSort,
                                  String label, List<String> statsFields,
                                  String componentSegment, String efq) {
-        DiscoveryConfig config = configFor(request.getRequestContext());
-        DiscoveryCredentials credentials = config.credentials();
-        DiscoverySettings settings = config.settings();
-        String brUid2 = cookieValue(request, BR_UID_2);
-        String url = pageUrl(request);
-        String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
+        DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         CategoryQuery baseQuery = QueryParamParser.toCategoryQuery(
-                categoryId, paramProvider(request), settings, componentPageSize, componentSort,
-                brUid2, refUrl, url);
+                categoryId, runtimeContext.paramProvider(), runtimeContext.settings(), componentPageSize, componentSort,
+                runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
         CategoryQuery query = statsFields != null && !statsFields.isEmpty()
                 ? baseQuery.withStatsFields(statsFields) : baseQuery;
         if (query.segment() == null && componentSegment != null && !componentSegment.isBlank()) {
@@ -171,16 +150,14 @@ public class HstDiscoveryService {
             query = query.withEfq(efq);
         }
         final CategoryQuery finalQuery = query;
-        ClientContext ctx = clientContext(request);
-        PixelFlags pixelFlags = resolvePixelFlags(request);
         return DiscoveryRequestCache.getCategoryResponse(request, label)
                 .orElseGet(() -> {
-                    SearchResponse fresh = client.category(finalQuery, credentials, ctx);
+                    SearchResponse fresh = client.category(finalQuery, runtimeContext.credentials(), runtimeContext.clientContext());
                     fresh = applyEnrichment(fresh);
                     DiscoveryRequestCache.putCategoryResponse(request, label, fresh);
-                    if (pixelService != null && pixelFlags.enabled()) {
-                        String clientIp = extractClientIp(request);
-                        pixelService.fireCategoryEvent(finalQuery, fresh.result(), credentials, clientIp, ctx, pixelFlags);
+                    if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+                        pixelService.fireCategoryEvent(finalQuery, fresh.result(), runtimeContext.credentials(),
+                                runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
                     }
                     return fresh;
                 });
@@ -199,33 +176,27 @@ public class HstDiscoveryService {
                                            String contextProductId, String contextPageType,
                                            int limit, String fields, String filter,
                                            String label) {
-        DiscoveryConfig config = configFor(request.getRequestContext());
-        DiscoveryCredentials credentials = config.credentials();
+        DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         String effectiveWidgetId = widgetId != null ? widgetId : "";
 
         if (widgetType != null && "item".equals(toV2WidgetType(widgetType))
                 && (contextProductId == null || contextProductId.isBlank())) {
             log.warn("Skipping item widget '{}' (type='{}'): item_ids not resolved.",
-                     effectiveWidgetId, widgetType);
+                    effectiveWidgetId, widgetType);
             return RecommendationResult.of(List.of());
         }
 
-        String url = pageUrl(request);
-        String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
-        String brUid2 = cookieValue(request, BR_UID_2);
         RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, contextPageType,
-                limit, fields, filter, url, refUrl, brUid2);
-        ClientContext ctx = clientContext(request);
-        PixelFlags pixelFlags = resolvePixelFlags(request);
+                limit, fields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(), runtimeContext.brUid2());
         return DiscoveryRequestCache.getRecommendations(request, label, effectiveWidgetId)
                 .orElseGet(() -> {
-                    RecommendationResult fresh = client.recommend(query, credentials, ctx);
+                    RecommendationResult fresh = client.recommend(query, runtimeContext.credentials(), runtimeContext.clientContext());
                     List<ProductSummary> enriched = applyEnrichment(fresh.products());
                     RecommendationResult result = new RecommendationResult(fresh.widgetResultId(), enriched);
                     DiscoveryRequestCache.putRecommendations(request, label, effectiveWidgetId, result);
-                    if (pixelService != null && pixelFlags.enabled()) {
-                        String clientIp = extractClientIp(request);
-                        pixelService.fireWidgetEvent(query, result, credentials, clientIp, ctx, pixelFlags);
+                    if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+                        pixelService.fireWidgetEvent(query, result, runtimeContext.credentials(),
+                                runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
                     }
                     return result;
                 });
@@ -240,23 +211,18 @@ public class HstDiscoveryService {
             return cached;
         }
 
-        DiscoveryConfig config = configFor(request.getRequestContext());
-        DiscoveryCredentials credentials = config.credentials();
-        String url = pageUrl(request);
-        String brUid2 = cookieValue(request, BR_UID_2);
-        String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
-        ClientContext ctx = clientContext(request);
-        PixelFlags pixelFlags = resolvePixelFlags(request);
-        Optional<ProductSummary> result = client.fetchProduct(pid, url, credentials, ctx);
+        DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
+        Optional<ProductSummary> result = client.fetchProduct(pid, runtimeContext.pageUrl(),
+                runtimeContext.credentials(), runtimeContext.clientContext());
         if (result.isEmpty()) {
             return Optional.empty();
         }
 
         ProductSummary product = result.get();
-        if (pixelService != null && pixelFlags.enabled()) {
-            String clientIp = extractClientIp(request);
-            pixelService.fireProductPageViewEvent(pid, product.title(), brUid2, refUrl, url,
-                    credentials, clientIp, ctx, pixelFlags);
+        if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+            pixelService.fireProductPageViewEvent(pid, product.title(), runtimeContext.brUid2(),
+                    runtimeContext.refUrl(), runtimeContext.pageUrl(), runtimeContext.credentials(),
+                    runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         if (enrichmentProvider != null) {
             List<ProductSummary> enriched = enrichmentProvider.enrich(List.of(product));
@@ -272,30 +238,26 @@ public class HstDiscoveryService {
     // ── Autosuggest (real-time, no caching, no pixels) ────────────────────────
 
     public AutosuggestResult autosuggest(HstRequest request, String query, int limit) {
-        DiscoveryConfig config = configFor(request.getRequestContext());
-        DiscoveryCredentials credentials = config.credentials();
-        String brUid2 = cookieValue(request, BR_UID_2);
-        String url = pageUrl(request);
-        String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
+        DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         AutosuggestQuery suggestQuery = new AutosuggestQuery(query, limit, null,
-                brUid2, refUrl, url);
-        return client.autosuggest(suggestQuery, credentials, clientContext(request));
+                runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
+        return client.autosuggest(suggestQuery, runtimeContext.credentials(), runtimeContext.clientContext());
     }
 
     // ── Programmatic API (pre-built queries, no HST request param parsing) ──────
 
     public SearchResponse search(HstRequestContext ctx, SearchQuery query) {
-        DiscoveryConfig config = configFor(ctx);
+        DiscoveryConfig config = runtimeContextFactory.configFor(ctx);
         return client.search(query, config.credentials(), ClientContext.EMPTY);
     }
 
     public SearchResponse browse(HstRequestContext ctx, CategoryQuery query) {
-        DiscoveryConfig config = configFor(ctx);
+        DiscoveryConfig config = runtimeContextFactory.configFor(ctx);
         return client.category(query, config.credentials(), ClientContext.EMPTY);
     }
 
     public RecommendationResult recommend(HstRequestContext ctx, RecQuery query) {
-        DiscoveryConfig config = configFor(ctx);
+        DiscoveryConfig config = runtimeContextFactory.configFor(ctx);
         return client.recommend(query, config.credentials(), ClientContext.EMPTY);
     }
 
@@ -316,121 +278,7 @@ public class HstDiscoveryService {
         return enrichmentProvider.enrich(products);
     }
 
-    /**
-     * Resolves pixel control flags for the current request.
-     * <ul>
-     *   <li>Env kill switch ({@code brxdis.pixel.envEnabled=false}) disables all pixels globally.</li>
-     *   <li>{@link DiscoveryChannelInfo} typed accessors drive per-channel flags.</li>
-     *   <li>If no channel info is configured, falls back to env/system property defaults.</li>
-     * </ul>
-     */
-    private static PixelFlags resolvePixelFlags(HstRequest request) {
-        if (!PixelFlags.envEnabled()) return PixelFlags.DISABLED;
-        Mount mount = request.getRequestContext().getResolvedMount().getMount();
-        DiscoveryChannelInfo channelInfo = mount.getChannelInfo();
-        String region = resolvePixelRegion(channelInfo);
-        if (channelInfo == null) {
-            return new PixelFlags(true, PixelFlags.envTestData(), PixelFlags.envDebug(), region);
-        }
-        if (!channelInfo.getDiscoveryPixelsEnabled()) return PixelFlags.DISABLED;
-        return new PixelFlags(true, channelInfo.getDiscoveryPixelTestData(), channelInfo.getDiscoveryPixelDebug(), region);
-    }
-
-    /**
-     * Resolves the pixel endpoint region.
-     * Precedence: system property {@code brxdis.pixel.region} → Channel Manager → "US".
-     */
     static String resolvePixelRegion(DiscoveryChannelInfo channelInfo) {
-        String sysProp = System.getProperty("brxdis.pixel.region");
-        if (sysProp != null && !sysProp.isBlank()) return sysProp.toUpperCase();
-        if (channelInfo != null) {
-            String channelRegion = channelInfo.getPixelRegion();
-            if (channelRegion != null && !channelRegion.isBlank()) return channelRegion.toUpperCase();
-        }
-        return "US";
-    }
-
-    private DiscoveryConfig configFor(HstRequestContext ctx) {
-        Session requestSession = null;
-        try {
-            requestSession = ctx.getSession();
-        } catch (RepositoryException e) {
-            log.debug("[configFor] Cannot acquire request JCR session: {}", e.getMessage());
-        }
-        DiscoveryConfig config = configProvider.get(requestSession);
-        DiscoveryCredentials credentials = config.credentials();
-        if (log.isDebugEnabled()) {
-            log.debug("[configFor] accountId='{}' domainKey='{}' apiKey={} authKey={}",
-                    credentials.accountId(), credentials.domainKey(),
-                    maskSecret(credentials.apiKey()), maskSecret(credentials.authKey()));
-        }
-        validateCredentials(credentials);
-        return config;
-    }
-
-    private static String maskSecret(String s) {
-        return s == null ? "null" : (s.isBlank() ? "blank" : "set");
-    }
-
-    private static void validateCredentials(DiscoveryCredentials credentials) {
-        if (isBlank(credentials.accountId())) throw new ConfigurationException(
-                "Discovery accountId is required — set BRXDIS_ACCOUNT_ID env var, -Dbrxdis.accountId, or brxdis:accountId JCR property");
-        if (isBlank(credentials.domainKey())) throw new ConfigurationException(
-                "Discovery domainKey is required — set BRXDIS_DOMAIN_KEY env var, -Dbrxdis.domainKey, or brxdis:domainKey JCR property");
-        if (isBlank(credentials.apiKey())) throw new ConfigurationException(
-                "Discovery apiKey is required — set brxdis:apiKey in the config node, BRXDIS_API_KEY env var, or -Dbrxdis.apiKey");
-    }
-
-    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
-
-    private static ClientContext clientContext(HstRequest request) {
-        return new ClientContext(
-                request.getHeader("User-Agent"),
-                request.getHeader("Accept-Language"),
-                request.getHeader("X-Forwarded-For")
-        );
-    }
-
-    private static String extractClientIp(HstRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
-        String remoteAddr = request.getRemoteAddr();
-        return remoteAddr != null ? remoteAddr : "";
-    }
-
-    private static QueryParamParser.RequestParamProvider paramProvider(HstRequest request) {
-        jakarta.servlet.http.HttpServletRequest servletRequest =
-                request.getRequestContext().getServletRequest();
-        return new QueryParamParser.RequestParamProvider() {
-            @Override public String getParameter(String name) { return servletRequest.getParameter(name); }
-            @Override public Map<String, String[]> getParameterMap() { return servletRequest.getParameterMap(); }
-        };
-    }
-
-    private static String cookieValue(HstRequest request, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) return null;
-        for (Cookie cookie : cookies) {
-            if (name.equals(cookie.getName())) return cookie.getValue();
-        }
-        return null;
-    }
-
-    private static String pageUrl(HstRequest request) {
-        UriComponentsBuilder urlBuilder = UriComponentsBuilder.newInstance()
-                .scheme(request.getScheme())
-                .host(request.getServerName())
-                .replacePath(request.getRequestURI());
-        int port = request.getServerPort();
-        if (port != 80 && port != 443) {
-            urlBuilder.port(port);
-        }
-        String query = request.getQueryString();
-        if (query != null && !query.isBlank()) {
-            urlBuilder.query(query);
-        }
-        return urlBuilder.build(false).toUriString();
+        return DiscoveryRuntimeContextFactory.resolvePixelRegion(channelInfo);
     }
 }

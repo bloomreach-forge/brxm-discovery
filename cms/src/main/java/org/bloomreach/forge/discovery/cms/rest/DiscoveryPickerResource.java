@@ -1,7 +1,5 @@
 package org.bloomreach.forge.discovery.cms.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
@@ -28,8 +26,6 @@ import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
 import javax.jcr.Session;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +53,6 @@ import java.util.function.Function;
 @Produces(MediaType.APPLICATION_JSON)
 public class DiscoveryPickerResource {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_PAGE_SIZE = 100;
     private static final DiscoveryRequestFactory REQUEST_FACTORY = new DiscoveryRequestFactory();
 
@@ -67,14 +62,22 @@ public class DiscoveryPickerResource {
 
     private final Session moduleSession;
     private final DiscoveryConfigProvider configProvider;
+    private final DiscoveryPickerResponseMapper responseMapper;
     // Extracted as a Function to allow injection of a test double
     final Function<String, String> httpGateway;
 
     public DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
                                    Function<String, String> httpGateway) {
+        this(moduleSession, configProvider, httpGateway, new DiscoveryPickerResponseMapper());
+    }
+
+    DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
+                            Function<String, String> httpGateway,
+                            DiscoveryPickerResponseMapper responseMapper) {
         this.moduleSession = moduleSession;
         this.configProvider = configProvider;
         this.httpGateway = httpGateway;
+        this.responseMapper = responseMapper;
     }
 
     @GET
@@ -91,7 +94,7 @@ public class DiscoveryPickerResource {
         SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), Map.of(), brUid2(), null, requestUrl());
         String url = buildAbsoluteUrl(settings, REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
-        return parseSearchResponse(json, page, safePageSize);
+        return responseMapper.toSearchResponse(json, page, safePageSize);
     }
 
     /**
@@ -123,7 +126,7 @@ public class DiscoveryPickerResource {
                 Map.of("pid", pidList), brUid2(), null, requestUrl());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
-        return parseSearchResponse(json, 0, pidList.size());
+        return responseMapper.toSearchResponse(json, 0, pidList.size());
     }
 
     /**
@@ -136,7 +139,7 @@ public class DiscoveryPickerResource {
         DiscoveryConfig config = resolveConfig();
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.merchantWidgets(config.credentials()));
         String json = httpGateway.apply(url);
-        return parseWidgetsResponse(json);
+        return responseMapper.toWidgets(json);
     }
 
     /**
@@ -152,7 +155,7 @@ public class DiscoveryPickerResource {
         CategoryQuery query = new CategoryQuery("", 0, 0, null, Map.of(), brUid2(), null, requestUrl());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
-        return parseCategoryMapResponse(json);
+        return responseMapper.toCategories(json);
     }
 
     private static String buildAbsoluteUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {
@@ -202,63 +205,4 @@ public class DiscoveryPickerResource {
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
-
-    private static PickerSearchResponseDto parseSearchResponse(String json, int page, int pageSize) {
-        try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode response = root.path("response");
-            long total = response.path("numFound").asLong(0);
-            List<PickerItemDto> items = new ArrayList<>();
-            for (JsonNode doc : response.path("docs")) {
-                String price = doc.path("price").isNumber()
-                        ? doc.path("price").asText()
-                        : null;
-                items.add(new PickerItemDto(
-                        doc.path("pid").asText(null),
-                        doc.path("title").asText(null),
-                        doc.path("thumb_image").asText(null),
-                        doc.path("url").asText(null),
-                        price));
-            }
-            return new PickerSearchResponseDto(items, total, page, pageSize);
-        } catch (IOException e) {
-            throw new InternalServerErrorException("Failed to parse Discovery API response", e);
-        }
-    }
-
-    private static List<PickerWidgetDto> parseWidgetsResponse(String json) {
-        try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode widgets = root.path("response").path("widgets");
-            List<PickerWidgetDto> result = new ArrayList<>();
-            for (JsonNode w : widgets) {
-                result.add(new PickerWidgetDto(
-                        w.path("id").asText(null),
-                        w.path("name").asText(null),
-                        w.path("type").asText(null),
-                        w.path("enabled").asBoolean(false),
-                        w.path("description").asText(null)));
-            }
-            return result;
-        } catch (IOException e) {
-            return List.of();
-        }
-    }
-
-    private static List<PickerCategoryDto> parseCategoryMapResponse(String json) {
-        try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode categoryMap = root.path("category_map");
-            List<PickerCategoryDto> result = new ArrayList<>();
-            categoryMap.fields().forEachRemaining(entry -> {
-                String id   = entry.getKey();
-                String name = entry.getValue().asText(id);
-                result.add(new PickerCategoryDto(id, name));
-            });
-            return result;
-        } catch (IOException e) {
-            throw new InternalServerErrorException("Failed to parse category_map response", e);
-        }
-    }
-
 }

@@ -548,6 +548,18 @@ class HstDiscoveryServiceTest {
         verify(client, times(2)).autosuggest(any(), any(), any());
     }
 
+    @Test
+    void requestScopedRuntimeContext_reusesResolvedConfigAcrossOperations() {
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.autosuggest(any(AutosuggestQuery.class), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(new AutosuggestResult("shi", List.of(), List.of(), List.of()));
+
+        service.search(request);
+        service.autosuggest(request, "shi", 8);
+
+        verify(configProvider, times(1)).get(nullable(Session.class));
+    }
+
     // ── extractClientIp ────────────────────────────────────────────────────────
 
     @Test
