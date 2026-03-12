@@ -13,9 +13,15 @@
     <artifactId>brxm-discovery-site</artifactId>
 
     <name>brXM Discovery Plugin - Site</name>
-    <description>Site module for Bloomreach Discovery integration</description>
+    <description>Site webapp entry point for Bloomreach Discovery integration</description>
 
     <dependencies>
+        <!-- Bundles the plugin's HCM site bootstrap transitively for consumers. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>brxm-discovery-hcm-site</artifactId>
+        </dependency>
+
         <!-- Shared: config, exceptions, search model -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -29,9 +35,7 @@
         </dependency>
         <dependency>
             <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-addon-crisp-core</artifactId>
-            <version>${hippo.release.version}</version>
-            <scope>provided</scope>
+            <artifactId>hippo-addon-crisp-hst</artifactId>
         </dependency>
 
         <!-- HST -->

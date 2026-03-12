@@ -11,6 +11,13 @@
 
     <artifactId>brxm-discovery-hcm-site</artifactId>
     <name>brXM Discovery Plugin - HCM Site</name>
-    <description>HST catalog bootstrap for the brXM Discovery plugin. Add to your site webapp dependencies.</description>
+    <description>HST catalog bootstrap for the brXM Discovery plugin. Normally consumed transitively via brxm-discovery-site.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.onehippo.cms7.hst.toolkit-resources.addon</groupId>
+            <artifactId>hst-addon-hcm-site</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

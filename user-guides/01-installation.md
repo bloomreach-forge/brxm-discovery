@@ -7,9 +7,7 @@
 | brXM / Hippo CMS | 16.7.0 |
 | Java | 17 (LTS) |
 | Maven | 3.8+ |
-| CRISP addon | repository addon in CMS runtime, HST addon in site runtime |
-
-The CRISP addons (`hippo-addon-crisp-repository` and `hippo-addon-crisp-hst`) must be available in the host project runtimes. They ship with the standard Bloomreach dependency sets.
+| Runtime model | separate CMS and site webapps |
 
 ---
 
@@ -31,6 +29,14 @@ In your project's dependency management (or directly in the relevant `pom.xml` f
 </dependency>
 ```
 
+The addon is designed around the two brXM runtimes:
+- CMS runtime: add `brxm-discovery-cms`
+- site webapp: add `brxm-discovery-site`
+
+There is not a single universal addon artifact, because brXM loads CMS and site code in separate runtimes. The practical minimum is one addon dependency per runtime.
+
+You do not need to add `brxm-discovery-hcm-site` or the CRISP addon artifacts separately. They are pulled in by the addon entry points.
+
 ### CMS dependencies module
 
 Add `brxm-discovery-cms` to your CMS dependencies POM (the `pom`-packaged module that feeds your `cms.war`):
@@ -51,15 +57,17 @@ This JAR provides:
 
 ### Site webapp
 
-Add `brxm-discovery-site` to your site `components` JAR and `webapp` WAR:
+Add `brxm-discovery-site` to your site `webapp` WAR:
 
 ```xml
-<!-- In your site components JAR -->
+<!-- In your site webapp -->
 <dependency>
   <groupId>org.bloomreach.forge.discovery</groupId>
   <artifactId>brxm-discovery-site</artifactId>
 </dependency>
 ```
+
+If your project has a separate site components JAR, it does not need this dependency unless you compile custom Java code directly against the addon APIs.
 
 This JAR provides Spring beans auto-registered via `META-INF/hst-assembly/overrides/brxm-discovery-site.xml`:
 
@@ -71,7 +79,7 @@ This JAR provides Spring beans auto-registered via `META-INF/hst-assembly/overri
 | `DiscoveryConfigJcrListener` | Invalidates config cache on CMS node changes (no restart needed) |
 | `DiscoveryConfigResolver` | Two-tier config resolution (env/sys/JCR + coded defaults) |
 | `ConfigBackedDiscoveryResourceResolver` | CRISP resolver that reads active base URIs from shared Discovery config |
-| `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on a dedicated bounded thread pool |
+| `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on an injected executor |
 
 **HST components** (reference by fully-qualified class name in your HST config):
 - Data-fetching: `DiscoverySearchComponent`, `DiscoveryCategoryComponent`, `DiscoveryRecommendationComponent`, `DiscoveryProductDetailComponent`, `DiscoveryProductHighlightComponent`, `DiscoveryCategoryHighlightComponent`

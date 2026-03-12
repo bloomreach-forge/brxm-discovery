@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 
 public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
 
@@ -20,10 +19,6 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
 
     private final DiscoveryPixelTransport client;
     private final Executor executor;
-
-    public DiscoveryPixelServiceImpl(DiscoveryPixelTransport client) {
-        this(client, ForkJoinPool.commonPool());
-    }
 
     public DiscoveryPixelServiceImpl(DiscoveryPixelTransport client, Executor executor) {
         this.client = client;

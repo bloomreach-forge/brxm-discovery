@@ -23,12 +23,14 @@ In your root `pom.xml` `<dependencyManagement>`:
 </dependency>
 ```
 
-Then wire each artifact into the correct module:
+Then wire each artifact into the correct runtime:
 
 | Artifact | Add to |
 |---|---|
-| `brxm-discovery-cms` | CMS webapp `pom.xml` |
-| `brxm-discovery-site` | Site components JAR `pom.xml` |
+| `brxm-discovery-cms` | CMS dependencies / CMS webapp |
+| `brxm-discovery-site` | Site webapp |
+
+`brxm-discovery-site` already brings the plugin's HCM site bootstrap transitively. A separate site components JAR only needs the addon if you compile custom Java against its APIs.
 
 Bloomreach Maven repositories (add to `pom.xml` or `settings.xml` if not already present):
 

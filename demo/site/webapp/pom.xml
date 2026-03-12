@@ -32,23 +32,6 @@
       <artifactId>brxm-discovery-site</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.bloomreach.forge.discovery</groupId>
-      <artifactId>brxm-discovery-hcm-site</artifactId>
-    </dependency>
-    <!-- CRISP: API + core + HST runtime -->
-    <dependency>
-      <groupId>org.onehippo.cms7</groupId>
-      <artifactId>hippo-addon-crisp-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.onehippo.cms7</groupId>
-      <artifactId>hippo-addon-crisp-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.onehippo.cms7</groupId>
-      <artifactId>hippo-addon-crisp-hst</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.onehippo.cms7.hst.toolkit-resources.addon</groupId>
       <artifactId>hst-addon-hcm-site</artifactId>
     </dependency>

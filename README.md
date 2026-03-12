@@ -19,11 +19,12 @@ This repository keeps Discovery search, category, recommendations, autosuggest, 
 | brXM | 16.7.0 |
 | Java | 17 |
 | Maven | 3.8+ |
-| CRISP addons | Repository addon in CMS runtime, HST addon in site runtime |
+| Runtime model | Separate CMS and site webapps |
 
 ## Quick start
 
-1. Add `brxm-discovery-cms` to the CMS webapp and `brxm-discovery-site` to the site components/webapp.
+1. Add `brxm-discovery-cms` to the CMS runtime and `brxm-discovery-site` to the site webapp. Those are the two addon entry points.
+   brXM still requires one entry point per runtime; the addon no longer requires extra CRISP or `hcm-site` dependencies on top of that.
 2. Enable the site CRISP broker in `hst-config.properties`:
 
 ```properties
@@ -73,6 +74,11 @@ mvn -pl shared,cms,site -am test
 ```
 
 ## User guides
+
+For most projects, installation is:
+- one dependency in the CMS runtime: `brxm-discovery-cms`
+- one dependency in the site webapp: `brxm-discovery-site`
+- one site property: `crisp.broker.registerService=true`
 
 - [Quick Start](user-guides/00-quick-start.md)
 - [Installation](user-guides/01-installation.md)
