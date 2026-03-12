@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.bloomreach.forge.discovery</groupId>
     <artifactId>demo-site</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
   </parent>
   <artifactId>demo-webapp</artifactId>
   <packaging>war</packaging>
@@ -25,7 +25,7 @@
     <dependency>
       <groupId>org.bloomreach.forge.discovery</groupId>
       <artifactId>demo-components</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.bloomreach.forge.discovery</groupId>
@@ -35,12 +35,6 @@
       <groupId>org.bloomreach.forge.discovery</groupId>
       <artifactId>brxm-discovery-hcm-site</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.bloomreach.forge.discovery</groupId>
-      <artifactId>brxm-discovery-webfiles</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
     <!-- CRISP: API + core + HST runtime -->
     <dependency>
       <groupId>org.onehippo.cms7</groupId>

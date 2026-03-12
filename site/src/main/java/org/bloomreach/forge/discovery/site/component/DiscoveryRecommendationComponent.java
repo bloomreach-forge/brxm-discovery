@@ -5,7 +5,7 @@ import org.bloomreach.forge.discovery.site.component.info.DiscoveryRecommendatio
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;

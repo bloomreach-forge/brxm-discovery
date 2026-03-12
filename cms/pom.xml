@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.bloomreach.forge.discovery</groupId>
         <artifactId>brxm-discovery</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>brxm-discovery-cms</artifactId>
@@ -16,10 +16,10 @@
     <description>CMS module for Bloomreach Discovery integration</description>
 
     <dependencies>
-        <!-- Site module: reuse DiscoveryQueryBuilder, ResourceMapper, DiscoveryConfigReader, models -->
+        <!-- Shared: DiscoveryConfigReader, DiscoveryConfig, SearchQuery -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>brxm-discovery-site</artifactId>
+            <artifactId>brxm-discovery-shared</artifactId>
         </dependency>
 
         <!-- CRISP (provided-scope deps are not transitive; must declare explicitly) -->

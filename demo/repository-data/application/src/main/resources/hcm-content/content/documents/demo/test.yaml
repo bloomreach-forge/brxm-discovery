@@ -162,12 +162,12 @@
       brxdis:displayName: The other one
       brxdis:widgetId: r92vw2lv
       hippo:availability: []
+      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
-      hippostd:transferable: false
       hippostdpubwf:createdBy: admin
       hippostdpubwf:creationDate: 2026-03-09T14:23:27.450Z
-      hippostdpubwf:lastModificationDate: 2026-03-09T15:03:03.249Z
+      hippostdpubwf:lastModificationDate: 2026-03-12T17:30:30.170Z
       hippostdpubwf:lastModifiedBy: admin
     /other-recommendation[2]:
       jcr:primaryType: brxdis:recommendationDocument

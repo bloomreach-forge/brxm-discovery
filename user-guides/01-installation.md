@@ -22,12 +22,12 @@ In your project's dependency management (or directly in the relevant `pom.xml` f
 <dependency>
   <groupId>org.bloomreach.forge.discovery</groupId>
   <artifactId>brxm-discovery-cms</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
 </dependency>
 <dependency>
   <groupId>org.bloomreach.forge.discovery</groupId>
   <artifactId>brxm-discovery-site</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -100,26 +100,31 @@ If not already in your project:
 
 ## What bootstraps automatically
 
-On first startup, HCM applies the following from `brxm-discovery-cms.jar`:
+On first startup, HCM applies the following from `brxm-discovery-cms.jar` and `brxm-discovery-site.jar`:
 
 | What | JCR path |
 |---|---|
 | `brxdis` namespace + CND | `/hippo:namespaces/brxdis` |
 | `brxdis:discoveryConfig` document type | `/hippo:namespaces/brxdis/discoveryConfig` |
-| Picker daemon module | `/hippo:configuration/hippo:modules/brxm-discovery-picker` |
+| Picker daemon module | `/hippo:configuration/hippo:modules/brxm-discovery` |
 | `discoveryProductPicker` Open UI extension | `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker` |
 | CRISP resource spaces (all 3) | `/hippo:configuration/hippo:modules/crispregistry/…` |
+| **All 10 plugin FTL templates** | `/hst:hst/hst:configurations/hst:default/hst:templates/brxdis-*` |
+
+The template nodes are registered under `hst:default` — the universal base configuration — so every site configuration that inherits from it (the standard brXM setup) gets them automatically. No per-project template YAML is required.
 
 You still need to:
-1. **Enable the CRISP broker** in your site `hst-config.properties`:
+1. **Enable the CRISP broker** in your **site** webapp `hst-config.properties`:
    ```properties
    crisp.broker.registerService = true
    ```
    This causes `ResourceBrokerServiceRegistrationBean` to register the `ResourceServiceBroker` in
    `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
-   Without it, all Discovery API calls will throw `NullPointerException`.
-2. Set credentials via env vars / system properties, or via the JCR config document (see [06-credential-injection.md](06-credential-injection.md))
-3. Wire the `discoveryConfigPath` mount parameter and HST components (see [03-search-and-category.md](03-search-and-category.md))
+   Without this setting, all Discovery API calls will throw `ConfigurationException` with a clear message.
+2. Set credentials via env vars / system properties, or via the global JCR config node (see [06-credential-injection.md](06-credential-injection.md))
+3. Wire HST components into your HST page configuration (see [00-quick-start.md](00-quick-start.md))
+
+> **Troubleshooting — templates not found:** If your site's HST configuration chain does not inherit from `hst:default` (e.g. a project using a deep custom inheritance hierarchy that bypasses `hst:default`), templates will not be resolved automatically. In that case, add the missing `brxdis-*` entries to your own site's `hst:templates` YAML pointing at `classpath:/freemarker/brxdis/brxdis-*.ftl`.
 
 ---
 
@@ -132,4 +137,18 @@ brxm-discovery: registered picker endpoint at /discovery/picker
 brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 ```
 
-And navigate to `http://localhost:8080/cms/ws/discovery/picker/search?configPath=…` — a `400 Bad Request` (not a 404) confirms the endpoint is live.
+And navigate to `http://localhost:8080/cms/ws/discovery/picker/search` — a JSON response (not a 404) confirms the endpoint is live.
+
+---
+
+## Fastest path: run the demo project
+
+The `demo/` directory at the root of this repository is a complete, self-contained brXM project with all plugin components pre-wired. It is the fastest way to see the plugin running end-to-end on your local machine before setting up your own project:
+
+```bash
+cd demo
+mvn clean install
+mvn -P cargo.run cargo:run
+```
+
+Then open `http://localhost:8080/site/search?q=shirt` — you should see a product grid populated from the Discovery API (once credentials are configured).

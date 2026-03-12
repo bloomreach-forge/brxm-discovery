@@ -1,25 +1,26 @@
 package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
-import org.bloomreach.forge.discovery.site.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigProvider;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver;
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamParser;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.service.discovery.sor.SoREnrichmentProvider;
 import org.hippoecm.hst.configuration.hosting.Mount;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -30,11 +31,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.Cookie;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
 import static org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl.toV2WidgetType;
 
@@ -97,11 +99,13 @@ public class HstDiscoveryService {
                                  String catalogName, String label, List<String> statsFields,
                                  String componentSegment, String efq) {
         DiscoveryConfig config = configFor(request.getRequestContext());
+        DiscoveryCredentials credentials = config.credentials();
+        DiscoverySettings settings = config.settings();
         String brUid2 = cookieValue(request, BR_UID_2);
         String url = pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
         SearchQuery baseQuery = QueryParamParser.toSearchQuery(
-                paramProvider(request), config, componentPageSize, componentSort, catalogName,
+                paramProvider(request), settings, componentPageSize, componentSort, catalogName,
                 brUid2, refUrl, url);
         SearchQuery query = statsFields != null && !statsFields.isEmpty()
                 ? baseQuery.withStatsFields(statsFields) : baseQuery;
@@ -116,12 +120,12 @@ public class HstDiscoveryService {
         PixelFlags pixelFlags = resolvePixelFlags(request);
         return DiscoveryRequestCache.getSearchResponse(request, label)
                 .orElseGet(() -> {
-                    SearchResponse fresh = client.search(finalQuery, config, ctx);
+                    SearchResponse fresh = client.search(finalQuery, credentials, ctx);
                     fresh = applyEnrichment(fresh);
                     DiscoveryRequestCache.putSearchResponse(request, label, fresh);
                     if (pixelService != null && pixelFlags.enabled()) {
                         String clientIp = extractClientIp(request);
-                        pixelService.fireSearchEvent(finalQuery, fresh.result(), config, clientIp, ctx, pixelFlags);
+                        pixelService.fireSearchEvent(finalQuery, fresh.result(), credentials, clientIp, ctx, pixelFlags);
                     }
                     return fresh;
                 });
@@ -152,11 +156,13 @@ public class HstDiscoveryService {
                                  String label, List<String> statsFields,
                                  String componentSegment, String efq) {
         DiscoveryConfig config = configFor(request.getRequestContext());
+        DiscoveryCredentials credentials = config.credentials();
+        DiscoverySettings settings = config.settings();
         String brUid2 = cookieValue(request, BR_UID_2);
         String url = pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
         CategoryQuery baseQuery = QueryParamParser.toCategoryQuery(
-                categoryId, paramProvider(request), config, componentPageSize, componentSort,
+                categoryId, paramProvider(request), settings, componentPageSize, componentSort,
                 brUid2, refUrl, url);
         CategoryQuery query = statsFields != null && !statsFields.isEmpty()
                 ? baseQuery.withStatsFields(statsFields) : baseQuery;
@@ -171,12 +177,12 @@ public class HstDiscoveryService {
         PixelFlags pixelFlags = resolvePixelFlags(request);
         return DiscoveryRequestCache.getCategoryResponse(request, label)
                 .orElseGet(() -> {
-                    SearchResponse fresh = client.category(finalQuery, config, ctx);
+                    SearchResponse fresh = client.category(finalQuery, credentials, ctx);
                     fresh = applyEnrichment(fresh);
                     DiscoveryRequestCache.putCategoryResponse(request, label, fresh);
                     if (pixelService != null && pixelFlags.enabled()) {
                         String clientIp = extractClientIp(request);
-                        pixelService.fireCategoryEvent(finalQuery, fresh.result(), config, clientIp, ctx, pixelFlags);
+                        pixelService.fireCategoryEvent(finalQuery, fresh.result(), credentials, clientIp, ctx, pixelFlags);
                     }
                     return fresh;
                 });
@@ -196,6 +202,7 @@ public class HstDiscoveryService {
                                            int limit, String fields, String filter,
                                            String label) {
         DiscoveryConfig config = configFor(request.getRequestContext());
+        DiscoveryCredentials credentials = config.credentials();
         String effectiveWidgetId = widgetId != null ? widgetId : "";
 
         if (widgetType != null && "item".equals(toV2WidgetType(widgetType))
@@ -214,13 +221,13 @@ public class HstDiscoveryService {
         PixelFlags pixelFlags = resolvePixelFlags(request);
         return DiscoveryRequestCache.getRecommendations(request, label, effectiveWidgetId)
                 .orElseGet(() -> {
-                    RecommendationResult fresh = client.recommend(query, config, ctx);
+                    RecommendationResult fresh = client.recommend(query, credentials, ctx);
                     List<ProductSummary> enriched = applyEnrichment(fresh.products());
                     RecommendationResult result = new RecommendationResult(fresh.widgetResultId(), enriched);
                     DiscoveryRequestCache.putRecommendations(request, label, effectiveWidgetId, result);
                     if (pixelService != null && pixelFlags.enabled()) {
                         String clientIp = extractClientIp(request);
-                        pixelService.fireWidgetEvent(query, result, config, clientIp, ctx, pixelFlags);
+                        pixelService.fireWidgetEvent(query, result, credentials, clientIp, ctx, pixelFlags);
                     }
                     return result;
                 });
@@ -228,17 +235,19 @@ public class HstDiscoveryService {
 
     public Optional<ProductSummary> fetchProduct(HstRequest request, String pid) {
         DiscoveryConfig config = configFor(request.getRequestContext());
+        DiscoveryCredentials credentials = config.credentials();
         String url = pageUrl(request);
         String brUid2 = cookieValue(request, BR_UID_2);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
         ClientContext ctx = clientContext(request);
         PixelFlags pixelFlags = resolvePixelFlags(request);
-        Optional<ProductSummary> result = client.fetchProduct(pid, url, config, ctx);
+        Optional<ProductSummary> result = client.fetchProduct(pid, url, credentials, ctx);
         if (result.isPresent()) {
             if (pixelService != null && pixelFlags.enabled()) {
                 String clientIp = extractClientIp(request);
                 String prodName = result.get().title();
-                pixelService.fireProductPageViewEvent(pid, prodName, brUid2, refUrl, url, config, clientIp, ctx, pixelFlags);
+                pixelService.fireProductPageViewEvent(pid, prodName, brUid2, refUrl, url,
+                        credentials, clientIp, ctx, pixelFlags);
             }
             if (enrichmentProvider != null) {
                 List<ProductSummary> enriched = enrichmentProvider.enrich(List.of(result.get()));
@@ -252,26 +261,30 @@ public class HstDiscoveryService {
 
     public AutosuggestResult autosuggest(HstRequest request, String query, int limit) {
         DiscoveryConfig config = configFor(request.getRequestContext());
+        DiscoveryCredentials credentials = config.credentials();
         String brUid2 = cookieValue(request, BR_UID_2);
         String url = pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), url);
         AutosuggestQuery suggestQuery = new AutosuggestQuery(query, limit, null,
                 brUid2, refUrl, url);
-        return client.autosuggest(suggestQuery, config, clientContext(request));
+        return client.autosuggest(suggestQuery, credentials, clientContext(request));
     }
 
     // ── Programmatic API (pre-built queries, no HST request param parsing) ──────
 
     public SearchResponse search(HstRequestContext ctx, SearchQuery query) {
-        return client.search(query, configFor(ctx), ClientContext.EMPTY);
+        DiscoveryConfig config = configFor(ctx);
+        return client.search(query, config.credentials(), ClientContext.EMPTY);
     }
 
     public SearchResponse browse(HstRequestContext ctx, CategoryQuery query) {
-        return client.category(query, configFor(ctx), ClientContext.EMPTY);
+        DiscoveryConfig config = configFor(ctx);
+        return client.category(query, config.credentials(), ClientContext.EMPTY);
     }
 
     public RecommendationResult recommend(HstRequestContext ctx, RecQuery query) {
-        return client.recommend(query, configFor(ctx), ClientContext.EMPTY);
+        DiscoveryConfig config = configFor(ctx);
+        return client.recommend(query, config.credentials(), ClientContext.EMPTY);
     }
 
     // ── Internals ──────────────────────────────────────────────────────────────
@@ -326,96 +339,37 @@ public class HstDiscoveryService {
     }
 
     private DiscoveryConfig configFor(HstRequestContext ctx) {
-        Mount mount = ctx.getResolvedMount().getMount();
-        String path = mount.getParameter(DiscoveryConfigResolver.CONFIG_PATH_PARAM);
-        DiscoveryConfig config = configProvider.get(path);
-        if (log.isDebugEnabled()) {
-            log.debug("[configFor] configPath='{}' accountId='{}' domainKey='{}' apiKey={} authKey={}",
-                    path, config.accountId(), config.domainKey(),
-                    maskSecret(config.apiKey()), maskSecret(config.authKey()));
-            DiscoveryChannelInfo channelInfo = mount.getChannelInfo();
-            log.debug("[configFor] channelInfo={}", channelInfo == null ? "null" : channelInfo.getClass().getName());
-            if (channelInfo != null) {
-                log.debug("[configFor] channelInfo.accountId='{}' domainKey='{}' apiKeyEnvVar='{}' authKeyEnvVar='{}'",
-                        channelInfo.getAccountId(), channelInfo.getDomainKey(),
-                        channelInfo.getApiKeyEnvVar(), channelInfo.getAuthKeyEnvVar());
-            }
+        Session requestSession = null;
+        try {
+            requestSession = ctx.getSession();
+        } catch (RepositoryException e) {
+            log.debug("[configFor] Cannot acquire request JCR session: {}", e.getMessage());
         }
-        DiscoveryConfig patched = patchFromChannelInfo(config, mount.getChannelInfo());
+        DiscoveryConfig config = configProvider.get(requestSession);
+        DiscoveryCredentials credentials = config.credentials();
         if (log.isDebugEnabled()) {
-            if (patched != config) {
-                log.debug("[configFor] patched: accountId='{}' domainKey='{}' apiKey={} authKey={}",
-                        patched.accountId(), patched.domainKey(),
-                        maskSecret(patched.apiKey()), maskSecret(patched.authKey()));
-            } else {
-                log.debug("[configFor] no patch applied (config unchanged)");
-            }
+            log.debug("[configFor] accountId='{}' domainKey='{}' apiKey={} authKey={}",
+                    credentials.accountId(), credentials.domainKey(),
+                    maskSecret(credentials.apiKey()), maskSecret(credentials.authKey()));
         }
-        validateConfig(patched);
-        return patched;
+        validateCredentials(credentials);
+        return config;
     }
 
     private static String maskSecret(String s) {
         return s == null ? "null" : (s.isBlank() ? "blank" : "set");
     }
 
-    private static void validateConfig(DiscoveryConfig config) {
-        if (isBlank(config.accountId())) throw new ConfigurationException(
-                "Discovery accountId is required — set BRXDIS_ACCOUNT_ID env var, -Dbrxdis.accountId, brxdis:accountId JCR property, or discoveryAccountId in Channel Manager");
-        if (isBlank(config.domainKey())) throw new ConfigurationException(
-                "Discovery domainKey is required — set BRXDIS_DOMAIN_KEY env var, -Dbrxdis.domainKey, brxdis:domainKey JCR property, or discoveryDomainKey in Channel Manager");
-        if (isBlank(config.apiKey())) throw new ConfigurationException(
-                "Discovery apiKey is required — set BRXDIS_API_KEY env var, -Dbrxdis.apiKey, brxdis:apiKey JCR property, or discoveryApiKeyEnvVar in Channel Manager");
-    }
-
-    /**
-     * Applies Channel Manager credentials as the authoritative source for per-channel identifiers.
-     * <ul>
-     *   <li>{@code accountId} / {@code domainKey}: Channel Manager wins if non-blank (non-secret channel IDs).</li>
-     *   <li>{@code apiKey} / {@code authKey}: per-channel env var name is tried first; global config is fallback.</li>
-     * </ul>
-     */
-    static DiscoveryConfig patchFromChannelInfo(DiscoveryConfig config, DiscoveryChannelInfo channelInfo) {
-        return patchFromChannelInfo(config, channelInfo, System::getenv);
-    }
-
-    /**
-     * Testable form — accepts an env lookup seam so tests can inject a controlled lambda.
-     */
-    static DiscoveryConfig patchFromChannelInfo(DiscoveryConfig config, DiscoveryChannelInfo channelInfo,
-                                                 Function<String, String> envLookup) {
-        if (channelInfo == null) return config;
-
-        // accountId / domainKey: channelInfo is source of truth (non-secret channel identifiers)
-        String ciAccountId = channelInfo.getAccountId();
-        String ciDomainKey = channelInfo.getDomainKey();
-        String accountId = !isBlank(ciAccountId) ? ciAccountId : config.accountId();
-        String domainKey = !isBlank(ciDomainKey) ? ciDomainKey : config.domainKey();
-
-        // apiKey / authKey: per-channel env var lookup wins; fall back to whatever global config has
-        String resolvedApiKey  = lookupEnvVar(channelInfo.getApiKeyEnvVar(),  envLookup);
-        String resolvedAuthKey = lookupEnvVar(channelInfo.getAuthKeyEnvVar(), envLookup);
-        String apiKey  = !isBlank(resolvedApiKey)  ? resolvedApiKey  : config.apiKey();
-        String authKey = !isBlank(resolvedAuthKey) ? resolvedAuthKey : config.authKey();
-
-        if (Objects.equals(accountId, config.accountId()) && Objects.equals(domainKey, config.domainKey())
-                && Objects.equals(apiKey, config.apiKey()) && Objects.equals(authKey, config.authKey())) return config;
-        return new DiscoveryConfig(accountId, domainKey, apiKey, authKey,
-                config.baseUri(), config.pathwaysBaseUri(), config.environment(),
-                config.defaultPageSize(), config.defaultSort());
+    private static void validateCredentials(DiscoveryCredentials credentials) {
+        if (isBlank(credentials.accountId())) throw new ConfigurationException(
+                "Discovery accountId is required — set BRXDIS_ACCOUNT_ID env var, -Dbrxdis.accountId, or brxdis:accountId JCR property");
+        if (isBlank(credentials.domainKey())) throw new ConfigurationException(
+                "Discovery domainKey is required — set BRXDIS_DOMAIN_KEY env var, -Dbrxdis.domainKey, or brxdis:domainKey JCR property");
+        if (isBlank(credentials.apiKey())) throw new ConfigurationException(
+                "Discovery apiKey is required — set brxdis:apiKey in the config node, BRXDIS_API_KEY env var, or -Dbrxdis.apiKey");
     }
 
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
-
-    /**
-     * Looks up an env var by name. Returns the value if found and non-blank; {@code null} otherwise.
-     * Returning {@code null} signals "no resolution" — the caller preserves the original config value.
-     */
-    private static String lookupEnvVar(String name, Function<String, String> envLookup) {
-        if (name == null || name.isBlank()) return null;
-        String value = envLookup.apply(name);
-        return (value != null && !value.isBlank()) ? value : null;
-    }
 
     private static ClientContext clientContext(HstRequest request) {
         return new ClientContext(

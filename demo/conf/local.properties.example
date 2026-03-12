@@ -1,5 +1,11 @@
+# accountId and domainKey are stored in the JCR channel config node.
+# These sys props serve as a fallback if the JCR node has not been created yet.
+# Once the plugin HCM config is bootstrapped, they are not required.
 brxdis.accountId=YOUR_ACCOUNT_ID
 brxdis.domainKey=YOUR_DOMAIN_KEY
+
+# API key and auth key: resolution order is env var (BRXDIS_API_KEY / BRXDIS_AUTH_KEY)
+# → sys prop (below) → JCR brxdis:apiKey / brxdis:authKey property.
 brxdis.apiKey=YOUR_API_KEY
 # Required for v2 Pathways recommendations (optional — omit to use v1 API)
 brxdis.authKey=YOUR_AUTH_KEY

@@ -16,10 +16,9 @@ definitions:
       # Targets the document field extension point.
       frontend:extensionPoint: 'document.field'
 
-      # JSON config passed verbatim to ui.extension.config in the picker JS.
-      # Set configPath to the JCR path of the discoveryConfig node.
-      # Defaults to the module config node bootstrapped by brxm-discovery-cms.
-      frontend:config: '{"configPath":"/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig"}'
+      # No static config needed — the picker JS reads the document ID from ui.document.get()
+      # and resolves the channel's Discovery config path server-side.
+      frontend:config: '{}'
 
     /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryWidgetPicker:
       jcr:primaryType: frontend:uiExtension
@@ -27,7 +26,7 @@ definitions:
       frontend:url: 'discovery-picker/widget-picker.html'
       frontend:initialHeightInPixels: 56
       frontend:extensionPoint: 'document.field'
-      frontend:config: '{"configPath":"/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig"}'
+      frontend:config: '{}'
 
     /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryPicker:
       jcr:primaryType: frontend:uiExtension
@@ -35,7 +34,7 @@ definitions:
       frontend:url: 'discovery-picker/category-picker.html'
       frontend:initialHeightInPixels: 56
       frontend:extensionPoint: 'document.field'
-      frontend:config: '{"configPath":"/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig"}'
+      frontend:config: '{}'
 
 # ============================================================================
 # How to use the picker in a custom document type

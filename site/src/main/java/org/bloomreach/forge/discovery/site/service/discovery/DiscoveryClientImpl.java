@@ -1,19 +1,20 @@
 package org.bloomreach.forge.discovery.site.service.discovery;
 
-import org.bloomreach.forge.discovery.site.exception.RecommendationException;
-import org.bloomreach.forge.discovery.site.exception.SearchException;
-import org.bloomreach.forge.discovery.site.service.discovery.config.ConfigDefaults;
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.exception.RecommendationException;
+import org.bloomreach.forge.discovery.exception.SearchException;
+import org.bloomreach.forge.discovery.config.ConfigDefaults;
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.onehippo.cms7.crisp.api.broker.ResourceServiceBroker;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHint;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHintBuilder;
@@ -103,11 +104,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryConfig config, ClientContext ctx) {
-        String path = buildAutosuggestPath(query, config);
+    public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = buildAutosuggestPath(query, credentials);
         log.debug("Discovery autosuggest [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(config) ? AUTOSUGGEST_RESOURCE_SPACE_STAGING : AUTOSUGGEST_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = getBroker().resolve(isStaging(credentials) ? AUTOSUGGEST_RESOURCE_SPACE_STAGING : AUTOSUGGEST_RESOURCE_SPACE, path, buildHint(ctx));
             AutosuggestResult result = responseMapper.toAutosuggestResult(resource);
             log.debug("Discovery autosuggest returned {} query suggestions [request_id={}]",
                     result.querySuggestions().size(), requestId(path));
@@ -120,11 +121,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public SearchResponse search(SearchQuery query, DiscoveryConfig config, ClientContext ctx) {
-        String path = buildSearchPath(query, config);
+    public SearchResponse search(SearchQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = buildSearchPath(query, credentials);
         log.debug("Discovery search [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(config) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery search returned {} results [request_id={}]",
                     response.result().total(), requestId(path));
@@ -137,11 +138,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public SearchResponse category(CategoryQuery query, DiscoveryConfig config, ClientContext ctx) {
-        String path = buildCategoryPath(query, config);
+    public SearchResponse category(CategoryQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = buildCategoryPath(query, credentials);
         log.debug("Discovery category browse [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(config) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
             log.debug("Discovery category returned {} results [request_id={}]",
                     response.result().total(), requestId(path));
@@ -154,22 +155,22 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     /**
-     * Routes to v2 Pathways API when {@code config.authKey()} is present; otherwise v1.
+     * Routes to v2 Pathways API when {@code credentials.authKey()} is present; otherwise v1.
      */
     @Override
-    public RecommendationResult recommend(RecQuery query, DiscoveryConfig config, ClientContext ctx) {
-        if (config.authKey() != null && !config.authKey().isBlank()) {
-            return recommendV2(query, config, ctx);
+    public RecommendationResult recommend(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        if (credentials.authKey() != null && !credentials.authKey().isBlank()) {
+            return recommendV2(query, credentials, ctx);
         }
-        return recommendV1(query, config, ctx);
+        return recommendV1(query, credentials, ctx);
     }
 
     @Override
-    public Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryConfig config, ClientContext ctx) {
-        String path = buildFetchProductPath(pid, url, config);
+    public Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = buildFetchProductPath(pid, url, credentials);
         log.debug("Discovery fetchProduct [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(config) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             SearchResult result = responseMapper.toSearchResult(resource, 0, 1);
             log.debug("Discovery fetchProduct pid='{}' found={} [request_id={}]",
                     pid, !result.products().isEmpty(), requestId(path));
@@ -181,11 +182,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private RecommendationResult recommendV1(RecQuery query, DiscoveryConfig config, ClientContext ctx) {
-        String path = buildRecommendationPath(query, config);
+    private RecommendationResult recommendV1(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = buildRecommendationPath(query, credentials);
         log.debug("Discovery recommendations v1 [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(config) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
+            Resource resource = getBroker().resolve(isStaging(credentials) ? SEARCH_RESOURCE_SPACE_STAGING : SEARCH_RESOURCE_SPACE, path, buildHint(ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v1 returned {} products [request_id={}]",
                     result.products().size(), requestId(path));
@@ -197,11 +198,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private RecommendationResult recommendV2(RecQuery query, DiscoveryConfig config, ClientContext ctx) {
-        String path = buildRecommendationV2Path(query, config);
+    private RecommendationResult recommendV2(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = buildRecommendationV2Path(query, credentials);
         log.debug("Discovery recommendations v2 (Pathways) [request_id={}]: {}", requestId(path), redactPath(path));
         try {
-            Resource resource = getBroker().resolve(isStaging(config) ? PATHWAYS_RESOURCE_SPACE_STAGING : PATHWAYS_RESOURCE_SPACE, path, buildV2Hint(config, ctx));
+            Resource resource = getBroker().resolve(isStaging(credentials) ? PATHWAYS_RESOURCE_SPACE_STAGING : PATHWAYS_RESOURCE_SPACE, path, buildV2Hint(credentials, ctx));
             RecommendationResult result = responseMapper.toRecommendationResult(resource);
             log.debug("Discovery recommendations v2 returned {} products [request_id={}]",
                     result.products().size(), requestId(path));
@@ -213,13 +214,21 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private static boolean isStaging(DiscoveryConfig config) {
-        return ConfigDefaults.STAGING_ENVIRONMENT.equalsIgnoreCase(config.environment());
+    private static boolean isStaging(DiscoveryCredentials credentials) {
+        return ConfigDefaults.STAGING_ENVIRONMENT.equalsIgnoreCase(credentials.environment());
     }
 
     private ResourceServiceBroker getBroker() {
         if (broker != null) return broker;
-        return HippoServiceRegistry.getService(ResourceServiceBroker.class);
+        ResourceServiceBroker b = HippoServiceRegistry.getService(ResourceServiceBroker.class);
+        if (b == null) {
+            throw new ConfigurationException(
+                "CRISP ResourceServiceBroker not found in HippoServiceRegistry. " +
+                "Ensure crisp.broker.registerService=true is set in the site webapp " +
+                "WEB-INF/hst-config.properties (Cargo/dev) or CMS webapp hst-config.properties " +
+                "(shared-module production deployment).");
+        }
+        return b;
     }
 
     /**
@@ -242,12 +251,12 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         return hintBuilder.build();
     }
 
-    static ExchangeHint buildV2Hint(DiscoveryConfig config, ClientContext ctx) {
+    static ExchangeHint buildV2Hint(DiscoveryCredentials credentials, ClientContext ctx) {
         ExchangeHintBuilder hintBuilder = ExchangeHintBuilder.create()
                 .methodName("GET")
                 .requestHeader("Content-Type", "application/json");
-        if (config.authKey() != null && !config.authKey().isBlank()) {
-            hintBuilder.requestHeader(HEADER_AUTH_KEY, config.authKey());
+        if (credentials.authKey() != null && !credentials.authKey().isBlank()) {
+            hintBuilder.requestHeader(HEADER_AUTH_KEY, credentials.authKey());
         }
         if (isForwardClientHeaders()) applyClientHeaders(hintBuilder, ctx);
         return hintBuilder.build();
@@ -263,9 +272,9 @@ public class DiscoveryClientImpl implements DiscoveryClient {
             hintBuilder.requestHeader("X-Forwarded-For", ctx.xForwardedFor());
     }
 
-    private String buildSearchPath(SearchQuery query, DiscoveryConfig config) {
+    private String buildSearchPath(SearchQuery query, DiscoveryCredentials credentials) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(SEARCH_PATH);
-        appendCommonParams(builder, config);
+        appendCommonParams(builder, credentials);
         builder.queryParam("request_type", REQUEST_TYPE_SEARCH)
                .queryParam("search_type", REQUEST_TYPE_KEYWORD)
                .queryParam("q", query.query() != null ? query.query() : "*")
@@ -284,11 +293,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         return builder.build(false).toUriString();
     }
 
-    private String buildAutosuggestPath(AutosuggestQuery query, DiscoveryConfig config) {
+    private String buildAutosuggestPath(AutosuggestQuery query, DiscoveryCredentials credentials) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(AUTOSUGGEST_PATH);
-        appendCommonParams(builder, config);
+        appendCommonParams(builder, credentials);
         String catalogViews = (query.catalogViews() != null && !query.catalogViews().isBlank())
-                ? query.catalogViews() : config.domainKey();
+                ? query.catalogViews() : credentials.domainKey();
         builder.queryParam("request_type", "suggest")
                .queryParam("q", query.query() != null ? query.query() : "")
                .queryParam("request_id", UUID.randomUUID())
@@ -297,9 +306,9 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         return builder.build(false).toUriString();
     }
 
-    private String buildCategoryPath(CategoryQuery query, DiscoveryConfig config) {
+    private String buildCategoryPath(CategoryQuery query, DiscoveryCredentials credentials) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(CATEGORY_PATH);
-        appendCommonParams(builder, config);
+        appendCommonParams(builder, credentials);
         builder.queryParam("request_type", REQUEST_TYPE_SEARCH)
                .queryParam("search_type", REQUEST_TYPE_CATEGORY)
                .queryParam("q", query.categoryId() != null ? query.categoryId() : "")
@@ -328,11 +337,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         return mapped;
     }
 
-    private String buildRecommendationPath(RecQuery query, DiscoveryConfig config) {
+    private String buildRecommendationPath(RecQuery query, DiscoveryCredentials credentials) {
         String widgetType = toV2WidgetType(query.widgetType());
         String widgetId = query.widgetId() != null ? query.widgetId() : "";
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(RECS_PATH + "/" + widgetType + "/" + widgetId);
-        appendCommonParams(builder, config);
+        appendCommonParams(builder, credentials);
         builder.queryParam("request_id", UUID.randomUUID());
         if (query.contextProductId() != null && !query.contextProductId().isBlank()) {
             builder.queryParam("item_ids", query.contextProductId());
@@ -346,13 +355,13 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         return builder.build(false).toUriString();
     }
 
-    private String buildRecommendationV2Path(RecQuery query, DiscoveryConfig config) {
+    private String buildRecommendationV2Path(RecQuery query, DiscoveryCredentials credentials) {
         String widgetType = toV2WidgetType(query.widgetType());
         String widgetId = query.widgetId() != null ? query.widgetId() : "";
         // v2: account_id + domain_key only — auth is the auth-key header, NOT auth_key query param
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(RECS_PATH + "/" + widgetType + "/" + widgetId)
-                .queryParam("account_id", config.accountId())
-                .queryParam("domain_key", config.domainKey())
+                .queryParam("account_id", credentials.accountId())
+                .queryParam("domain_key", credentials.domainKey())
                 .queryParam("request_id", UUID.randomUUID());
         if (query.url() != null && !query.url().isBlank()) {
             builder.queryParam("url", query.url());
@@ -381,10 +390,10 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     // ── Pixel events ────────────────────────────────────────────────────────────
 
     @Override
-    public String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryConfig config,
+    public String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
                                        String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
-        appendPixelCommonParams(builder, config);
+        appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_PAGEVIEW)
                .queryParam("ptype", REQUEST_TYPE_SEARCH);
         if (query.query() != null && !query.query().isBlank()) {
@@ -397,10 +406,10 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public String buildCategoryPixelPath(CategoryQuery query, SearchResult result, DiscoveryConfig config,
+    public String buildCategoryPixelPath(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
                                          String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
-        appendPixelCommonParams(builder, config);
+        appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_PAGEVIEW)
                .queryParam("ptype", REQUEST_TYPE_CATEGORY);
         if (query.categoryId() != null && !query.categoryId().isBlank()) {
@@ -413,10 +422,10 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public String buildWidgetPixelPath(RecQuery query, RecommendationResult result, DiscoveryConfig config,
+    public String buildWidgetPixelPath(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
                                        String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
-        appendPixelCommonParams(builder, config);
+        appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_EVENT)
                .queryParam("group", PAGE_TYPE_WIDGET)
                .queryParam("etype", PAGE_TYPE_VIEW);
@@ -440,9 +449,9 @@ public class DiscoveryClientImpl implements DiscoveryClient {
 
     @Override
     public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl, String url,
-                                                 DiscoveryConfig config, String clientIp, PixelFlags flags) {
+                                                 DiscoveryCredentials credentials, String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
-        appendPixelCommonParams(builder, config);
+        appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_PAGEVIEW)
                .queryParam("ptype", "product")
                .queryParam("prod_id", pid);
@@ -467,7 +476,7 @@ public class DiscoveryClientImpl implements DiscoveryClient {
      * Fires a pixel GET via the CRISP broker; catches {@link ResourceException} and logs at WARN.
      */
     @Override
-    public void firePixelEvent(String pixelPath, DiscoveryConfig config, ClientContext ctx, PixelFlags flags) {
+    public void firePixelEvent(String pixelPath, ClientContext ctx, PixelFlags flags) {
         log.debug("Discovery pixel event: {}", pixelPath);
         try {
             getBroker().resolve(pixelResourceSpace(flags), pixelPath, buildHint(ctx));
@@ -481,9 +490,9 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private static void appendPixelCommonParams(UriComponentsBuilder builder, DiscoveryConfig config) {
-        builder.queryParam("acct_id", config.accountId())
-               .queryParam("domain_key", config.domainKey());
+    private static void appendPixelCommonParams(UriComponentsBuilder builder, DiscoveryCredentials credentials) {
+        builder.queryParam("acct_id", credentials.accountId())
+               .queryParam("domain_key", credentials.domainKey());
     }
 
     private static void appendPixelSkus(UriComponentsBuilder builder, List<ProductSummary> products) {
@@ -501,11 +510,11 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private static void appendCommonParams(UriComponentsBuilder builder, DiscoveryConfig config) {
-        builder.queryParam("account_id", config.accountId())
-               .queryParam("domain_key", config.domainKey());
-        if (config.apiKey() != null && !config.apiKey().isBlank()) {
-            builder.queryParam("auth_key", config.apiKey());
+    private static void appendCommonParams(UriComponentsBuilder builder, DiscoveryCredentials credentials) {
+        builder.queryParam("account_id", credentials.accountId())
+               .queryParam("domain_key", credentials.domainKey());
+        if (credentials.apiKey() != null && !credentials.apiKey().isBlank()) {
+            builder.queryParam("auth_key", credentials.apiKey());
         }
     }
 
@@ -586,9 +595,9 @@ public class DiscoveryClientImpl implements DiscoveryClient {
         }
     }
 
-    private String buildFetchProductPath(String pid, String url, DiscoveryConfig config) {
+    private String buildFetchProductPath(String pid, String url, DiscoveryCredentials credentials) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(SEARCH_PATH);
-        appendCommonParams(builder, config);
+        appendCommonParams(builder, credentials);
         builder.queryParam("search_type", REQUEST_TYPE_KEYWORD)
                .queryParam("request_type", REQUEST_TYPE_SEARCH)
                .queryParam("request_id", UUID.randomUUID())

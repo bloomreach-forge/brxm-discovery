@@ -2,10 +2,10 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;

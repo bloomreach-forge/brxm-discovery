@@ -3,7 +3,7 @@
   jcr:primaryType: hippo:handle
   jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
   jcr:uuid: a3b4c5d6-e7f8-9012-abcd-123456789012
-  hippo:versionHistory: 8152d3e6-5881-4a1d-8590-eb09961edbce
+  hippo:versionHistory: 10dee62f-b6d0-4320-a42a-df32ebf860c5
   /homepage-recommendations[1]:
     jcr:primaryType: brxdis:recommendationDocument
     jcr:mixinTypes: ['mix:referenceable']
@@ -11,11 +11,14 @@
     brxdis:displayName: Homepage Recommendations
     brxdis:widgetId: 2jnxqelz
     hippo:availability: [live]
+    hippostd:retainable: false
     hippostd:state: published
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
-    hippostdpubwf:lastModifiedBy: ''
+    hippostdpubwf:lastModificationDate: 2026-03-12T13:20:05.713Z
+    hippostdpubwf:lastModifiedBy: admin
+    hippostdpubwf:publicationDate: 2026-03-12T13:20:09.177Z
+    hippostdpubwf:publishedBy: admin
   /homepage-recommendations[2]:
     jcr:primaryType: brxdis:recommendationDocument
     jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
@@ -23,11 +26,12 @@
     brxdis:displayName: Homepage Recommendations
     brxdis:widgetId: 2jnxqelz
     hippo:availability: [preview]
+    hippostd:retainable: false
     hippostd:state: unpublished
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
-    hippostdpubwf:lastModifiedBy: ''
+    hippostdpubwf:lastModificationDate: 2026-03-12T13:20:05.713Z
+    hippostdpubwf:lastModifiedBy: admin
   /homepage-recommendations[3]:
     jcr:primaryType: brxdis:recommendationDocument
     jcr:mixinTypes: ['mix:referenceable']
@@ -40,5 +44,5 @@
     hippostd:transferable: false
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-03-09T15:03:01.043Z
+    hippostdpubwf:lastModificationDate: 2026-03-12T17:30:15.105Z
     hippostdpubwf:lastModifiedBy: admin

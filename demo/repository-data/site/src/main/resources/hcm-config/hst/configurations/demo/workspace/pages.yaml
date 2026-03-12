@@ -24,16 +24,17 @@ definitions:
             jcr:primaryType: hst:containercomponent
             hst:xtype: hst.nomarkup
             hippo:identifier: 4a28171f-5b6e-41f2-97a5-c46af22aed06
-            hst:lastmodified: 2026-03-07T13:34:42.683Z
+            hst:lastmodified: 2026-03-11T22:54:51.698Z
             /search-bar:
               jcr:primaryType: hst:containeritemcomponent
               hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
               hst:label: Discovery Search
-              hst:parameternames: [catalogName, resultsPage, debounceMs, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
-                suggestionsLimit, suggestionsEnabled, pageSize, label, defaultSort,
-                placeholder, minChars]
-              hst:parametervalues: ['', '', '250', 'off', '5', 'on', '12', main, '',
-                Search..., '2']
+              hst:parameternames: [resultsPage, suggestionsEnabled, statsFields, pageSize,
+                label, defaultSort, autoRedirect, minChars, catalogName, exclusionFilter,
+                debounceMs, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+                suggestionsLimit, segment, placeholder]
+              hst:parametervalues: ['', 'on', '', '12', main, '', 'off', '2', '',
+                '', '250', 'off', '5', '', Search...]
               hst:template: brxdis-search
               hst:xtype: hst.Item
           /sidebar:

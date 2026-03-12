@@ -6,9 +6,9 @@ A brXM PaaS plugin that integrates Bloomreach Discovery with brXM. Discovery is 
 ## Module Layout
 ```
 brxm-discovery/              (aggregator POM, packaging=pom)
+├── shared/                  (brxm-discovery-shared — exceptions, DiscoveryConfig, DiscoveryConfigReader)
 ├── cms/                     (brxm-discovery-cms — CMS node types, Open UI extensions, picker daemon)
-├── site/                    (brxm-discovery-site — domain model, services, CRISP, HST components)
-└── webfiles/                (brxm-discovery-webfiles — bundled Freemarker templates)
+└── site/                    (brxm-discovery-site — domain model, services, CRISP, HST components)
 ```
 
 ## Tech Stack
@@ -22,7 +22,7 @@ brxm-discovery/              (aggregator POM, packaging=pom)
 ## Build Commands
 ```bash
 mvn clean compile          # Compile all modules
-mvn clean test             # Run tests (257 site + 21 cms = 278 total)
+mvn clean test             # Run tests (site + cms + shared)
 mvn clean test -pl site    # Run site module tests only
 mvn clean test -Dtest=FooTest -pl site   # Run a single test
 ```
@@ -30,21 +30,25 @@ mvn clean test -Dtest=FooTest -pl site   # Run a single test
 ## Package Structure
 ```
 org.bloomreach.forge.discovery
+├── (shared)
+│   ├── exception/                   # DiscoveryException (sealed) → SearchException,
+│   │                                #   RecommendationException, ConfigurationException
+│   ├── config/                      # DiscoveryConfigReader, ConfigDefaults
+│   ├── config/model/                # DiscoveryConfig (record)
+│   └── search/model/                # SearchQuery (shared between site + cms)
 ├── site
 │   ├── service/discovery/           # DiscoveryClient (interface), DiscoveryClientImpl,
 │   │                                #   DiscoveryResponseMapper
 │   ├── service/discovery/dto/       # SearchApiResponse, ApiResponseBody, ProductDoc,
 │   │                                #   FacetCounts, FacetFieldDto, RecommendationResponse,
 │   │                                #   WidgetListResponse, AutosuggestResponse, etc.
-│   ├── service/discovery/search/model/  # SearchQuery, CategoryQuery, SearchResult, Facet,
+│   ├── service/discovery/search/model/  # CategoryQuery, SearchResult, Facet,
 │   │                                   #   FacetValue, PaginationModel, ProductSummary,
 │   │                                   #   AutosuggestQuery, AutosuggestResult
 │   ├── service/discovery/search/    # QueryParamParser
 │   ├── service/discovery/recommendation/model/  # RecQuery, WidgetInfo
 │   ├── service/discovery/recommendation/        # DiscoveryWidgetService/Impl
-│   ├── service/discovery/config/model/  # DiscoveryConfig
-│   ├── service/discovery/config/    # ConfigDefaults, DiscoveryConfigReader,
-│   │                                #   DiscoveryConfigResolver, DiscoveryConfigProvider,
+│   ├── service/discovery/config/    # DiscoveryConfigResolver, DiscoveryConfigProvider,
 │   │                                #   CachingDiscoveryConfigProvider, DiscoveryConfigJcrListener
 │   ├── service/discovery/pixel/     # DiscoveryPixelService (interface), DiscoveryPixelServiceImpl
 │   ├── service/discovery/sor/       # SoREnrichmentProvider (interface; integrators implement)
@@ -57,15 +61,13 @@ org.bloomreach.forge.discovery
 │   │                                #   DiscoveryCategoryHighlightComponent,
 │   │                                #   DiscoveryProductGridComponent (view),
 │   │                                #   DiscoveryFacetComponent (view)
-│   ├── component/info/              # DiscoverySearchComponentInfo,
-│   │                                #   DiscoveryCategoryComponentInfo,
-│   │                                #   DiscoveryRecommendationComponentInfo,
-│   │                                #   DiscoveryDataSourceComponentInfo,
-│   │                                #   DiscoveryProductDetailComponentInfo,
-│   │                                #   DiscoveryProductHighlightComponentInfo,
-│   │                                #   DiscoveryCategoryHighlightComponentInfo
-│   └── exception/                   # DiscoveryException (sealed) → SearchException,
-│                                    #   RecommendationException, ConfigurationException
+│   └── component/info/              # DiscoverySearchComponentInfo,
+│                                    #   DiscoveryCategoryComponentInfo,
+│                                    #   DiscoveryRecommendationComponentInfo,
+│                                    #   DiscoveryDataSourceComponentInfo,
+│                                    #   DiscoveryProductDetailComponentInfo,
+│                                    #   DiscoveryProductHighlightComponentInfo,
+│                                    #   DiscoveryCategoryHighlightComponentInfo
 └── cms
     └── JCR node types, Open UI extension, picker REST endpoints (DiscoveryPickerModule)
 ```
@@ -81,7 +83,8 @@ org.bloomreach.forge.discovery
 ## Architecture
 - **Discovery is read-only** — external commerce system feeds products into Discovery via connectors
 - **CRISP resource spaces**: `discoverySearchAPI` (core.dxpapi.com), `discoveryPathwaysAPI` (pathways.dxpapi.com), `discoveryAutosuggestAPI` (suggest.dxpapi.com) — all three bootstrapped automatically by the plugin via `brxdis-crisp.yaml` in the CMS HCM config; no manual CRISP configuration required in the host project
-- **Config resolution** (two-tier): credentials (accountId, domainKey, apiKey, authKey, environment) use env→sys→JCR; structural config (baseUri, pathwaysBaseUri, defaultPageSize, defaultSort) uses JCR→coded default; `discoveryConfigPath` mount param → JCR config node
+- **Config resolution** (single global node): all channels share one `brxdis:discoveryConfig` node at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`; credentials use env→sys→JCR value; structural config uses JCR→coded default; no `discoveryConfigPath` mount parameter
+- **Global JCR config node**: fixed path `ConfigDefaults.CONFIG_NODE_PATH`; `DiscoveryConfigProvider.get(session)` resolves it; `DiscoveryConfigJcrListener` invalidates cache on node changes; `DiscoveryChannelInfo` carries pixel fields only
 - **Graceful degradation**: missing or absent JCR config node falls back to env/sys + coded defaults — no crash
 - **v1/v2 auto-selection**: if `authKey` present → v2 Pathways API (`discoveryPathwaysAPI`); otherwise → v1 (`discoverySearchAPI`)
 - **Request-scoped caching**: `DiscoveryRequestCache` deduplicates API calls within a single page render; config served from `CachingDiscoveryConfigProvider` (JVM-lifetime cache, JCR-observation-invalidated via `DiscoveryConfigJcrListener` — no per-request JCR reads)

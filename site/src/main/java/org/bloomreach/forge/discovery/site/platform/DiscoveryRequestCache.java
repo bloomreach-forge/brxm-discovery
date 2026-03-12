@@ -1,8 +1,8 @@
 package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
 

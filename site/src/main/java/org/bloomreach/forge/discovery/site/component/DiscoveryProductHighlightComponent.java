@@ -3,7 +3,7 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductHighlightComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;

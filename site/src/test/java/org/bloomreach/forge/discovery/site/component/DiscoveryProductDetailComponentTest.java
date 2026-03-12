@@ -4,7 +4,7 @@ import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetailComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;

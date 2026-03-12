@@ -1,4 +1,4 @@
-package org.bloomreach.forge.discovery.site.service.discovery.search.model;
+package org.bloomreach.forge.discovery.search.model;
 
 public record FacetValue(
         String name,

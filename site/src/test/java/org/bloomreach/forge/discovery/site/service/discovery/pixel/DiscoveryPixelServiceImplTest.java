@@ -1,14 +1,14 @@
 package org.bloomreach.forge.discovery.site.service.discovery.pixel;
 
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,16 +29,13 @@ class DiscoveryPixelServiceImplTest {
     @Mock DiscoveryClient client;
 
     private DiscoveryPixelServiceImpl service;
-    private DiscoveryConfig config;
+    private DiscoveryCredentials credentials;
 
     @BeforeEach
     void setUp() {
         // Synchronous executor so pixel fires inline — no async race in tests
         service = new DiscoveryPixelServiceImpl(client, Runnable::run);
-        config = new DiscoveryConfig(
-                "acct", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
-                10, "");
+        credentials = new DiscoveryCredentials("acct", "domain", "key", null, "PRODUCTION");
     }
 
     private static final PixelFlags ENABLED = new PixelFlags(true, false, false, "US");
@@ -47,64 +44,64 @@ class DiscoveryPixelServiceImplTest {
     void fireSearchEvent_delegatesToClientAndFires() {
         SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(query, result, config, null, ENABLED))
+        when(client.buildSearchPixelPath(query, result, credentials, null, ENABLED))
                 .thenReturn("/api/v1/pixel/?type=SearchResponse");
 
-        service.fireSearchEvent(query, result, config, null, ClientContext.EMPTY, ENABLED);
+        service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
 
-        verify(client).buildSearchPixelPath(query, result, config, null, ENABLED);
-        verify(client).firePixelEvent("/api/v1/pixel/?type=SearchResponse", config, ClientContext.EMPTY, ENABLED);
+        verify(client).buildSearchPixelPath(query, result, credentials, null, ENABLED);
+        verify(client).firePixelEvent("/api/v1/pixel/?type=SearchResponse", ClientContext.EMPTY, ENABLED);
     }
 
     @Test
     void fireCategoryEvent_delegatesToClientAndFires() {
         CategoryQuery query = new CategoryQuery("cat-1", 0, 10, null, null, null, null, null);
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildCategoryPixelPath(query, result, config, null, ENABLED))
+        when(client.buildCategoryPixelPath(query, result, credentials, null, ENABLED))
                 .thenReturn("/api/v1/pixel/?type=CategoryView");
 
-        service.fireCategoryEvent(query, result, config, null, ClientContext.EMPTY, ENABLED);
+        service.fireCategoryEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
 
-        verify(client).buildCategoryPixelPath(query, result, config, null, ENABLED);
-        verify(client).firePixelEvent("/api/v1/pixel/?type=CategoryView", config, ClientContext.EMPTY, ENABLED);
+        verify(client).buildCategoryPixelPath(query, result, credentials, null, ENABLED);
+        verify(client).firePixelEvent("/api/v1/pixel/?type=CategoryView", ClientContext.EMPTY, ENABLED);
     }
 
     @Test
     void fireWidgetEvent_withRecommendationResult_delegates() {
         RecQuery query = new RecQuery("item", "w-1", null, null, 8, null, null, null, null, null);
         RecommendationResult result = RecommendationResult.of(List.of());
-        when(client.buildWidgetPixelPath(query, result, config, null, ENABLED))
+        when(client.buildWidgetPixelPath(query, result, credentials, null, ENABLED))
                 .thenReturn("/pix.gif?type=event&group=widget");
 
-        service.fireWidgetEvent(query, result, config, null, ClientContext.EMPTY, ENABLED);
+        service.fireWidgetEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
 
-        verify(client).buildWidgetPixelPath(query, result, config, null, ENABLED);
-        verify(client).firePixelEvent("/pix.gif?type=event&group=widget", config, ClientContext.EMPTY, ENABLED);
+        verify(client).buildWidgetPixelPath(query, result, credentials, null, ENABLED);
+        verify(client).firePixelEvent("/pix.gif?type=event&group=widget", ClientContext.EMPTY, ENABLED);
     }
 
     @Test
     void fireProductPageViewEvent_delegatesAndFires() {
         when(client.buildProductPageViewPixelPath("pid-42", "Shoe", "uid", "http://ref.com", "http://page.com",
-                config, null, ENABLED))
+                credentials, null, ENABLED))
                 .thenReturn("/pix.gif?type=pageview&ptype=product&prod_id=pid-42");
 
-        service.fireProductPageViewEvent("pid-42", "Shoe", "uid", "http://ref.com", "http://page.com", config, null, ClientContext.EMPTY, ENABLED);
+        service.fireProductPageViewEvent("pid-42", "Shoe", "uid", "http://ref.com", "http://page.com", credentials, null, ClientContext.EMPTY, ENABLED);
 
         verify(client).buildProductPageViewPixelPath("pid-42", "Shoe", "uid", "http://ref.com", "http://page.com",
-                config, null, ENABLED);
-        verify(client).firePixelEvent("/pix.gif?type=pageview&ptype=product&prod_id=pid-42", config, ClientContext.EMPTY, ENABLED);
+                credentials, null, ENABLED);
+        verify(client).firePixelEvent("/pix.gif?type=pageview&ptype=product&prod_id=pid-42", ClientContext.EMPTY, ENABLED);
     }
 
     @Test
     void fireSearchEvent_passesClientIp() {
         SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(query, result, config, "10.0.0.1", ENABLED))
+        when(client.buildSearchPixelPath(query, result, credentials, "10.0.0.1", ENABLED))
                 .thenReturn("/pix.gif?type=pageview");
 
-        service.fireSearchEvent(query, result, config, "10.0.0.1", ClientContext.EMPTY, ENABLED);
+        service.fireSearchEvent(query, result, credentials, "10.0.0.1", ClientContext.EMPTY, ENABLED);
 
-        verify(client).buildSearchPixelPath(query, result, config, "10.0.0.1", ENABLED);
+        verify(client).buildSearchPixelPath(query, result, credentials, "10.0.0.1", ENABLED);
     }
 
     @Test
@@ -113,9 +110,9 @@ class DiscoveryPixelServiceImplTest {
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
         when(client.buildSearchPixelPath(any(), any(), any(), any(), any(PixelFlags.class)))
                 .thenReturn("/api/v1/pixel/?type=SearchResponse");
-        doThrow(new RuntimeException("broker down")).when(client).firePixelEvent(anyString(), any(), any(), any(PixelFlags.class));
+        doThrow(new RuntimeException("broker down")).when(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
 
-        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, config, null, ClientContext.EMPTY, ENABLED));
+        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
     }
 
     @Test
@@ -126,9 +123,9 @@ class DiscoveryPixelServiceImplTest {
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
         when(client.buildSearchPixelPath(any(), any(), any(), any(), any(PixelFlags.class)))
                 .thenReturn("/api/v1/pixel/?type=SearchResponse");
-        doThrow(new ResourceException("JSON processing error.")).when(client).firePixelEvent(anyString(), any(), any(), any(PixelFlags.class));
+        doThrow(new ResourceException("JSON processing error.")).when(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
 
-        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, config, null, ClientContext.EMPTY, ENABLED));
+        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
     }
 
     @Test
@@ -136,10 +133,10 @@ class DiscoveryPixelServiceImplTest {
         SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
-        service.fireSearchEvent(query, result, config, null, ClientContext.EMPTY, PixelFlags.DISABLED);
+        service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, PixelFlags.DISABLED);
 
         verify(client, never()).buildSearchPixelPath(any(), any(), any(), any(), any(PixelFlags.class));
-        verify(client, never()).firePixelEvent(anyString(), any(), any(), any(PixelFlags.class));
+        verify(client, never()).firePixelEvent(anyString(), any(), any(PixelFlags.class));
     }
 
     @Test
@@ -149,8 +146,8 @@ class DiscoveryPixelServiceImplTest {
         when(client.buildSearchPixelPath(any(), any(), any(), any(), any(PixelFlags.class)))
                 .thenReturn("/pix.gif?type=pageview");
 
-        service.fireSearchEvent(query, result, config, null, ClientContext.EMPTY, ENABLED);
+        service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
 
-        verify(client).firePixelEvent(anyString(), eq(config), any(), any(PixelFlags.class));
+        verify(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
     }
 }

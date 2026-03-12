@@ -17,13 +17,13 @@
     <!-- Internal helpers -->
 
     <bean id="brxmdis.configReader"
-          class="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader"/>
-
-    <bean id="brxmdis.objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper"/>
+          class="org.bloomreach.forge.discovery.config.DiscoveryConfigReader"/>
 
     <bean id="brxmdis.responseMapper"
           class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryResponseMapper">
-        <constructor-arg ref="brxmdis.objectMapper"/>
+        <constructor-arg>
+            <bean class="com.fasterxml.jackson.databind.ObjectMapper"/>
+        </constructor-arg>
     </bean>
 
     <bean id="brxmdis.discoveryClient"
@@ -34,8 +34,8 @@
 
     <!-- Public services — bean IDs match Class.getName() for getComponent() lookups -->
 
-    <bean id="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver"
-          class="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver">
+    <bean id="org.bloomreach.forge.discovery.config.DiscoveryConfigResolver"
+          class="org.bloomreach.forge.discovery.config.DiscoveryConfigResolver">
         <constructor-arg ref="brxmdis.configReader"/>
     </bean>
 
@@ -45,13 +45,15 @@
       the javax.jcr.Repository bean is the HST pooled delivery repo and rejects system credentials.
     -->
     <bean id="brxmdis.configProvider"
-          class="org.bloomreach.forge.discovery.site.service.discovery.config.CachingDiscoveryConfigProvider">
-        <constructor-arg ref="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver"/>
+          class="org.bloomreach.forge.discovery.config.CachingDiscoveryConfigProvider">
+        <constructor-arg ref="org.bloomreach.forge.discovery.config.DiscoveryConfigResolver"/>
     </bean>
 
     <!-- JCR observation listener — invalidates config cache when CMS node changes -->
     <bean id="brxmdis.configJcrListener"
-          class="org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigJcrListener">
+          class="org.bloomreach.forge.discovery.config.DiscoveryConfigJcrListener"
+          init-method="start"
+          destroy-method="close">
         <constructor-arg ref="brxmdis.configProvider"/>
         <!-- No javax.jcr.Repository arg — listener obtains a system session via
              HippoServiceRegistry.getService(HippoRepository.class) at afterPropertiesSet() time.

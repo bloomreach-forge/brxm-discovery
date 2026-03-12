@@ -1,8 +1,8 @@
 package org.bloomreach.forge.discovery.site.service.discovery.search;
 
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,11 +18,11 @@ public class QueryParamParser {
      * Falls back to config defaults for pageSize and sort.
      *
      * @param paramProvider supplier of request parameter value
-     * @param config        current channel's DiscoveryConfig
+     * @param settings      current channel's DiscoverySettings
      */
-    public static SearchQuery toSearchQuery(RequestParamProvider paramProvider, DiscoveryConfig config,
+    public static SearchQuery toSearchQuery(RequestParamProvider paramProvider, DiscoverySettings settings,
                                             String brUid2, String refUrl, String url) {
-        return toSearchQuery(paramProvider, config, 0, null, null, brUid2, refUrl, url);
+        return toSearchQuery(paramProvider, settings, 0, null, null, brUid2, refUrl, url);
     }
 
     /**
@@ -30,25 +30,25 @@ public class QueryParamParser {
      * Priority: URL param → pageSizeFallback/sortFallback → config defaults.
      *
      * @param paramProvider    supplier of request parameter value
-     * @param config           current channel's DiscoveryConfig
+     * @param settings         current channel's DiscoverySettings
      * @param pageSizeFallback component-configured page size; {@code <= 0} falls through to config default
      * @param sortFallback     component-configured sort; blank/null falls through to config default
      */
-    public static SearchQuery toSearchQuery(RequestParamProvider paramProvider, DiscoveryConfig config,
+    public static SearchQuery toSearchQuery(RequestParamProvider paramProvider, DiscoverySettings settings,
                                             int pageSizeFallback, String sortFallback,
                                             String brUid2, String refUrl, String url) {
-        return toSearchQuery(paramProvider, config, pageSizeFallback, sortFallback, null, brUid2, refUrl, url);
+        return toSearchQuery(paramProvider, settings, pageSizeFallback, sortFallback, null, brUid2, refUrl, url);
     }
 
-    public static SearchQuery toSearchQuery(RequestParamProvider paramProvider, DiscoveryConfig config,
+    public static SearchQuery toSearchQuery(RequestParamProvider paramProvider, DiscoverySettings settings,
                                             int pageSizeFallback, String sortFallback, String catalogName,
                                             String brUid2, String refUrl, String url) {
         String searchTerm = paramProvider.getParameter("q");
         int page = Math.max(0, parseIntOrDefault(paramProvider.getParameter("page"), 1) - 1);
-        int effectivePageSizeFallback = pageSizeFallback > 0 ? pageSizeFallback : config.defaultPageSize();
+        int effectivePageSizeFallback = pageSizeFallback > 0 ? pageSizeFallback : settings.defaultPageSize();
         int pageSize = parseIntOrDefault(paramProvider.getParameter("pageSize"), effectivePageSizeFallback);
         String effectiveSortFallback = (sortFallback != null && !sortFallback.isBlank())
-                ? sortFallback : config.defaultSort();
+                ? sortFallback : settings.defaultSort();
         String sort = firstNonBlank(paramProvider.getParameter("sort"), effectiveSortFallback);
         Map<String, List<String>> filters = parseFilters(paramProvider.getParameterMap());
         String segment = paramProvider.getParameter("seg");
@@ -61,16 +61,16 @@ public class QueryParamParser {
      *
      * @param categoryId    resolved category ID (from sitemap or component param)
      * @param paramProvider supplier of request parameter value
-     * @param config        current channel's DiscoveryConfig
+     * @param settings      current channel's DiscoverySettings
      * @param brUid2        value of the _br_uid_2 browser cookie
      * @param refUrl        Referer header value (or fallback page URL)
      * @param url           absolute URL of the current page
      */
     public static CategoryQuery toCategoryQuery(String categoryId,
                                                 RequestParamProvider paramProvider,
-                                                DiscoveryConfig config,
+                                                DiscoverySettings settings,
                                                 String brUid2, String refUrl, String url) {
-        return toCategoryQuery(categoryId, paramProvider, config, 0, null, brUid2, refUrl, url);
+        return toCategoryQuery(categoryId, paramProvider, settings, 0, null, brUid2, refUrl, url);
     }
 
     /**
@@ -79,7 +79,7 @@ public class QueryParamParser {
      *
      * @param categoryId       resolved category ID (from sitemap or component param)
      * @param paramProvider    supplier of request parameter value
-     * @param config           current channel's DiscoveryConfig
+     * @param settings         current channel's DiscoverySettings
      * @param pageSizeFallback component-configured page size; {@code <= 0} falls through to config default
      * @param sortFallback     component-configured sort; blank/null falls through to config default
      * @param brUid2           value of the _br_uid_2 browser cookie
@@ -88,14 +88,14 @@ public class QueryParamParser {
      */
     public static CategoryQuery toCategoryQuery(String categoryId,
                                                 RequestParamProvider paramProvider,
-                                                DiscoveryConfig config,
+                                                DiscoverySettings settings,
                                                 int pageSizeFallback, String sortFallback,
                                                 String brUid2, String refUrl, String url) {
         int page = Math.max(0, parseIntOrDefault(paramProvider.getParameter("page"), 1) - 1);
-        int effectivePageSizeFallback = pageSizeFallback > 0 ? pageSizeFallback : config.defaultPageSize();
+        int effectivePageSizeFallback = pageSizeFallback > 0 ? pageSizeFallback : settings.defaultPageSize();
         int pageSize = parseIntOrDefault(paramProvider.getParameter("pageSize"), effectivePageSizeFallback);
         String effectiveSortFallback = (sortFallback != null && !sortFallback.isBlank())
-                ? sortFallback : config.defaultSort();
+                ? sortFallback : settings.defaultSort();
         String sort = firstNonBlank(paramProvider.getParameter("sort"), effectiveSortFallback);
         Map<String, List<String>> filters = parseFilters(paramProvider.getParameterMap());
         String segment = paramProvider.getParameter("seg");

@@ -104,7 +104,7 @@
 
     var PAGE_SIZE    = 12;
     var ui           = null;
-    var configPath   = "";
+    var documentId   = "";
     var currentValue = "";
     var currentPage  = 0;
     var lastQuery    = "*";
@@ -123,7 +123,7 @@
     .then(function (opts) {
       var data = {};
       try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
-      configPath   = data.configPath   || "";
+      documentId   = data.documentId   || "";
       currentValue = data.currentValue || "";
       doSearch("*", 0);
       searchInput.focus();
@@ -144,8 +144,8 @@
 
     /* ---- Search ------------------------------------------------------- */
     function doSearch(q, page) {
-      if (!configPath) {
-        setStatusEl(status, "error", "No configPath configured on the uiExtension node.");
+      if (!documentId) {
+        setStatusEl(status, "error", "No documentId available — cannot resolve Discovery config.");
         return;
       }
       setStatusEl(status, "", "Searching\u2026", true);
@@ -154,7 +154,7 @@
       grid.replaceChildren();
 
       var url = buildApiUrl(ui, "/discovery/picker/search", {
-        configPath: configPath,
+        documentId: documentId,
         q:          q,
         page:       page,
         pageSize:   PAGE_SIZE

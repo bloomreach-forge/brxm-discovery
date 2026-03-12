@@ -56,7 +56,7 @@ All platform dependencies (`hst-api`, `crisp-api`, `hippo-repository-api`, etc.)
 <dependency>
   <groupId>org.bloomreach.forge.discovery</groupId>
   <artifactId>brxm-discovery-cms</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -66,7 +66,7 @@ All platform dependencies (`hst-api`, `crisp-api`, `hippo-repository-api`, etc.)
 <dependency>
   <groupId>org.bloomreach.forge.discovery</groupId>
   <artifactId>brxm-discovery-site</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -79,9 +79,7 @@ brxm-discovery/                          (aggregator POM, packaging=pom)
 ├── cms/                                 (brxm-discovery-cms — jar)
 │   └── JCR node types, editor template, picker daemon module, Open UI extension
 ├── site/                                (brxm-discovery-site — jar)
-│   └── Domain model, services, CRISP integration, HST components
-├── webfiles/                            (brxm-discovery-webfiles — jar)
-│   └── Bundled Freemarker templates (brxdis-*.ftl)
+│   └── Domain model, services, CRISP integration, HST components, bundled FTL templates
 └── demo/                                (standalone Maven project)
     └── Full brXM project for local end-to-end testing
 ```
@@ -96,111 +94,57 @@ Add `brxm-discovery-cms` to your CMS webapp and `brxm-discovery-site` to your si
 
 **2. Configure the CRISP broker**
 
-Enable the CRISP broker in your site `hst-config.properties`:
+Enable the CRISP broker in your **site** webapp `hst-config.properties`:
 
 ```properties
 crisp.broker.registerService = true
 ```
 
+This registers `ResourceServiceBroker` into `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
+
 The three CRISP resource spaces (`discoverySearchAPI`, `discoveryPathwaysAPI`, `discoveryAutosuggestAPI`) are bootstrapped automatically by the plugin — no manual CRISP configuration is required.
 
-**3. Create a `brxdis:discoveryConfig` document**
+**3. Create the global config node (optional)**
 
-In the CMS, create a **Discovery Config** document under Content > Administration. This holds the per-channel Discovery credentials and API paths. Note its JCR path.
-
-**4. Set the mount parameter**
-
-In your HST virtual host mount config:
+Create a `brxdis:discoveryConfig` node at the fixed global path — all channels share it. Credentials can alternatively be supplied entirely via env vars / sys props.
 
 ```yaml
-hst:parameternames: [discoveryConfigPath]
-hst:parametervalues: ['/content/documents/administration/discovery-config/discovery-config']
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      jcr:primaryType: brxdis:discoveryConfig
+      brxdis:accountId: 'your-account-id'
+      brxdis:domainKey: 'your-domain-key'
+      brxdis:defaultPageSize: 12
 ```
 
-**5. Wire HST components**
+See [06-credential-injection.md](user-guides/06-credential-injection.md) for the full property reference and deployment patterns.
 
-The plugin provides data-fetching components and composable view components:
+**4. Wire HST components**
 
-**Data-fetching components** (call the Discovery API, populate the request cache):
+See [00-quick-start.md](user-guides/00-quick-start.md) for a step-by-step walkthrough from a blank brXM project to first search results in the browser — including catalog YAML, sitemap, page composition, and bean scanning setup.
 
-| Component class | Model keys set | Use |
-|---|---|---|
-| `…DiscoverySearchComponent` | `query`, `searchResult`, `autosuggestResult` | Search bar + results page (autosuggest inline) |
-| `…DiscoveryCategoryComponent` | `categoryId`, `categoryResult` | Category browse page |
-| `…DiscoveryRecommendationComponent` | `products`, `widgetId` | Recommendation widget |
-| `…DiscoveryProductDetailComponent` | `product`, `similarProducts` | Product detail page |
-| `…DiscoveryProductHighlightComponent` | `products` | Curated product showcase (up to 4 hand-picked products) |
-| `…DiscoveryCategoryHighlightComponent` | `categories` | Category navigation tiles (up to 4 hand-picked categories) |
+**6. Use the bundled FTL templates (optional)**
 
-**View components** (read from the request cache — add as siblings on the same page):
-
-| Component class | Model keys set | Use |
-|---|---|---|
-| `…DiscoveryProductGridComponent` | `products`, `pagination` | Product list + pagination |
-| `…DiscoveryFacetComponent` | `facets` | Facet navigation only |
-
-All components expose data via both `request.setAttribute()` (FTL) and `request.setModel()` (Page Model API / headless SPA).
-
-**6. Register the plugin FTL templates (optional)**
-
-The webfiles module ships ready-to-use Freemarker templates. Register them in your `templates.yaml`:
-
-```yaml
-/brxdis-search:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
-/brxdis-product-grid:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-grid.ftl
-/brxdis-facets:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-facets.ftl
-/brxdis-category:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
-/brxdis-recommendations:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-recommendations.ftl
-/brxdis-product-detail:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-detail.ftl
-/brxdis-product-highlight:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-highlight.ftl
-/brxdis-category-highlight:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category-highlight.ftl
-```
-
-Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required. See [03-search-and-category.md](user-guides/03-search-and-category.md) for the composable wiring pattern.
+All `brxdis-*` templates are bundled in `brxm-discovery-site` and auto-registered under `hst:default` by the plugin's HCM config — no manual `templates.yaml` entries required. Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required. See [03-search-and-category.md](user-guides/03-search-and-category.md) for the composable wiring pattern.
 
 ---
 
 ## Credential Injection
 
-Credentials are resolved per-request with different precedence per dimension:
+All credentials are resolved from a single global JCR config node at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`. No per-channel configuration is required.
 
-**Account ID and Domain Key** (non-secret channel identifiers):
-
-| Priority | Mechanism |
-|---|---|
-| 1 (highest) | Channel Manager — `discoveryAccountId`, `discoveryDomainKey` on the mount |
-| 2 | Environment variable — `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` |
-| 3 | JVM system property — `brxdis.accountId`, `brxdis.domainKey` |
-| 4 (lowest) | JCR field on the config document |
-
-**API Key and Auth Key** (secrets — never stored in Channel Manager):
+**Account ID, Domain Key, API Key, Auth Key** — all resolved with the same three-tier chain:
 
 | Priority | Mechanism |
 |---|---|
-| 1 (highest) | Per-channel env var — name set via `discoveryApiKeyEnvVar` / `discoveryAuthKeyEnvVar` in Channel Manager |
-| 2 | Global environment variable — `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
-| 3 | JVM system property — `brxdis.apiKey`, `brxdis.authKey` |
-| 4 (lowest) | JCR field on the config document |
+| 1 (highest) | Environment variable — `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
+| 2 | JVM system property — `brxdis.accountId`, `brxdis.domainKey`, `brxdis.apiKey`, `brxdis.authKey` |
+| 3 (lowest) | JCR global node field — `brxdis:accountId`, `brxdis:domainKey`, `brxdis:apiKey`, `brxdis:authKey` |
 
 `AUTH_KEY` is only required for v2 Pathways recommendations; when absent the plugin uses the v1 API automatically. `ENVIRONMENT` controls the API subdomain (`PRODUCTION` → `core.dxpapi.com`; `STAGING` → `staging-core.dxpapi.com`).
 
-For multi-channel deployments, set `discoveryAccountId`/`discoveryDomainKey` in Channel Manager and point `discoveryApiKeyEnvVar` at a channel-specific server env var. See [06-credential-injection.md](user-guides/06-credential-injection.md) for deployment patterns.
+See [06-credential-injection.md](user-guides/06-credential-injection.md) for deployment patterns.
 
 ---
 
@@ -209,7 +153,7 @@ For multi-channel deployments, set `discoveryAccountId`/`discoveryDomainKey` in 
 The CMS ships a visual product picker as an Open UI document field extension. Editors search the Discovery catalog directly inside the brXM editor and store the selected product ID (PID) in any `String` document field — no full product data is persisted in brXM.
 
 The picker is bootstrapped automatically via HCM:
-- **Daemon module**: `/hippo:configuration/hippo:modules/brxm-discovery-picker`
+- **Daemon module**: `/hippo:configuration/hippo:modules/brxm-discovery`
 - **JAX-RS endpoints**: `{cms}/ws/discovery/picker/search`, `.../items`, `.../categories`, and `.../widgets`
 - **Open UI extension node**: `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker`
 
@@ -246,3 +190,5 @@ mvn clean test -Dtest=DiscoverySearchComponentTest -pl site
 | 05 | [Product Picker](user-guides/05-product-picker.md) |
 | 06 | [Credential Injection](user-guides/06-credential-injection.md) |
 | 07 | [Autosuggest / Search Bar](user-guides/07-autosuggest.md) |
+| 08 | [React SPA Integration](user-guides/08-react-spa-integration.md) |
+| 09 | [Pixel Tracking](user-guides/09-pixel-tracking.md) |

@@ -3,15 +3,14 @@ package org.bloomreach.forge.discovery.cms.rest;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerCategoryDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader;
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.ConfigDefaults;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
+import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import jakarta.ws.rs.BadRequestException;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -27,13 +26,12 @@ import static org.mockito.Mockito.*;
 class DiscoveryPickerResourceTest {
 
     @Mock Session session;
-    @Mock Node configNode;
-    @Mock DiscoveryConfigReader configReader;
+    @Mock DiscoveryConfigProvider configProvider;
     @Mock Function<String, String> httpGateway;
 
     DiscoveryPickerResource resource;
 
-    static final String CONFIG_PATH = "/content/documents/discovery-config";
+    static final String CONFIG_PATH = ConfigDefaults.CONFIG_NODE_PATH;
     static final String BASE_URI = "https://core.dxpapi.com";
 
     static final String ONE_RESULT_JSON = """
@@ -53,11 +51,10 @@ class DiscoveryPickerResourceTest {
     }
 
     @BeforeEach
-    void setUp() throws RepositoryException {
-        resource = new DiscoveryPickerResource(session, configReader, httpGateway);
-        // lenient: some tests short-circuit before touching JCR
-        lenient().when(session.getNode(CONFIG_PATH)).thenReturn(configNode);
-        lenient().when(configReader.read(configNode)).thenReturn(dummyConfig());
+    void setUp() {
+        resource = new DiscoveryPickerResource(session, configProvider, httpGateway);
+
+        lenient().when(configProvider.get(session)).thenReturn(dummyConfig());
     }
 
     // ---- search() -------------------------------------------------------
@@ -66,7 +63,7 @@ class DiscoveryPickerResourceTest {
     void search_delegatesToHttpGatewayAndParsesResult() {
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
-        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "shirt", 0, 12);
+        PickerSearchResponseDto resp = resource.search("shirt", 0, 12);
 
         assertEquals(1, resp.items().size());
         assertEquals("p1", resp.items().get(0).id());
@@ -80,7 +77,7 @@ class DiscoveryPickerResourceTest {
     void search_urlContainsAccountIdAndQuery() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.search(CONFIG_PATH, "shirt", 0, 12);
+        resource.search("shirt", 0, 12);
 
         verify(httpGateway).apply(argThat(url ->
                 url.contains("account_id=acc1") && url.contains("q=shirt")));
@@ -90,35 +87,17 @@ class DiscoveryPickerResourceTest {
     void search_emptyResults_returnsZeroItems() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "*", 0, 12);
+        PickerSearchResponseDto resp = resource.search("*", 0, 12);
 
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
     }
 
     @Test
-    void search_throwsBadRequestWhenConfigPathBlank() {
-        assertThrows(BadRequestException.class, () -> resource.search("", "shirt", 0, 12));
-        assertThrows(BadRequestException.class, () -> resource.search(null, "shirt", 0, 12));
-        verifyNoInteractions(session);
-    }
-
-    @Test
-    void search_throwsBadRequestWhenConfigPathInvalid() {
-        // path traversal attempt
-        assertThrows(BadRequestException.class,
-                () -> resource.search("../../etc/passwd", "q", 0, 12));
-        // relative path (no leading slash)
-        assertThrows(BadRequestException.class,
-                () -> resource.search("content/documents/config", "q", 0, 12));
-        verifyNoInteractions(session);
-    }
-
-    @Test
     void search_capsPageSizeAtMaximum() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.search(CONFIG_PATH, "*", 0, 99999);
+        resource.search("*", 0, 99999);
 
         verify(httpGateway).apply(argThat(url -> url.contains("rows=100")));
     }
@@ -127,7 +106,7 @@ class DiscoveryPickerResourceTest {
     void search_encodesSpecialCharsInQuery() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.search(CONFIG_PATH, "shirt&auth_key=injected", 0, 12);
+        resource.search("shirt&auth_key=injected", 0, 12);
 
         // The injected value must be percent-encoded, not treated as a separator
         verify(httpGateway).apply(argThat(url ->
@@ -135,11 +114,11 @@ class DiscoveryPickerResourceTest {
     }
 
     @Test
-    void search_wrapsRepositoryExceptionAsServerError() throws RepositoryException {
-        when(session.getNode(CONFIG_PATH)).thenThrow(new RepositoryException("node not found"));
+    void search_wrapsProviderFailureAsServerError() {
+        when(configProvider.get(session)).thenThrow(new IllegalStateException("node not found"));
 
         assertThrows(jakarta.ws.rs.InternalServerErrorException.class,
-                () -> resource.search(CONFIG_PATH, "q", 0, 12));
+                () -> resource.search("q", 0, 12));
     }
 
     @Test
@@ -148,31 +127,31 @@ class DiscoveryPickerResourceTest {
                 .thenThrow(new jakarta.ws.rs.InternalServerErrorException("Discovery API returned HTTP 503"));
 
         assertThrows(jakarta.ws.rs.InternalServerErrorException.class,
-                () -> resource.search(CONFIG_PATH, "shirt", 0, 12));
+                () -> resource.search("shirt", 0, 12));
     }
 
     // ---- items() --------------------------------------------------------
 
     @Test
     void items_returnsEmptyResponseWhenIdsBlank() {
-        PickerSearchResponseDto resp = resource.items(CONFIG_PATH, "");
+        PickerSearchResponseDto resp = resource.items("");
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
-        verifyNoInteractions(session);
+        verifyNoInteractions(configProvider);
     }
 
     @Test
     void items_returnsEmptyResponseWhenIdsNull() {
-        PickerSearchResponseDto resp = resource.items(CONFIG_PATH, null);
+        PickerSearchResponseDto resp = resource.items(null);
         assertEquals(0, resp.items().size());
-        verifyNoInteractions(session);
+        verifyNoInteractions(configProvider);
     }
 
     @Test
     void items_buildsSearchQueryWithPidFilter() {
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
-        PickerSearchResponseDto resp = resource.items(CONFIG_PATH, "p1");
+        PickerSearchResponseDto resp = resource.items("p1");
 
         assertEquals(1, resp.items().size());
         verify(httpGateway).apply(argThat(url -> url.contains("fq=pid")));
@@ -182,7 +161,7 @@ class DiscoveryPickerResourceTest {
     void items_stripsWhitespaceFromCommaSeparatedIds() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.items(CONFIG_PATH, "p1 , p2, p3");
+        resource.items("p1 , p2, p3");
 
         // All three pids should produce fq params
         verify(httpGateway).apply(argThat(url -> {
@@ -208,7 +187,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        List<PickerCategoryDto> result = resource.categories(CONFIG_PATH);
+        List<PickerCategoryDto> result = resource.categories();
 
         assertEquals(2, result.size());
         assertTrue(result.stream().anyMatch(c -> "cat1".equals(c.id()) && "Shirts".equals(c.name())));
@@ -219,7 +198,7 @@ class DiscoveryPickerResourceTest {
     void categories_emptyMap_returnsEmpty() {
         when(httpGateway.apply(anyString())).thenReturn("{\"category_map\":{}}");
 
-        List<PickerCategoryDto> result = resource.categories(CONFIG_PATH);
+        List<PickerCategoryDto> result = resource.categories();
 
         assertTrue(result.isEmpty());
     }
@@ -228,7 +207,7 @@ class DiscoveryPickerResourceTest {
     void categories_urlContainsSearchTypeCategoryAndRows0WithEmptyQ() {
         when(httpGateway.apply(anyString())).thenReturn("{\"category_map\":{}}");
 
-        resource.categories(CONFIG_PATH);
+        resource.categories();
 
         verify(httpGateway).apply(argThat(url ->
                 url.contains("search_type=category") && url.contains("rows=0")
@@ -244,7 +223,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        List<PickerCategoryDto> result = resource.categories(CONFIG_PATH);
+        List<PickerCategoryDto> result = resource.categories();
 
         assertEquals(1, result.size());
         assertEquals("cat_no_name", result.get(0).id());
@@ -257,7 +236,7 @@ class DiscoveryPickerResourceTest {
     void widgets_urlUsesAccountIdAndDomainKey() {
         when(httpGateway.apply(anyString())).thenReturn("{\"response\":{\"widgets\":[]}}");
 
-        resource.listWidgets(CONFIG_PATH);
+        resource.listWidgets();
 
         verify(httpGateway).apply(argThat(url ->
                 url.contains("/api/v1/merchant/widgets")
@@ -274,7 +253,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        List<PickerWidgetDto> result = resource.listWidgets(CONFIG_PATH);
+        List<PickerWidgetDto> result = resource.listWidgets();
 
         assertEquals(1, result.size());
         PickerWidgetDto w = result.get(0);
@@ -296,7 +275,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "*", 0, 12);
+        PickerSearchResponseDto resp = resource.search("*", 0, 12);
 
         assertNull(resp.items().get(0).price());
     }
@@ -305,7 +284,7 @@ class DiscoveryPickerResourceTest {
     void search_missingResponseNode_returnsEmptyList() {
         when(httpGateway.apply(anyString())).thenReturn("{}");
 
-        PickerSearchResponseDto resp = resource.search(CONFIG_PATH, "*", 0, 12);
+        PickerSearchResponseDto resp = resource.search("*", 0, 12);
 
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());

@@ -8,41 +8,37 @@ Credentials are resolved in two tiers.
 
 ### Channel identifiers (`accountId`, `domainKey`)
 
-Applied per-request. Channel Manager is the authoritative source so that different mounts can use different Discovery accounts.
+Resolved from the per-channel JCR config node. Env var and system property overrides apply at the JVM level (override all channels).
 
 ```
-discoveryAccountId / discoveryDomainKey  (Channel Manager — wins if non-blank)
-  → BRXDIS_ACCOUNT_ID / BRXDIS_DOMAIN_KEY  (global env var)
-    → brxdis.accountId / brxdis.domainKey  (JVM system property)
-      → brxdis:accountId / brxdis:domainKey  (JCR document field)
+BRXDIS_ACCOUNT_ID / BRXDIS_DOMAIN_KEY  (global env var — wins if non-blank)
+  → brxdis.accountId / brxdis.domainKey  (JVM system property)
+    → brxdis:accountId / brxdis:domainKey  (JCR channel node field)
 ```
 
 ### API secrets (`apiKey`, `authKey`)
 
-Applied per-request. Per-channel env var names are stored in Channel Manager; the secret values live only on the server.
+Resolved using the same three-tier chain as the channel identifiers.
 
 ```
-env var named by discoveryApiKeyEnvVar / discoveryAuthKeyEnvVar  (per-channel env var — wins if non-blank)
-  → BRXDIS_API_KEY / BRXDIS_AUTH_KEY  (global env var)
-    → brxdis.apiKey / brxdis.authKey  (JVM system property)
-      → brxdis:apiKey / brxdis:authKey  (JCR document field)
+BRXDIS_API_KEY / BRXDIS_AUTH_KEY  (global env var — wins if non-blank)
+  → brxdis.apiKey / brxdis.authKey  (JVM system property)
+    → brxdis:apiKey / brxdis:authKey  (JCR channel node field)
 ```
 
 ---
 
 ## Credential reference
 
-| Credential | Channel Manager param | Global env var | System property | JCR property | Required |
-|---|---|---|---|---|---|
-| Account ID | `discoveryAccountId` | `BRXDIS_ACCOUNT_ID` | `brxdis.accountId` | `brxdis:accountId` | Yes |
-| Domain Key | `discoveryDomainKey` | `BRXDIS_DOMAIN_KEY` | `brxdis.domainKey` | `brxdis:domainKey` | Yes |
-| API Key | `discoveryApiKeyEnvVar` (env var name) | `BRXDIS_API_KEY` | `brxdis.apiKey` | `brxdis:apiKey` | Yes |
-| Auth Key | `discoveryAuthKeyEnvVar` (env var name) | `BRXDIS_AUTH_KEY` | `brxdis.authKey` | `brxdis:authKey` | No (enables v2 Pathways) |
-| Environment | — | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `brxdis:environment` | No (default: `PRODUCTION`) |
+| Credential | JCR channel node property | Global env var | System property | Required |
+|---|---|---|---|---|
+| Account ID | `brxdis:accountId` (value) | `BRXDIS_ACCOUNT_ID` | `brxdis.accountId` | Yes |
+| Domain Key | `brxdis:domainKey` (value) | `BRXDIS_DOMAIN_KEY` | `brxdis.domainKey` | Yes |
+| API Key | `brxdis:apiKey` (value) | `BRXDIS_API_KEY` | `brxdis.apiKey` | Yes |
+| Auth Key | `brxdis:authKey` (value) | `BRXDIS_AUTH_KEY` | `brxdis.authKey` | No (enables v2 Pathways) |
+| Environment | `brxdis:environment` (value) | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | No (default: `PRODUCTION`) |
 
 `authKey` is only required when using the v2 Pathways recommendations API. When absent, the plugin falls back to v1 automatically — no error is thrown. `environment` accepts `PRODUCTION` or `STAGING`; the value drives API subdomain selection.
-
-> **Note on `discoveryApiKeyEnvVar`:** this Channel Manager field stores the **name** of an environment variable (e.g. `PACIFICHOME_API_KEY`), not the key value itself. The actual secret must be present in the server's environment. This keeps secrets out of the CMS database while allowing per-channel key configuration.
 
 ## Pixel base URI override
 
@@ -139,8 +135,8 @@ cd demo && mvn -P cargo.run cargo:run
 `local.properties` format:
 
 ```properties
-brxdis.accountId=YOUR_ACCOUNT_ID
-brxdis.domainKey=YOUR_DOMAIN_KEY
+# accountId and domainKey are stored in the global JCR config node (discovery-demo-channel.yaml)
+# — no entry needed here unless you want to override them.
 brxdis.apiKey=YOUR_API_KEY
 brxdis.authKey=YOUR_AUTH_KEY
 # brxdis.environment=PRODUCTION
@@ -151,9 +147,8 @@ Alternatively, pass them inline without a file:
 
 ```bash
 cd demo && mvn -P cargo.run \
-  -Dbrxdis.accountId=XXX \
-  -Dbrxdis.domainKey=YYY \
   -Dbrxdis.apiKey=ZZZ \
+  -Dbrxdis.authKey=WWW \
   cargo:run
 ```
 
@@ -188,48 +183,46 @@ Then in Cargo `<systemProperties>`:
 
 ---
 
-## Method 3: JCR document field (last resort for secrets)
+## Method 3: JCR global config node (structural config and credential fallback)
 
-If no env var or system property is set, `DiscoveryConfigReader` falls back to the value stored in the `brxdis:discoveryConfig` JCR document.
+If no env var or system property is set, `DiscoveryConfigReader` falls back to the value stored in the single global `brxdis:discoveryConfig` JCR node at:
+
+```
+/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
+```
 
 Use this when:
 - You cannot inject env vars at the infrastructure level.
-- You need per-channel structural config (base URIs, page size, sort) — create one config doc per channel.
+- You want to manage structural config (base URIs, page size, sort) via the CMS without a restart.
+
+Example YAML (place in your HCM application or development module):
+
+```yaml
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      jcr:primaryType: brxdis:discoveryConfig
+      brxdis:accountId: 'your-account-id'
+      brxdis:domainKey: 'your-domain-key'
+      brxdis:apiKey: ''          # blank: falls back to BRXDIS_API_KEY env var or sys prop
+      brxdis:authKey: ''         # optional, for v2 Pathways
+      brxdis:baseUri: 'https://core.dxpapi.com'
+      brxdis:pathwaysBaseUri: 'https://pathways.dxpapi.com'
+      brxdis:environment: 'PRODUCTION'
+      brxdis:defaultPageSize: 12
+      brxdis:defaultSort: ''
+```
 
 Drawbacks for secrets:
-- Credentials are stored in the JCR repository (persisted in the filestore, exported by auto-export in dev, visible to CMS admins).
-- Changes require a CMS document save. The updated value is cached at JVM lifetime — subsequent requests pick it up automatically, but there is no instant live update.
-
----
-
-## Method 4: Channel Manager parameters (recommended for multi-channel)
-
-Set `discoveryAccountId` and `discoveryDomainKey` directly on the HST mount via Channel Manager. These override the global env/sys/JCR values on a per-channel basis.
-
-For API secrets, set `discoveryApiKeyEnvVar` to the name of a server-side env var (e.g. `PACIFICHOME_API_KEY`). The secret itself stays in the server environment.
-
-```
-Channel Manager → mount → channel properties:
-  discoveryAccountId    = 6413
-  discoveryDomainKey    = pacifichome
-  discoveryApiKeyEnvVar = PACIFICHOME_API_KEY     ← env var name, not the key
-  discoveryAuthKeyEnvVar = PACIFICHOME_AUTH_KEY   ← optional, for v2 Pathways
-```
-
-Server environment:
-```bash
-PACIFICHOME_API_KEY=your-actual-api-key
-PACIFICHOME_AUTH_KEY=your-actual-auth-key
-```
-
-This is the recommended pattern for a deployment hosting multiple Discovery channels on one JVM.
+- Credentials stored in the JCR node are persisted in the filestore, exported by auto-export in dev, and visible to CMS admins.
+- Changes are cached at JVM lifetime. The cache is invalidated automatically when you save the node in the CMS — subsequent requests pick up the new value without a restart.
 
 ---
 
 ## Security notes
 
 - Never commit `local.properties` — it is listed in `demo/.gitignore`.
-- Never check in HCM content YAML files with real credentials. The bootstrapped `discovery-config.yaml` uses empty strings deliberately.
-- For production, prefer method 1 (global env vars) or method 4 (Channel Manager + per-channel env vars). Secrets managers (AWS Secrets Manager, HashiCorp Vault) can inject env vars at container startup without ever writing the value to disk.
-- The JCR fallback is provided for convenience; it is not recommended for storing secrets in production environments that handle real customer data.
-- Credential changes in Channel Manager or server env vars take effect on the next request — no CMS save or JVM restart required.
+- Prefer env vars (`BRXDIS_API_KEY` / `BRXDIS_AUTH_KEY`) or sys props over storing values in JCR — secrets in JCR are persisted in the filestore and visible to CMS admins.
+- For production, prefer method 1 (global env vars). Secrets managers (AWS Secrets Manager, HashiCorp Vault) can inject env vars at container startup without ever writing the value to disk.
+- `accountId` and `domainKey` are non-secret channel identifiers; storing them in JCR is safe.
+- Credential changes in server env vars take effect on the next request after the JVM-lifetime cache is invalidated (triggered automatically by CMS node saves) — no restart required.

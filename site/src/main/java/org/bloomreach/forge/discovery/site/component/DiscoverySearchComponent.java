@@ -3,8 +3,8 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
 
 import java.io.IOException;
 import java.util.List;

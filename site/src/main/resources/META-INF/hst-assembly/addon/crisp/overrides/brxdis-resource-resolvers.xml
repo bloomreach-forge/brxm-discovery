@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Discovery API CRISP resource resolver bean definitions.
+
+  Purpose: ensures the CRISP ResourceServiceBroker in the site webapp initialises
+  without requiring JCR access (necessary in Cargo/dev where per-webapp classloaders
+  prevent sharing the CMS-side broker via HippoServiceRegistry).
+
+  These definitions mirror the base-URI values in cms/hcm-config/brxdis-crisp.yaml.
+  JCR-stored resource-resolver nodes (when accessible) take precedence; these serve
+  as a reliable classpath-backed fallback that always works.
+
+  Bean IDs must match the resource-space names used in DiscoveryClientImpl.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+
+  <!-- Production -->
+
+  <bean id="discoverySearchAPI"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://core.dxpapi.com"/>
+  </bean>
+
+  <bean id="discoveryPathwaysAPI"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://pathways.dxpapi.com"/>
+  </bean>
+
+  <bean id="discoveryAutosuggestAPI"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://suggest.dxpapi.com"/>
+  </bean>
+
+  <bean id="discoveryPixelAPI"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://p.brsrvr.com"/>
+  </bean>
+
+  <bean id="discoveryPixelAPIEU"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://p-eu.brsrvr.com"/>
+  </bean>
+
+  <!-- Staging -->
+
+  <bean id="discoverySearchAPIStaging"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://staging-core.dxpapi.com"/>
+  </bean>
+
+  <bean id="discoveryPathwaysAPIStaging"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://staging-pathways.dxpapi.com"/>
+  </bean>
+
+  <bean id="discoveryAutosuggestAPIStaging"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver">
+    <property name="baseUri" value="https://staging-suggest.dxpapi.com"/>
+  </bean>
+
+</beans>

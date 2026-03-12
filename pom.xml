@@ -10,15 +10,15 @@
 
     <groupId>org.bloomreach.forge.discovery</groupId>
     <artifactId>brxm-discovery</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>brXM Discovery Plugin</name>
     <description>Bloomreach Discovery integration for brXM</description>
     <modules>
+        <module>shared</module>
         <module>cms</module>
         <module>site</module>
         <module>hcm-site</module>
-        <module>webfiles</module>
     </modules>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -28,6 +28,11 @@
     <dependencyManagement>
         <dependencies>
             <!-- Internal modules -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>brxm-discovery-shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>brxm-discovery-cms</artifactId>
@@ -41,11 +46,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>brxm-discovery-hcm-site</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>brxm-discovery-webfiles</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- CRISP -->

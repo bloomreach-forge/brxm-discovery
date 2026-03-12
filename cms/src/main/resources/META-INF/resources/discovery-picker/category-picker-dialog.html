@@ -40,7 +40,7 @@
     "use strict";
 
     var ui            = null;
-    var configPath    = "";
+    var documentId    = "";
     var currentValue  = "";
     var categoriesAll = [];
 
@@ -57,7 +57,7 @@
     .then(function (opts) {
       var data = {};
       try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
-      configPath   = data.configPath   || "";
+      documentId   = data.documentId   || "";
       currentValue = data.currentValue || "";
       loadCategories();
       searchInput.focus();
@@ -87,13 +87,13 @@
 
     /* ---- Load (single fetch — all categories at once) ----------------- */
     function loadCategories() {
-      if (!configPath) {
-        setStatusEl(footer, "error", "No configPath configured on the uiExtension node.");
+      if (!documentId) {
+        setStatusEl(footer, "error", "No documentId available — cannot resolve Discovery config.");
         return;
       }
       setStatusEl(footer, "", "Loading\u2026", true);
 
-      var url = buildApiUrl(ui, "/discovery/picker/categories", { configPath: configPath });
+      var url = buildApiUrl(ui, "/discovery/picker/categories", { documentId: documentId });
       fetch(url, { credentials: "include" })
         .then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);

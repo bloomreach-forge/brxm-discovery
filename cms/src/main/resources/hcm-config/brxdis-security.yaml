@@ -1,0 +1,25 @@
+definitions:
+  config:
+    /hippo:configuration/hippo:domains/brxdis-config-readonly:
+      jcr:primaryType: hipposys:domain
+      /discoveryconfig-domain:
+        jcr:primaryType: hipposys:domainrule
+        /discoveryconfig-path:
+          jcr:primaryType: hipposys:facetrule
+          hipposys:equals: true
+          hipposys:facet: jcr:path
+          hipposys:type: Reference
+          hipposys:value: /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
+      /liveuser-readonly:
+        jcr:primaryType: hipposys:authrole
+        hipposys:role: readonly
+        hipposys:users:
+          #.meta:category: system
+          #.meta:add-new-system-values: true
+          type: string
+          value: [liveuser]
+        hipposys:groups:
+          #.meta:category: system
+          #.meta:add-new-system-values: true
+          type: string
+          value: []

@@ -1,5 +1,7 @@
 # Search and Category Pages
 
+> **New to the plugin?** See [00-quick-start.md](00-quick-start.md) for the end-to-end setup walkthrough — dependencies, bean scanning, credential setup, and a minimal working search page — before reading the detailed parameter reference here.
+
 ## Overview
 
 `DiscoverySearchComponent` and `DiscoveryCategoryComponent` call the Discovery Search / Category Browse API via CRISP. They expose data via:
@@ -10,7 +12,7 @@ Both components cache results on the underlying servlet request (`DiscoveryReque
 
 `DiscoverySearchComponent` also handles autosuggest inline — it calls the Autosuggest API when `suggestionsEnabled = true` and exposes `autosuggestResult` alongside the main search result. No separate autosuggest component is needed.
 
-Credentials are resolved from the `discoveryConfigPath` mount parameter — see [02-discovery-config.md](02-discovery-config.md).
+Credentials are resolved from the global `brxdis:discoveryConfig` JCR node — see [02-discovery-config.md](02-discovery-config.md).
 
 ---
 
@@ -192,24 +194,7 @@ When a view component (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent
 
 ## Plugin FTL templates
 
-The webfiles module ships ready-to-use Freemarker templates. Register them in `templates.yaml`:
-
-```yaml
-/brxdis-search:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
-/brxdis-category:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
-/brxdis-product-grid:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-grid.ftl
-/brxdis-facets:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-facets.ftl
-```
-
-Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
+All `brxdis-*` templates are bundled inside `brxm-discovery-site` and auto-registered under `hst:default` by the plugin's HCM config — no manual `templates.yaml` entries required. Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
 
 **Monolithic templates** (`brxdis-search.ftl`, `brxdis-category.ftl`): single component renders the full page — search form/bar, suggestion dropdown, facet sidebar, product grid, and pagination all in one template. Use for quick integration.
 
@@ -321,4 +306,4 @@ For headless delivery, a search page with composable components produces:
 
 ## Error handling
 
-`ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the `discoveryConfigPath` mount parameter is missing or the JCR document is absent, the plugin falls back to env/sys + coded defaults rather than failing.
+`ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the global JCR config node is absent, the plugin falls back to env/sys + coded defaults rather than failing.

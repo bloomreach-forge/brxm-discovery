@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 76 76">
+  <!-- Full card container -->
+  <rect x="1" y="1" width="74" height="74" fill="#ffd500"/>
+  <path d="M73.1,2.9V73.1H2.9V2.9H73.1 M75,1H1V75H75V1Z" fill="#002840"/>
+  <!-- Hero image area -->
+  <rect x="3" y="3" width="70" height="38" fill="#fff"/>
+  <!-- Product mountain/image placeholder -->
+  <path d="M13,39 L25,25 L33,32 L43,18 L57,39 Z" fill="#002840" opacity="0.2"/>
+  <circle cx="50" cy="22" r="4" fill="#002840" opacity="0.2"/>
+  <!-- Title line -->
+  <rect x="3" y="45" width="52" height="2.5" fill="#fff"/>
+  <!-- Description lines -->
+  <rect x="3" y="51" width="68" height="1.9" fill="#fff"/>
+  <rect x="3" y="55" width="50" height="1.9" fill="#fff"/>
+  <!-- Price -->
+  <rect x="3" y="61" width="22" height="2.5" fill="#fff"/>
+  <!-- CTA button -->
+  <rect x="3" y="66" width="70" height="7" rx="2" fill="#002840"/>
+</svg>

@@ -8,11 +8,12 @@
 /**
  * brxdis:discoveryConfig
  *
- * A Bloomreach Discovery API configuration document.
- * Create one instance per channel and reference it via the
- * "discoveryConfigPath" channel parameter.
+ * A Bloomreach Discovery API module config node (one per channel).
+ * Lives under /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig/channels/{channelId}.
+ * Referenced via the "discoveryConfigPath" mount parameter or channelinfo property.
+ * Uses nt:base (not hippo:document) so properties are freely settable outside the CMS content tree.
  */
-[brxdis:discoveryConfig] > hippo:document
+[brxdis:discoveryConfig] > nt:base
   orderable
   - brxdis:accountId        (String)
   - brxdis:domainKey        (String)

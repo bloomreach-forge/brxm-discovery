@@ -1,9 +1,6 @@
 /hst:hst/hst:configurations/demo/hst:workspace/hst:channel/hst:channelinfo:
   jcr:primaryType: hst:channelinfo
-  discoveryAccountId: '6413'
-  discoveryApiKeyEnvVar: BRXDIS_PACIFIC_HOME_API_KEY
-  discoveryAuthKeyEnvVar: BRXDIS_PACIFIC_HOME_AUTH_KEY
-  discoveryDomainKey: pacifichome
+  discoveryConfigPath: '/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig/channels/demo'
   discoveryPixelDebug: false
   discoveryPixelRegion: US
   discoveryPixelTestData: false

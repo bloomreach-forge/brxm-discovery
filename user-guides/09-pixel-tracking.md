@@ -95,14 +95,7 @@ If the channel has no `DiscoveryChannelInfo` configured at all, the env/system p
 
 ## Setting parameters without Channel Manager UI
 
-`discoveryConfigPath` is a mount-level parameter set in the HCM YAML. Pixel flags are managed by the typed `DiscoveryChannelInfo` interface and are stored by Channel Manager in the channel workspace — do not add them to `hst:parameternames`/`hst:parametervalues` manually, as that creates a second source of truth.
-
-```yaml
-/hst:root:
-  jcr:primaryType: hst:mount
-  hst:parameternames: [discoveryConfigPath]
-  hst:parametervalues: ['/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig']
-```
+Pixel flags are managed by the typed `DiscoveryChannelInfo` interface and are stored by Channel Manager in the channel workspace — do not add them to `hst:parameternames`/`hst:parametervalues` manually, as that creates a second source of truth.
 
 `hst:channelinfoclass` must be set on the `hst:channel` node (not the mount):
 
@@ -130,16 +123,15 @@ If the channel has no `DiscoveryChannelInfo` configured at all, the env/system p
   hst:channelinfoclass: org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo
 ```
 
-**`hst:hosts/hosts.yaml`** — only `discoveryConfigPath` belongs on the mount:
+**`hst:hosts/hosts.yaml`** — no Discovery-specific mount parameters are required:
 
 ```yaml
 /hst:root:
   jcr:primaryType: hst:mount
-  hst:parameternames: [discoveryConfigPath]
-  hst:parametervalues: ['/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig']
+  # No discoveryConfigPath needed — plugin reads from the global JCR config node
 ```
 
-Do not add the pixel parameters to `hst:parameternames`/`hst:parametervalues` — that creates a stale duplicate that Channel Manager cannot manage.
+Do not add pixel parameters to `hst:parameternames`/`hst:parametervalues` — that creates a stale duplicate that Channel Manager cannot manage.
 
 ### Case 2 — Existing ChannelInfo in your project
 

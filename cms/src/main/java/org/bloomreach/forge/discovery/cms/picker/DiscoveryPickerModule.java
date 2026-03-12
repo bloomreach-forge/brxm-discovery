@@ -4,7 +4,10 @@ import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import jakarta.ws.rs.InternalServerErrorException;
 import org.apache.cxf.jaxrs.JAXRSInvoker;
 import org.bloomreach.forge.discovery.cms.rest.DiscoveryPickerResource;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader;
+import org.bloomreach.forge.discovery.config.CachingDiscoveryConfigProvider;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigJcrListener;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigReader;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigResolver;
 import org.onehippo.repository.jaxrs.CXFRepositoryJaxrsEndpoint;
 import org.onehippo.repository.jaxrs.RepositoryJaxrsEndpoint;
 import org.onehippo.repository.jaxrs.RepositoryJaxrsService;
@@ -30,7 +33,7 @@ import java.util.function.Function;
  * once this module is bootstrapped via HCM config.
  *
  * <p>Bootstrap path:
- * {@code /hippo:configuration/hippo:modules/brxm-discovery-picker}
+ * {@code /hippo:configuration/hippo:modules/brxm-discovery}
  */
 public class DiscoveryPickerModule implements DaemonModule {
 
@@ -44,6 +47,7 @@ public class DiscoveryPickerModule implements DaemonModule {
 
     private final Function<String, String> envLookup;
     private HttpClient httpClient;
+    private DiscoveryConfigJcrListener configListener;
 
     public DiscoveryPickerModule() {
         this.envLookup = System::getenv;
@@ -94,8 +98,13 @@ public class DiscoveryPickerModule implements DaemonModule {
             }
         };
 
+        CachingDiscoveryConfigProvider configProvider =
+                new CachingDiscoveryConfigProvider(new DiscoveryConfigResolver(new DiscoveryConfigReader()));
+        configListener = new DiscoveryConfigJcrListener(configProvider);
+        configListener.start();
+
         DiscoveryPickerResource resource = new DiscoveryPickerResource(
-                session, new DiscoveryConfigReader(), httpGateway);
+                session, configProvider, httpGateway);
 
         RepositoryJaxrsEndpoint endpoint =
                 new CXFRepositoryJaxrsEndpoint(ENDPOINT_ADDRESS)
@@ -130,6 +139,10 @@ public class DiscoveryPickerModule implements DaemonModule {
     @Override
     public void shutdown() {
         RepositoryJaxrsService.removeEndpoint(ENDPOINT_ADDRESS);
+        if (configListener != null) {
+            configListener.close();
+            configListener = null;
+        }
         log.info("brxm-discovery: unregistered picker endpoint");
     }
 }

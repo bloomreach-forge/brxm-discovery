@@ -1,8 +1,8 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryDataSourceComponentInfo;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.PaginationModel;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.PaginationModel;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;

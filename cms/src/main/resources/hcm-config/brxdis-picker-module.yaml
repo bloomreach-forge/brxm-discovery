@@ -1,21 +1,7 @@
 definitions:
   config:
-    /hippo:configuration/hippo:modules/brxm-discovery-picker:
+    /hippo:configuration/hippo:modules/brxm-discovery:
       jcr:primaryType: hipposys:module
       hipposys:className: 'org.bloomreach.forge.discovery.cms.picker.DiscoveryPickerModule'
       /hippo:moduleconfig:
         jcr:primaryType: nt:unstructured
-        /discoveryConfig:
-          jcr:primaryType: nt:unstructured
-          brxdis:accountId: ''
-          brxdis:domainKey: ''
-          brxdis:apiKey: ''
-          brxdis:authKey: ''
-          brxdis:baseUri: 'https://core.dxpapi.com'
-          brxdis:pathwaysBaseUri: 'https://pathways.dxpapi.com'
-          brxdis:environment: 'PRODUCTION'
-          brxdis:searchBasePath: '/api/v1/core'
-          brxdis:categoryBasePath: '/api/v1/core'
-          brxdis:recsBasePath: '/api/v2/widgets'
-          brxdis:defaultPageSize: 12
-          brxdis:defaultSort: ''
