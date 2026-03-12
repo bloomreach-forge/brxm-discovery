@@ -6,9 +6,9 @@
   without requiring JCR access (necessary in Cargo/dev where per-webapp classloaders
   prevent sharing the CMS-side broker via HippoServiceRegistry).
 
-  These definitions mirror the base-URI values in cms/hcm-config/brxdis-crisp.yaml.
-  Repository-backed resolver nodes are platform-scoped for shared-broker/CMS use;
-  these beans cover delivery-tier resolution inside the site webapp.
+  Repository-backed resolver nodes are platform-scoped for shared-broker/CMS use.
+  These beans cover delivery-tier resolution inside the site webapp and read the
+  active Discovery base URIs from the shared config provider at request time.
 
   Bean IDs must match the resource-space names used in DiscoveryClientImpl.
 -->
@@ -22,32 +22,35 @@
     The broker's resolver provider can look these up by bean id on demand, so keep them lazy.
     Using CRISP's abstract parent bean preserves the shared HTTP client setup; cache is disabled
     explicitly because Discovery request paths carry request-specific query params and do not reuse entries.
+    Search/pathways/autosuggest now use one generic resource space each and derive the active base URI
+    from the resolved Discovery settings instead of duplicating production and staging beans.
   -->
-
-  <!-- Production -->
 
   <bean id="discoverySearchAPI"
         parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
+        class="org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
-    <property name="baseUri" value="https://core.dxpapi.com"/>
+    <property name="configProvider" ref="brxmdis.configProvider"/>
+    <property name="api" value="search"/>
   </bean>
 
   <bean id="discoveryPathwaysAPI"
         parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
+        class="org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
-    <property name="baseUri" value="https://pathways.dxpapi.com"/>
+    <property name="configProvider" ref="brxmdis.configProvider"/>
+    <property name="api" value="pathways"/>
   </bean>
 
   <bean id="discoveryAutosuggestAPI"
         parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
+        class="org.bloomreach.forge.discovery.site.service.discovery.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
-    <property name="baseUri" value="https://suggest.dxpapi.com"/>
+    <property name="configProvider" ref="brxmdis.configProvider"/>
+    <property name="api" value="autosuggest"/>
   </bean>
 
   <bean id="discoveryPixelAPI"
@@ -64,32 +67,6 @@
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
     <property name="baseUri" value="https://p-eu.brsrvr.com"/>
-  </bean>
-
-  <!-- Staging -->
-
-  <bean id="discoverySearchAPIStaging"
-        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
-        lazy-init="true">
-    <property name="cacheEnabled" value="false"/>
-    <property name="baseUri" value="https://staging-core.dxpapi.com"/>
-  </bean>
-
-  <bean id="discoveryPathwaysAPIStaging"
-        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
-        lazy-init="true">
-    <property name="cacheEnabled" value="false"/>
-    <property name="baseUri" value="https://staging-pathways.dxpapi.com"/>
-  </bean>
-
-  <bean id="discoveryAutosuggestAPIStaging"
-        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
-        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
-        lazy-init="true">
-    <property name="cacheEnabled" value="false"/>
-    <property name="baseUri" value="https://staging-suggest.dxpapi.com"/>
   </bean>
 
 </beans>

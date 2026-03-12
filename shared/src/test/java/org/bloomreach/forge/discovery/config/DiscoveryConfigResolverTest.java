@@ -35,7 +35,7 @@ class DiscoveryConfigResolverTest {
         resolver = new DiscoveryConfigResolver(configReader);
         validConfig = new DiscoveryConfig(
                 "acct", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 10, "");
     }
 
@@ -70,7 +70,7 @@ class DiscoveryConfigResolverTest {
     void applyEnvSysCredentials_envHasApiKey_overridesBaseBlank() {
         DiscoveryConfig base = new DiscoveryConfig(
                 "acct", "domain", null, null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
         DiscoveryCredentials envCreds = new DiscoveryCredentials(
                 null, null, "env-api-key", null, null);
         when(configReader.credentialsFromEnvSysOnly()).thenReturn(envCreds);
@@ -86,7 +86,7 @@ class DiscoveryConfigResolverTest {
     void applyEnvSysCredentials_structuralAlwaysFromBase() {
         DiscoveryConfig base = new DiscoveryConfig(
                 "acct", "domain", "key", null,
-                "https://custom.api.com", "https://custom-pathways.com", "STAGING", 20, "price asc");
+                "https://custom.api.com", "https://custom-pathways.com", "https://custom-suggest.com", "STAGING", 20, "price asc");
         when(configReader.credentialsFromEnvSysOnly()).thenReturn(new DiscoveryCredentials(
                 null, null, null, null, null));
 
@@ -94,6 +94,7 @@ class DiscoveryConfigResolverTest {
 
         assertEquals("https://custom.api.com", result.baseUri());
         assertEquals("https://custom-pathways.com", result.pathwaysBaseUri());
+        assertEquals("https://custom-suggest.com", result.autosuggestBaseUri());
         assertEquals(20, result.defaultPageSize());
         assertEquals("price asc", result.defaultSort());
     }

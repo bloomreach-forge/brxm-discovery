@@ -3,7 +3,6 @@ package org.bloomreach.forge.discovery.cms.rest;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerCategoryDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
-import org.bloomreach.forge.discovery.config.ConfigDefaults;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,8 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.List;
 import java.util.function.Function;
@@ -31,7 +28,6 @@ class DiscoveryPickerResourceTest {
 
     DiscoveryPickerResource resource;
 
-    static final String CONFIG_PATH = ConfigDefaults.CONFIG_NODE_PATH;
     static final String BASE_URI = "https://core.dxpapi.com";
 
     static final String ONE_RESULT_JSON = """
@@ -46,7 +42,7 @@ class DiscoveryPickerResourceTest {
     DiscoveryConfig dummyConfig() {
         return new DiscoveryConfig(
                 "acc1", "domain1", "key1", null,
-                BASE_URI, "https://pathways.dxpapi.com", "PRODUCTION",
+                BASE_URI, "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 12, "");
     }
 
@@ -241,7 +237,8 @@ class DiscoveryPickerResourceTest {
         verify(httpGateway).apply(argThat(url ->
                 url.contains("/api/v1/merchant/widgets")
                 && url.contains("account_id=acc1")
-                && url.contains("domain_key=domain1")));
+                && url.contains("domain_key=domain1")
+                && url.contains("auth_key=key1")));
     }
 
     @Test

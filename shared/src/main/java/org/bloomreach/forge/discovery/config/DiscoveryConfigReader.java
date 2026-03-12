@@ -24,10 +24,6 @@ public class DiscoveryConfigReader {
             ConfigDefaults.AUTH_KEY_ENV, ConfigDefaults.AUTH_KEY_SYS, ConfigDefaults.AUTH_KEY_JCR);
     private static final CredentialSource ENVIRONMENT = new CredentialSource(
             ConfigDefaults.ENVIRONMENT_ENV, ConfigDefaults.ENVIRONMENT_SYS, ConfigDefaults.ENVIRONMENT_JCR);
-    private static final StringSetting BASE_URI = new StringSetting(
-            ConfigDefaults.BASE_URI_JCR, ConfigDefaults.BASE_URI);
-    private static final StringSetting PATHWAYS_BASE_URI = new StringSetting(
-            ConfigDefaults.PATHWAYS_BASE_URI_JCR, ConfigDefaults.PATHWAYS_BASE_URI);
     private static final IntSetting DEFAULT_PAGE_SIZE = new IntSetting(
             ConfigDefaults.DEFAULT_PAGE_SIZE_JCR, ConfigDefaults.DEFAULT_PAGE_SIZE);
     private static final StringSetting DEFAULT_SORT = new StringSetting(
@@ -66,7 +62,8 @@ public class DiscoveryConfigReader {
     }
 
     DiscoveryConfig readFromNode(Optional<Node> node) throws RepositoryException {
-        return DiscoveryConfig.of(readCredentials(node), readSettings(node));
+        DiscoveryCredentials credentials = readCredentials(node);
+        return DiscoveryConfig.of(credentials, readSettings(node, credentials.environment()));
     }
 
     /**
@@ -106,7 +103,7 @@ public class DiscoveryConfigReader {
      * No JCR, no coded defaults — structural fields are always {@code null}/{@code 0}.
      */
     public DiscoveryConfig credentialsFromEnvSys() {
-        return DiscoveryConfig.of(credentialsFromEnvSysOnly(), new DiscoverySettings(null, null, 0, null));
+        return DiscoveryConfig.of(credentialsFromEnvSysOnly(), new DiscoverySettings(null, null, null, 0, null));
     }
 
     public DiscoveryCredentials credentialsFromEnvSysOnly() {
@@ -168,13 +165,30 @@ public class DiscoveryConfigReader {
         );
     }
 
-    private DiscoverySettings readSettings(Optional<Node> node) throws RepositoryException {
+    private DiscoverySettings readSettings(Optional<Node> node, String environment) throws RepositoryException {
         return new DiscoverySettings(
-                structural(node, BASE_URI),
-                structural(node, PATHWAYS_BASE_URI),
+                structural(node, ConfigDefaults.BASE_URI_JCR, defaultBaseUri(environment)),
+                structural(node, ConfigDefaults.PATHWAYS_BASE_URI_JCR, defaultPathwaysBaseUri(environment)),
+                structural(node, ConfigDefaults.AUTOSUGGEST_BASE_URI_JCR, defaultAutosuggestBaseUri(environment)),
                 structuralInt(node, DEFAULT_PAGE_SIZE),
                 structural(node, DEFAULT_SORT)
         );
+    }
+
+    static String defaultBaseUri(String environment) {
+        return isStaging(environment) ? ConfigDefaults.STAGING_BASE_URI : ConfigDefaults.BASE_URI;
+    }
+
+    static String defaultPathwaysBaseUri(String environment) {
+        return isStaging(environment) ? ConfigDefaults.STAGING_PATHWAYS_BASE_URI : ConfigDefaults.PATHWAYS_BASE_URI;
+    }
+
+    static String defaultAutosuggestBaseUri(String environment) {
+        return isStaging(environment) ? ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI : ConfigDefaults.AUTOSUGGEST_BASE_URI;
+    }
+
+    private static boolean isStaging(String environment) {
+        return ConfigDefaults.STAGING_ENVIRONMENT.equalsIgnoreCase(environment);
     }
 
     record CredentialSource(String envVar, String sysProp, String jcrProp) { }

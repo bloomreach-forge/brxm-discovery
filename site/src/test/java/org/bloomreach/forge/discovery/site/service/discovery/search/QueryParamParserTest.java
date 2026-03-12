@@ -18,7 +18,7 @@ class QueryParamParserTest {
 
     @BeforeEach
     void setUp() {
-        settings = new DiscoverySettings("https://core.dxpapi.com", "https://pathways.dxpapi.com", 12, "relevance");
+        settings = new DiscoverySettings("https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", 12, "relevance");
     }
 
     // --- toSearchQuery ---

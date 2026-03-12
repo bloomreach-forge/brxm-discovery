@@ -113,12 +113,13 @@
       brxdis:displayName: Wine
       brxdis:productId: '21557'
       hippo:availability: []
+      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-12T21:56:29.593Z
+      hippostdpubwf:lastModificationDate: 2026-03-12T22:12:00.314Z
       hippostdpubwf:lastModifiedBy: admin
     /product[2]:
       jcr:primaryType: brxdis:productDetailDocument

@@ -22,15 +22,13 @@ import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
-import org.bloomreach.forge.discovery.request.DiscoveryCoreRequestFactory;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
 import org.bloomreach.forge.discovery.request.DiscoveryRequestSpec;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
 import javax.jcr.Session;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -60,9 +58,8 @@ import java.util.function.Function;
 public class DiscoveryPickerResource {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String WIDGETS_PATH = "/api/v1/merchant/widgets";
     private static final int MAX_PAGE_SIZE = 100;
-    private static final DiscoveryCoreRequestFactory CORE_REQUEST_FACTORY = new DiscoveryCoreRequestFactory();
+    private static final DiscoveryRequestFactory REQUEST_FACTORY = new DiscoveryRequestFactory();
 
     // CXF injects a per-request proxy into this field even though the resource is a singleton.
     @Context
@@ -92,7 +89,7 @@ public class DiscoveryPickerResource {
         DiscoveryCredentials credentials = config.credentials();
         DiscoverySettings settings = config.settings();
         SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), Map.of(), brUid2(), null, requestUrl());
-        String url = buildCoreUrl(settings, CORE_REQUEST_FACTORY.search(query, credentials));
+        String url = buildAbsoluteUrl(settings, REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return parseSearchResponse(json, page, safePageSize);
     }
@@ -124,7 +121,7 @@ public class DiscoveryPickerResource {
         // fq=pid:"id1"&fq=pid:"id2" — multiple values produce OR within same field
         SearchQuery query = new SearchQuery("*", 0, pidList.size(), null,
                 Map.of("pid", pidList), brUid2(), null, requestUrl());
-        String url = buildCoreUrl(config.settings(), CORE_REQUEST_FACTORY.search(query, credentials));
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return parseSearchResponse(json, 0, pidList.size());
     }
@@ -137,7 +134,7 @@ public class DiscoveryPickerResource {
     @Produces(MediaType.APPLICATION_JSON)
     public List<PickerWidgetDto> listWidgets() {
         DiscoveryConfig config = resolveConfig();
-        String url = buildWidgetsUrl(config.settings(), config.credentials());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.merchantWidgets(config.credentials()));
         String json = httpGateway.apply(url);
         return parseWidgetsResponse(json);
     }
@@ -153,12 +150,12 @@ public class DiscoveryPickerResource {
     public List<PickerCategoryDto> categories() {
         DiscoveryConfig config = resolveConfig();
         CategoryQuery query = new CategoryQuery("", 0, 0, null, Map.of(), brUid2(), null, requestUrl());
-        String url = buildCoreUrl(config.settings(), CORE_REQUEST_FACTORY.category(query, config.credentials()));
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
         return parseCategoryMapResponse(json);
     }
 
-    private static String buildCoreUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {
+    private static String buildAbsoluteUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {
         UriBuilder builder = UriBuilder.fromUri(settings.baseUri()).path(request.path());
         request.forEachQueryParameter((name, value) -> builder.queryParam(name, value));
         return builder.build().toString();
@@ -229,17 +226,6 @@ public class DiscoveryPickerResource {
         }
     }
 
-    private String buildWidgetsUrl(DiscoverySettings settings, DiscoveryCredentials credentials) {
-        StringBuilder sb = new StringBuilder(settings.baseUri())
-                .append(WIDGETS_PATH)
-                .append("?account_id=").append(encode(credentials.accountId()))
-                .append("&domain_key=").append(encode(credentials.domainKey()));
-        if (credentials.authKey() != null && !credentials.authKey().isBlank()) {
-            sb.append("&auth_key=").append(encode(credentials.authKey()));
-        }
-        return sb.toString();
-    }
-
     private static List<PickerWidgetDto> parseWidgetsResponse(String json) {
         try {
             JsonNode root = MAPPER.readTree(json);
@@ -275,7 +261,4 @@ public class DiscoveryPickerResource {
         }
     }
 
-    private static String encode(String value) {
-        return value == null ? "" : URLEncoder.encode(value, StandardCharsets.UTF_8);
-    }
 }

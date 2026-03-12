@@ -10,7 +10,7 @@ class DiscoveryConfigTest {
     void credentials_returnsCredentialView() {
         DiscoveryConfig config = new DiscoveryConfig(
                 "acct", "domain", "api", "auth",
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 12, "price asc");
 
         DiscoveryCredentials credentials = config.credentials();
@@ -26,13 +26,14 @@ class DiscoveryConfigTest {
     void settings_returnsSettingsView() {
         DiscoveryConfig config = new DiscoveryConfig(
                 "acct", "domain", "api", "auth",
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 12, "price asc");
 
         DiscoverySettings settings = config.settings();
 
         assertEquals("https://core.dxpapi.com", settings.baseUri());
         assertEquals("https://pathways.dxpapi.com", settings.pathwaysBaseUri());
+        assertEquals("https://suggest.dxpapi.com", settings.autosuggestBaseUri());
         assertEquals(12, settings.defaultPageSize());
         assertEquals("price asc", settings.defaultSort());
     }
@@ -41,7 +42,7 @@ class DiscoveryConfigTest {
     void withCredentialOverrides_prefersNonBlankCredentialValues() {
         DiscoveryConfig base = new DiscoveryConfig(
                 "acct", "domain", "jcr-api", "jcr-auth",
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 12, "price asc");
         DiscoveryConfig overrides = DiscoveryConfig.credentialsOnly(
                 null, null, "env-api", "env-auth", "STAGING");
@@ -55,6 +56,7 @@ class DiscoveryConfigTest {
         assertEquals("STAGING", result.environment());
         assertEquals("https://core.dxpapi.com", result.baseUri());
         assertEquals("https://pathways.dxpapi.com", result.pathwaysBaseUri());
+        assertEquals("https://suggest.dxpapi.com", result.autosuggestBaseUri());
         assertEquals(12, result.defaultPageSize());
         assertEquals("price asc", result.defaultSort());
     }
@@ -63,7 +65,7 @@ class DiscoveryConfigTest {
     void withCredentialOverrides_keepsBaseValuesWhenOverrideIsBlank() {
         DiscoveryConfig base = new DiscoveryConfig(
                 "acct", "domain", "jcr-api", "jcr-auth",
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 12, "price asc");
         DiscoveryConfig overrides = DiscoveryConfig.credentialsOnly(
                 "", "  ", null, "", "");

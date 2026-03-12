@@ -35,7 +35,7 @@ class CachingDiscoveryConfigProviderTest {
         provider = new CachingDiscoveryConfigProvider(resolver);
         validConfig = new DiscoveryConfig(
                 "acct", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 10, "");
         lenient().when(resolver.applyEnvSysCredentials(any())).thenAnswer(returnsFirstArg());
     }
@@ -94,10 +94,10 @@ class CachingDiscoveryConfigProviderTest {
     void get_envVarUpdatedAfterCachePopulated_newValueReflected() {
         DiscoveryConfig cachedBase = new DiscoveryConfig(
                 "acct", "domain", null, null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
         DiscoveryConfig withEnvCreds = new DiscoveryConfig(
                 "acct", "domain", "env-api-key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
         when(resolver.resolve(session)).thenReturn(cachedBase);
         when(resolver.applyEnvSysCredentials(cachedBase)).thenReturn(withEnvCreds);
 

@@ -39,6 +39,7 @@ class DiscoveryConfigReaderTest {
         assertEquals("auth-key-123", config.authKey());
         assertEquals("https://core.dxpapi.com", config.baseUri());
         assertEquals("https://pathways.dxpapi.com", config.pathwaysBaseUri());
+        assertEquals("https://suggest.dxpapi.com", config.autosuggestBaseUri());
         assertEquals("PRODUCTION", config.environment());
         assertEquals(20, config.defaultPageSize());
         assertEquals("price asc", config.defaultSort());
@@ -181,6 +182,7 @@ class DiscoveryConfigReaderTest {
             assertNull(config.authKey());
             assertEquals(ConfigDefaults.BASE_URI, config.baseUri());
             assertEquals(ConfigDefaults.PATHWAYS_BASE_URI, config.pathwaysBaseUri());
+            assertEquals(ConfigDefaults.AUTOSUGGEST_BASE_URI, config.autosuggestBaseUri());
             assertEquals(ConfigDefaults.ENVIRONMENT, config.environment());
             assertEquals(ConfigDefaults.DEFAULT_PAGE_SIZE, config.defaultPageSize());
             assertEquals(ConfigDefaults.DEFAULT_SORT, config.defaultSort());
@@ -198,6 +200,35 @@ class DiscoveryConfigReaderTest {
         assertNull(config.domainKey());
         assertNull(config.apiKey());
         assertEquals(ConfigDefaults.BASE_URI, config.baseUri());
+        assertEquals(ConfigDefaults.AUTOSUGGEST_BASE_URI, config.autosuggestBaseUri());
+    }
+
+    @Test
+    void readWithDefaults_stagingEnvironment_usesStagingBaseUriDefaults() {
+        System.setProperty(ConfigDefaults.ENVIRONMENT_SYS, ConfigDefaults.STAGING_ENVIRONMENT);
+        try {
+            DiscoveryConfig config = reader.readWithDefaults();
+            assertEquals(ConfigDefaults.STAGING_BASE_URI, config.baseUri());
+            assertEquals(ConfigDefaults.STAGING_PATHWAYS_BASE_URI, config.pathwaysBaseUri());
+            assertEquals(ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, config.autosuggestBaseUri());
+            assertEquals(ConfigDefaults.STAGING_ENVIRONMENT, config.environment());
+        } finally {
+            System.clearProperty(ConfigDefaults.ENVIRONMENT_SYS);
+        }
+    }
+
+    @Test
+    void read_stagingEnvironmentWithoutExplicitUris_usesStagingDefaults() throws RepositoryException {
+        stubJcrProperty(ConfigDefaults.ENVIRONMENT_JCR, ConfigDefaults.STAGING_ENVIRONMENT);
+        lenient().when(configNode.hasProperty(ConfigDefaults.BASE_URI_JCR)).thenReturn(false);
+        lenient().when(configNode.hasProperty(ConfigDefaults.PATHWAYS_BASE_URI_JCR)).thenReturn(false);
+        lenient().when(configNode.hasProperty(ConfigDefaults.AUTOSUGGEST_BASE_URI_JCR)).thenReturn(false);
+
+        DiscoveryConfig config = reader.read(configNode);
+
+        assertEquals(ConfigDefaults.STAGING_BASE_URI, config.baseUri());
+        assertEquals(ConfigDefaults.STAGING_PATHWAYS_BASE_URI, config.pathwaysBaseUri());
+        assertEquals(ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, config.autosuggestBaseUri());
     }
 
     // --- credentialsFromEnvSys ---
@@ -235,6 +266,7 @@ class DiscoveryConfigReaderTest {
         assertNull(result.environment());
         assertNull(result.baseUri());
         assertNull(result.pathwaysBaseUri());
+        assertNull(result.autosuggestBaseUri());
         assertEquals(0, result.defaultPageSize());
         assertNull(result.defaultSort());
     }
@@ -249,6 +281,7 @@ class DiscoveryConfigReaderTest {
         assertEquals("auth-key-123", config.authKey());
         assertEquals("https://core.dxpapi.com", config.baseUri());
         assertEquals("https://pathways.dxpapi.com", config.pathwaysBaseUri());
+        assertEquals("https://suggest.dxpapi.com", config.autosuggestBaseUri());
         assertEquals("PRODUCTION", config.environment());
         assertEquals(20, config.defaultPageSize());
         assertEquals("price asc", config.defaultSort());
@@ -271,6 +304,7 @@ class DiscoveryConfigReaderTest {
         stubJcrProperty("brxdis:environment", "PRODUCTION");
         stubJcrProperty("brxdis:baseUri", "https://core.dxpapi.com");
         stubJcrProperty("brxdis:pathwaysBaseUri", "https://pathways.dxpapi.com");
+        stubJcrProperty("brxdis:autosuggestBaseUri", "https://suggest.dxpapi.com");
 
         Property pageSizeProp = mock(Property.class);
         lenient().when(configNode.hasProperty("brxdis:defaultPageSize")).thenReturn(true);

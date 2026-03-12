@@ -7,6 +7,7 @@ public record DiscoveryConfig(
         String authKey,
         String baseUri,
         String pathwaysBaseUri,
+        String autosuggestBaseUri,
         String environment,
         int defaultPageSize,
         String defaultSort
@@ -19,6 +20,7 @@ public record DiscoveryConfig(
                 credentials.authKey(),
                 settings.baseUri(),
                 settings.pathwaysBaseUri(),
+                settings.autosuggestBaseUri(),
                 credentials.environment(),
                 settings.defaultPageSize(),
                 settings.defaultSort()
@@ -29,7 +31,7 @@ public record DiscoveryConfig(
                                                   String apiKey, String authKey,
                                                   String environment) {
         return new DiscoveryConfig(accountId, domainKey, apiKey, authKey,
-                null, null, environment, 0, null);
+                null, null, null, environment, 0, null);
     }
 
     public DiscoveryCredentials credentials() {
@@ -37,7 +39,7 @@ public record DiscoveryConfig(
     }
 
     public DiscoverySettings settings() {
-        return new DiscoverySettings(baseUri, pathwaysBaseUri, defaultPageSize, defaultSort);
+        return new DiscoverySettings(baseUri, pathwaysBaseUri, autosuggestBaseUri, defaultPageSize, defaultSort);
     }
 
     public DiscoveryConfig withCredentials(DiscoveryCredentials credentials) {

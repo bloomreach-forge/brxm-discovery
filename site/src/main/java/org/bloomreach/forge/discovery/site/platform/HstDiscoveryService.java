@@ -2,16 +2,15 @@ package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
-import org.bloomreach.forge.discovery.exception.ConfigurationException;
-import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
+import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamParser;
 import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
@@ -25,12 +24,11 @@ import org.bloomreach.forge.discovery.site.service.discovery.sor.SoREnrichmentPr
 import org.hippoecm.hst.configuration.hosting.Mount;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import jakarta.servlet.http.Cookie;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.web.util.UriComponentsBuilder;
 
-import jakarta.servlet.http.Cookie;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.List;
@@ -38,7 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl.toV2WidgetType;
+import static org.bloomreach.forge.discovery.request.DiscoveryRequestFactory.toV2WidgetType;
 
 /**
  * HST-aware façade that absorbs config resolution, query building, and request-cache logic.

@@ -4,8 +4,8 @@ import org.bloomreach.forge.discovery.exception.RecommendationException;
 import org.bloomreach.forge.discovery.exception.SearchException;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHintBuilder;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
@@ -836,31 +836,31 @@ class DiscoveryClientTest {
         assertTrue(headers.containsKey("Content-Type"));
     }
 
-    // --- staging routing ---
+    // --- environment-agnostic CRISP spaces ---
 
     @Test
-    void search_stagingConfig_usesSearchStagingResourceSpace() throws ResourceException {
+    void search_stagingConfig_stillUsesGenericSearchResourceSpace() throws ResourceException {
         var stagingCredentials = new DiscoveryCredentials("acct123", "myDomain", "secret-key", null, "STAGING");
         var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         var expectedResponse = new SearchResponse(new SearchResult(List.of(), 0L, 0, 10, Map.of()), SearchMetadata.empty());
-        when(broker.resolve(eq("discoverySearchAPIStaging"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
+        when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
 
         client.search(query, stagingCredentials, ClientContext.EMPTY);
 
-        verify(broker).resolve(eq("discoverySearchAPIStaging"), anyString(), any(ExchangeHint.class));
+        verify(broker).resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class));
     }
 
     @Test
-    void recommendV2_stagingConfig_usesPathwaysStagingResourceSpace() throws ResourceException {
+    void recommendV2_stagingConfig_stillUsesGenericPathwaysResourceSpace() throws ResourceException {
         var stagingV2Credentials = new DiscoveryCredentials("acct123", "myDomain", "secret-key", "my-auth-key", "STAGING");
         var query = new RecQuery("w-1", null, null, 8);
         var expectedResult = RecommendationResult.of(List.of());
-        when(broker.resolve(eq("discoveryPathwaysAPIStaging"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
+        when(broker.resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(expectedResult);
 
         client.recommend(query, stagingV2Credentials, ClientContext.EMPTY);
 
-        verify(broker).resolve(eq("discoveryPathwaysAPIStaging"), anyString(), any(ExchangeHint.class));
+        verify(broker).resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class));
     }
 }

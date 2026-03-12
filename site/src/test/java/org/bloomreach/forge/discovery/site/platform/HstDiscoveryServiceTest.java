@@ -9,7 +9,7 @@ import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
 import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
@@ -68,7 +68,7 @@ class HstDiscoveryServiceTest {
 
         validConfig = new DiscoveryConfig(
                 "acct", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 10, "");
         validCredentials = validConfig.credentials();
 
@@ -335,7 +335,7 @@ class HstDiscoveryServiceTest {
     void configFor_blankAccountId_throwsConfigurationException() {
         DiscoveryConfig noCredentials = new DiscoveryConfig(
                 null, null, null, null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
         when(configProvider.get(nullable(Session.class))).thenReturn(noCredentials);
 
         assertThrows(ConfigurationException.class, () -> service.search(request));

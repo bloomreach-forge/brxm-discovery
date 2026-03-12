@@ -1,13 +1,15 @@
 package org.bloomreach.forge.discovery.cms.picker;
 
 import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
-import jakarta.ws.rs.InternalServerErrorException;
 import org.apache.cxf.jaxrs.JAXRSInvoker;
+import org.bloomreach.forge.discovery.cms.rest.DiscoveryHttpGateway;
 import org.bloomreach.forge.discovery.cms.rest.DiscoveryPickerResource;
 import org.bloomreach.forge.discovery.config.CachingDiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigJcrListener;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigReader;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigResolver;
+import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
 import org.onehippo.repository.jaxrs.CXFRepositoryJaxrsEndpoint;
 import org.onehippo.repository.jaxrs.RepositoryJaxrsEndpoint;
 import org.onehippo.repository.jaxrs.RepositoryJaxrsService;
@@ -15,13 +17,10 @@ import org.onehippo.repository.modules.DaemonModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.function.Function;
 
@@ -40,6 +39,15 @@ public class DiscoveryPickerModule implements DaemonModule {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPickerModule.class);
 
     static final String ENDPOINT_ADDRESS = "/discovery/picker";
+    static final String SEARCH_CRISP_NODE =
+            "/hippo:configuration/hippo:modules/crispregistry/" +
+            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoverySearchAPI";
+    static final String PATHWAYS_CRISP_NODE =
+            "/hippo:configuration/hippo:modules/crispregistry/" +
+            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryPathwaysAPI";
+    static final String AUTOSUGGEST_CRISP_NODE =
+            "/hippo:configuration/hippo:modules/crispregistry/" +
+            "hippo:moduleconfig/crisp:resourceresolvercontainer/discoveryAutosuggestAPI";
 
     private static final String PIXEL_CRISP_NODE =
             "/hippo:configuration/hippo:modules/crispregistry/" +
@@ -60,46 +68,17 @@ public class DiscoveryPickerModule implements DaemonModule {
 
     @Override
     public void initialize(Session session) throws RepositoryException {
-        applyPixelBaseUriOverride(session);
+        DiscoveryConfigResolver configResolver = new DiscoveryConfigResolver(new DiscoveryConfigReader());
+        applyCrispBaseUriOverrides(session, configResolver.resolve(session));
 
         httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
 
-        Function<String, String> httpGateway = url -> {
-            log.debug("brxm-discovery picker → GET {}", url);
-            try {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .timeout(Duration.ofSeconds(10))
-                        .header("Accept", "application/json")
-                        .GET()
-                        .build();
-                HttpResponse<String> response =
-                        httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    log.error("brxm-discovery picker ← HTTP {} for URL: {}\nResponse body: {}",
-                            response.statusCode(), url, response.body());
-                    throw new InternalServerErrorException(
-                            "Discovery API returned HTTP " + response.statusCode());
-                }
-                log.debug("brxm-discovery picker ← HTTP {} ({} bytes)", response.statusCode(),
-                        response.body().length());
-                return response.body();
-            } catch (InternalServerErrorException e) {
-                throw e;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new InternalServerErrorException("Discovery API request interrupted");
-            } catch (IOException e) {
-                log.error("brxm-discovery picker request failed for URL: {}", url, e);
-                throw new InternalServerErrorException(
-                        "Discovery API request failed: " + e.getMessage());
-            }
-        };
+        Function<String, String> httpGateway = new DiscoveryHttpGateway(httpClient);
 
         CachingDiscoveryConfigProvider configProvider =
-                new CachingDiscoveryConfigProvider(new DiscoveryConfigResolver(new DiscoveryConfigReader()));
+                new CachingDiscoveryConfigProvider(configResolver);
         configListener = new DiscoveryConfigJcrListener(configProvider);
         configListener.start();
 
@@ -116,23 +95,61 @@ public class DiscoveryPickerModule implements DaemonModule {
         log.info("brxm-discovery: registered picker endpoint at {}", ENDPOINT_ADDRESS);
     }
 
-    void applyPixelBaseUriOverride(Session session) {
+    void applyCrispBaseUriOverrides(Session session, DiscoveryConfig config) {
+        DiscoverySettings settings = config.settings();
+        boolean changed = false;
+        changed |= updateCrispBaseUri(session, SEARCH_CRISP_NODE, settings.baseUri(), "search");
+        changed |= updateCrispBaseUri(session, PATHWAYS_CRISP_NODE, settings.pathwaysBaseUri(), "pathways");
+        changed |= updateCrispBaseUri(session, AUTOSUGGEST_CRISP_NODE, settings.autosuggestBaseUri(), "autosuggest");
+        changed |= applyPixelBaseUriOverride(session);
+        if (changed) {
+            try {
+                session.save();
+            } catch (RepositoryException e) {
+                log.warn("brxm-discovery: failed to persist CRISP base URI overrides", e);
+            }
+        }
+    }
+
+    private boolean updateCrispBaseUri(Session session, String nodePath, String baseUri, String label) {
+        if (baseUri == null || baseUri.isBlank()) {
+            return false;
+        }
+        try {
+            if (!session.nodeExists(nodePath)) {
+                log.warn("brxm-discovery: {} CRISP node not found — base URI sync skipped", label);
+                return false;
+            }
+            Node node = session.getNode(nodePath);
+            node.setProperty("crisp:propvalues", new String[]{baseUri});
+            log.info("brxm-discovery: {} CRISP base URI set to {}", label, baseUri);
+            return true;
+        } catch (RepositoryException e) {
+            log.warn("brxm-discovery: failed to sync {} CRISP base URI", label, e);
+            return false;
+        }
+    }
+
+    boolean applyPixelBaseUriOverride(Session session) {
         String override = envLookup.apply("BRXDIS_PIXEL_BASEURI");
         if (override == null || override.isBlank()) {
             override = System.getProperty("brxdis.pixelBaseUri");
         }
-        if (override == null || override.isBlank()) return;
+        if (override == null || override.isBlank()) {
+            return false;
+        }
 
         try {
             if (!session.nodeExists(PIXEL_CRISP_NODE)) {
                 log.warn("brxm-discovery: discoveryPixelAPI CRISP node not found — pixel base URI override skipped");
-                return;
+                return false;
             }
             session.getNode(PIXEL_CRISP_NODE).setProperty("crisp:propvalues", new String[]{override});
-            session.save();
             log.info("brxm-discovery: pixel base URI set to {} (env/sys override)", override);
+            return true;
         } catch (RepositoryException e) {
             log.warn("brxm-discovery: failed to apply pixel base URI override", e);
+            return false;
         }
     }
 

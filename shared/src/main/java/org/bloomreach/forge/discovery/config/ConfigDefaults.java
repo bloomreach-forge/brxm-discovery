@@ -18,6 +18,7 @@ public final class ConfigDefaults {
     public static final String ENVIRONMENT_JCR = "brxdis:environment";
     public static final String BASE_URI_JCR = "brxdis:baseUri";
     public static final String PATHWAYS_BASE_URI_JCR = "brxdis:pathwaysBaseUri";
+    public static final String AUTOSUGGEST_BASE_URI_JCR = "brxdis:autosuggestBaseUri";
     public static final String DEFAULT_PAGE_SIZE_JCR = "brxdis:defaultPageSize";
     public static final String DEFAULT_SORT_JCR = "brxdis:defaultSort";
 
@@ -34,7 +35,11 @@ public final class ConfigDefaults {
     public static final String ENVIRONMENT_ENV = "BRXDIS_ENVIRONMENT";
 
     public static final String BASE_URI = "https://core.dxpapi.com";
+    public static final String STAGING_BASE_URI = "https://staging-core.dxpapi.com";
     public static final String PATHWAYS_BASE_URI = "https://pathways.dxpapi.com";
+    public static final String STAGING_PATHWAYS_BASE_URI = "https://staging-pathways.dxpapi.com";
+    public static final String AUTOSUGGEST_BASE_URI = "https://suggest.dxpapi.com";
+    public static final String STAGING_AUTOSUGGEST_BASE_URI = "https://staging-suggest.dxpapi.com";
     public static final String ENVIRONMENT = "PRODUCTION";
     public static final String STAGING_ENVIRONMENT = "STAGING";
     public static final int DEFAULT_PAGE_SIZE = 12;

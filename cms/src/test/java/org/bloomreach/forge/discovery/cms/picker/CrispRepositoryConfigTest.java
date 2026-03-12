@@ -17,10 +17,11 @@ class CrispRepositoryConfigTest {
         String yaml = new ClassPathResource("hcm-config/brxdis-crisp.yaml")
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        assertEquals(8, count(yaml, "crisp:sitescopes:\n        - platform"));
-        assertEquals(8, count(yaml, "parent=\"abstractCrispSimpleJacksonRestTemplateResourceResolver\""));
-        assertEquals(8, count(yaml, "class=\"" + RESOLVER_CLASS + "\""));
-        assertEquals(8, count(yaml, "<property name=\"cacheEnabled\" value=\"false\"/>"));
+        assertEquals(5, count(yaml, "crisp:sitescopes:\n        - platform"));
+        assertEquals(5, count(yaml, "parent=\"abstractCrispSimpleJacksonRestTemplateResourceResolver\""));
+        assertEquals(5, count(yaml, "class=\"" + RESOLVER_CLASS + "\""));
+        assertEquals(5, count(yaml, "<property name=\"cacheEnabled\" value=\"false\"/>"));
+        assertEquals(5, count(yaml, "crisp:propvalues:"));
     }
 
     private static int count(String text, String needle) {

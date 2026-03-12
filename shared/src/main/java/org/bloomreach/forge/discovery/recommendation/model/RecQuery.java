@@ -1,4 +1,4 @@
-package org.bloomreach.forge.discovery.site.service.discovery.recommendation.model;
+package org.bloomreach.forge.discovery.recommendation.model;
 
 public record RecQuery(
         String widgetType,
