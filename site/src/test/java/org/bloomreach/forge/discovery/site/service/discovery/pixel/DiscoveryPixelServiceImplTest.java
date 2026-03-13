@@ -18,6 +18,7 @@ import org.onehippo.cms7.crisp.api.resource.ResourceException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.*;
@@ -149,5 +150,29 @@ class DiscoveryPixelServiceImplTest {
         service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
 
         verify(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
+    }
+
+    @Test
+    void fireSearchEvent_rejectedExecution_doesNotPropagate() {
+        DiscoveryPixelServiceImpl asyncService =
+                new DiscoveryPixelServiceImpl(client, task -> { throw new RejectedExecutionException("queue full"); });
+        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
+        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+
+        assertDoesNotThrow(() -> asyncService.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
+
+        verify(client, never()).firePixelEvent(anyString(), any(), any(PixelFlags.class));
+    }
+
+    @Test
+    void fireSearchEvent_pathBuildThrows_doesNotPropagate() {
+        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
+        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+        when(client.buildSearchPixelPath(any(), any(), any(), any(), any(PixelFlags.class)))
+                .thenThrow(new IllegalStateException("bad pixel state"));
+
+        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
+
+        verify(client, never()).firePixelEvent(anyString(), any(), any(PixelFlags.class));
     }
 }

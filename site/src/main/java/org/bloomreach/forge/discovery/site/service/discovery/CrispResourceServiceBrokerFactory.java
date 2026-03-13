@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.service.discovery;
 
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.site.HstServices;
 import org.onehippo.cms7.crisp.api.broker.ResourceServiceBroker;
 import org.onehippo.cms7.services.HippoServiceRegistry;
@@ -14,6 +15,8 @@ import org.onehippo.cms7.services.HippoServiceRegistry;
  * broker through the runtime component manager that actually owns it.
  */
 public class CrispResourceServiceBrokerFactory {
+
+    private static final String CRISP_HST_ADDON_MODULE = "org.onehippo.cms7.crisp.hst";
 
     public ResourceServiceBroker getObject() {
         ResourceServiceBroker broker = lookupHstBroker();
@@ -33,9 +36,33 @@ public class CrispResourceServiceBrokerFactory {
         if (!HstServices.isAvailable()) {
             return null;
         }
+        ResourceServiceBroker broker = null;
         try {
-            return ResourceServiceBroker.class.cast(
-                    HstServices.getComponentManager().getComponent(ResourceServiceBroker.class.getName()));
+            broker = HstServices.getComponentManager().getComponent(ResourceServiceBroker.class);
+        } catch (ComponentsException e) {
+            try {
+                broker = ResourceServiceBroker.class.cast(
+                        HstServices.getComponentManager().getComponent(ResourceServiceBroker.class.getName()));
+            } catch (RuntimeException ignored) {
+                broker = null;
+            }
+        } catch (RuntimeException e) {
+            broker = null;
+        }
+        if (broker != null) {
+            return broker;
+        }
+
+        try {
+            return HstServices.getComponentManager().getComponent(ResourceServiceBroker.class, CRISP_HST_ADDON_MODULE);
+        } catch (ComponentsException e) {
+            try {
+                return ResourceServiceBroker.class.cast(
+                        HstServices.getComponentManager().getComponent(
+                                ResourceServiceBroker.class.getName(), CRISP_HST_ADDON_MODULE));
+            } catch (RuntimeException ignored) {
+                return null;
+            }
         } catch (RuntimeException e) {
             return null;
         }

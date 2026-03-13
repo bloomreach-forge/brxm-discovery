@@ -25,7 +25,7 @@ class CrispResourceResolverAssemblyTest {
         assertEquals(2, count(xml, "class=\"" + SIMPLE_RESOLVER_CLASS + "\""));
         assertEquals(5, count(xml, "lazy-init=\"true\""));
         assertEquals(5, count(xml, "<property name=\"cacheEnabled\" value=\"false\"/>"));
-        assertEquals(3, count(xml, "<property name=\"configProvider\" ref=\"brxmdis.configProvider\"/>"));
+        assertEquals(0, count(xml, "<property name=\"configProvider\" ref=\"brxmdis.configProvider\"/>"));
         assertTrue(!xml.contains("discoverySearchAPIStaging"));
         assertTrue(!xml.contains("discoveryPathwaysAPIStaging"));
         assertTrue(!xml.contains("discoveryAutosuggestAPIStaging"));

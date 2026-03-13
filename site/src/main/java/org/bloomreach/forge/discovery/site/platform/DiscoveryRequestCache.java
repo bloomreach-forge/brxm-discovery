@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
@@ -109,27 +110,22 @@ public final class DiscoveryRequestCache {
         return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.productDetail." + label));
     }
 
-    // ── Label-aware recommendation overloads ────────────────────────────────
+    // ── Query-aware recommendation overloads ────────────────────────────────
 
-    public static Optional<RecommendationResult> getRecommendations(HstRequest request, String label, String widgetId) {
-        return Optional.ofNullable((RecommendationResult) ctx(request).getAttribute(ATTR + ".recs." + label + "." + widgetId));
+    public static Optional<RecommendationResult> getRecommendations(HstRequest request, RecQuery query) {
+        return Optional.ofNullable((RecommendationResult) ctx(request).getAttribute(recommendationKey(query)));
     }
 
-    public static void putRecommendations(HstRequest request, String label, String widgetId, RecommendationResult result) {
-        ctx(request).setAttribute(ATTR + ".recs." + label + "." + widgetId, result);
-    }
-
-    // ── No-band recommendation overloads → "default" (backward compat) ───
-
-    public static Optional<RecommendationResult> getRecommendations(HstRequest request, String widgetId) {
-        return getRecommendations(request, "default", widgetId);
-    }
-
-    public static void putRecommendations(HstRequest request, String widgetId, RecommendationResult result) {
-        putRecommendations(request, "default", widgetId, result);
+    public static void putRecommendations(HstRequest request, RecQuery query, RecommendationResult result) {
+        ctx(request).setAttribute(recommendationKey(query), result);
     }
 
     private static HstRequestContext ctx(HstRequest request) {
         return request.getRequestContext();
+    }
+
+    private static String recommendationKey(RecQuery query) {
+        String widgetId = query.widgetId() != null ? query.widgetId() : "";
+        return ATTR + ".recs." + widgetId + "." + Integer.toHexString(query.hashCode());
     }
 }

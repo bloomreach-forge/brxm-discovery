@@ -8,9 +8,13 @@ import org.hippoecm.hst.configuration.components.HstComponentConfiguration;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
+import org.hippoecm.hst.core.container.ComponentManager;
+import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.container.HstContainerURL;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
+import org.hippoecm.hst.site.HstServices;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -38,6 +42,11 @@ class AbstractDiscoveryComponentTest {
     @Mock ResolvedSiteMapItem resolvedSiteMapItem;
     @Mock HstComponentConfiguration pageConfig;
     @Mock HstComponentConfiguration childConfig;
+
+    @AfterEach
+    void tearDown() {
+        HstServices.setComponentManager(null);
+    }
 
     // ── parseIntOrDefault ─────────────────────────────────────────────────
 
@@ -214,6 +223,39 @@ class AbstractDiscoveryComponentTest {
         assertSame(discoveryService, component.getDiscoveryService());
     }
 
+    @Test
+    void getDiscoveryService_usesTypedLookupWhenBeanNameLookupWouldMiss() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class)).thenReturn(discoveryService);
+        HstServices.setComponentManager(componentManager);
+
+        assertSame(discoveryService, new TestableLookupComponent().getDiscoveryService());
+    }
+
+    @Test
+    void getDiscoveryService_fallsBackToBeanNameLookupWhenTypedLookupFails() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class))
+                .thenThrow(new ComponentsException("typed lookup failed"));
+        when(componentManager.getComponent(HstDiscoveryService.class.getName())).thenReturn(discoveryService);
+        HstServices.setComponentManager(componentManager);
+
+        assertSame(discoveryService, new TestableLookupComponent().getDiscoveryService());
+    }
+
+    @Test
+    void getDiscoveryService_fallsBackToAddonModuleLookupWhenRootContextMisses() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class))
+                .thenThrow(new ComponentsException("typed lookup failed"));
+        when(componentManager.getComponent(HstDiscoveryService.class.getName())).thenReturn(null);
+        when(componentManager.getComponent(HstDiscoveryService.class, "org.bloomreach.forge.discovery.site"))
+                .thenReturn(discoveryService);
+        HstServices.setComponentManager(componentManager);
+
+        assertSame(discoveryService, new TestableLookupComponent().getDiscoveryService());
+    }
+
     // ── backfillSearchResponse ────────────────────────────────────────────
 
     /**
@@ -326,6 +368,14 @@ class AbstractDiscoveryComponentTest {
         @Override
         public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
             // no-op — only testing base-class helpers
+        }
+    }
+
+    private static class TestableLookupComponent extends AbstractDiscoveryComponent {
+
+        @Override
+        public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
+            // no-op — exercising base lookupService implementation
         }
     }
 }

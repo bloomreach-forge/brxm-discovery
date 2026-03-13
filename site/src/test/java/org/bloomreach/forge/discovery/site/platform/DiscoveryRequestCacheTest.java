@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchMetadata;
@@ -238,60 +239,46 @@ class DiscoveryRequestCacheTest {
         assertTrue(DiscoveryRequestCache.getFetchedProduct(request, "missing").isEmpty());
     }
 
-    // ── band-aware recommendations ──────────────────────────────────────────
+    // ── query-aware recommendations ─────────────────────────────────────────
 
     @Test
-    void getRecommendations_unknownBandAndWidget_returnsEmpty() {
-        assertTrue(DiscoveryRequestCache.getRecommendations(request, "default", "w1").isEmpty());
+    void getRecommendations_unknownQuery_returnsEmpty() {
+        RecQuery query = new RecQuery("item", "w1", "sku-1", null, 8, null, null, "/page", "/ref", "uid");
+        assertTrue(DiscoveryRequestCache.getRecommendations(request, query).isEmpty());
     }
 
     @Test
-    void putAndGet_recommendations_withBand_roundTrips() {
+    void putAndGet_recommendations_roundTrips() {
+        RecQuery query = new RecQuery("item", "w1", "sku-1", null, 8, null, null, "/page", "/ref", "uid");
         RecommendationResult recResult = RecommendationResult.of(List.of(product));
-        DiscoveryRequestCache.putRecommendations(request, "my-band", "w1", recResult);
-        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "my-band", "w1");
+        DiscoveryRequestCache.putRecommendations(request, query, recResult);
+        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, query);
         assertTrue(got.isPresent());
         assertSame(recResult, got.get());
     }
 
     @Test
     void putAndGetRecommendations_roundTripsRecommendationResult() {
+        RecQuery query = new RecQuery("item", "w2", "sku-1", null, 8, null, null, "/page", "/ref", "uid");
         RecommendationResult recResult = new RecommendationResult("rid-xyz", List.of(product));
-        DiscoveryRequestCache.putRecommendations(request, "band-r", "w2", recResult);
-        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "band-r", "w2");
+        DiscoveryRequestCache.putRecommendations(request, query, recResult);
+        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, query);
         assertTrue(got.isPresent());
         assertSame(recResult, got.get());
         assertEquals("rid-xyz", got.get().widgetResultId());
     }
 
     @Test
-    void recommendations_samWidgetId_differentBands_areIndependent() {
+    void recommendations_sameWidgetId_differentQueryShape_areIndependent() {
+        RecQuery first = new RecQuery("item", "w1", "sku-1", null, 8, null, null, "/page-a", "/ref", "uid");
+        RecQuery second = new RecQuery("item", "w1", "sku-2", null, 8, null, null, "/page-b", "/ref", "uid");
         RecommendationResult r1 = RecommendationResult.of(List.of(product));
         RecommendationResult r2 = RecommendationResult.of(List.of(new ProductSummary("p-2", "U", null, null, null, null, Map.of())));
-        DiscoveryRequestCache.putRecommendations(request, "band-a", "w1", r1);
-        DiscoveryRequestCache.putRecommendations(request, "band-b", "w1", r2);
+        DiscoveryRequestCache.putRecommendations(request, first, r1);
+        DiscoveryRequestCache.putRecommendations(request, second, r2);
 
-        assertSame(r1, DiscoveryRequestCache.getRecommendations(request, "band-a", "w1").orElseThrow());
-        assertSame(r2, DiscoveryRequestCache.getRecommendations(request, "band-b", "w1").orElseThrow());
-        assertTrue(DiscoveryRequestCache.getRecommendations(request, "other", "w1").isEmpty());
-    }
-
-    @Test
-    void noArgBand_recommendations_delegateToDefaultBand() {
-        RecommendationResult recResult = RecommendationResult.of(List.of(product));
-        DiscoveryRequestCache.putRecommendations(request, "w1", recResult);
-        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "default", "w1");
-        assertTrue(got.isPresent());
-        assertSame(recResult, got.get());
-    }
-
-    @Test
-    void noArgBand_getRecommendations_delegatesToDefaultBand() {
-        RecommendationResult recResult = RecommendationResult.of(List.of(product));
-        DiscoveryRequestCache.putRecommendations(request, "default", "w1", recResult);
-        Optional<RecommendationResult> got = DiscoveryRequestCache.getRecommendations(request, "w1");
-        assertTrue(got.isPresent());
-        assertSame(recResult, got.get());
+        assertSame(r1, DiscoveryRequestCache.getRecommendations(request, first).orElseThrow());
+        assertSame(r2, DiscoveryRequestCache.getRecommendations(request, second).orElseThrow());
     }
 
 }

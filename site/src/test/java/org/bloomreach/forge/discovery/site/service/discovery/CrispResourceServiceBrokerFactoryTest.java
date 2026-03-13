@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.hippoecm.hst.core.container.ComponentManager;
+import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.site.HstServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,23 @@ class CrispResourceServiceBrokerFactoryTest {
     void getObject_returnsBrokerFromHstComponentManager() {
         ResourceServiceBroker broker = mock(ResourceServiceBroker.class);
         ComponentManager componentManager = mock(ComponentManager.class);
-        when(componentManager.getComponent(ResourceServiceBroker.class.getName())).thenReturn(broker);
+        when(componentManager.getComponent(ResourceServiceBroker.class)).thenReturn(broker);
+        HstServices.setComponentManager(componentManager);
+
+        ResourceServiceBroker resolved = new CrispResourceServiceBrokerFactory().getObject();
+
+        assertSame(broker, resolved);
+    }
+
+    @Test
+    void getObject_fallsBackToCrispAddonModuleBroker() {
+        ResourceServiceBroker broker = mock(ResourceServiceBroker.class);
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(ResourceServiceBroker.class))
+                .thenThrow(new ComponentsException("root typed lookup failed"));
+        when(componentManager.getComponent(ResourceServiceBroker.class.getName())).thenReturn(null);
+        when(componentManager.getComponent(ResourceServiceBroker.class, "org.onehippo.cms7.crisp.hst"))
+                .thenReturn(broker);
         HstServices.setComponentManager(componentManager);
 
         ResourceServiceBroker resolved = new CrispResourceServiceBrokerFactory().getObject();

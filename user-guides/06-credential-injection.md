@@ -105,6 +105,7 @@ definitions:
 - The resolved base config is cached in-process.
 - JCR changes invalidate that cache automatically through observation.
 - Env var and system property credential overrides are re-applied on each provider read.
+- On the site side, `DiscoveryConfigProvider` is also registered in `HippoServiceRegistry` so the CRISP addon-module resolvers can read the same active settings at runtime.
 
 That means:
 

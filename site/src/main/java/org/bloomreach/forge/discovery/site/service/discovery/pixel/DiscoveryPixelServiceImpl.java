@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
 
@@ -29,24 +30,30 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
     public void fireSearchEvent(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
                                 String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
-        String path = client.buildSearchPixelPath(query, result, credentials, clientIp, flags);
-        executor.execute(() -> fireQuietly(path, ctx, flags));
+        submitQuietly(() -> {
+            String path = client.buildSearchPixelPath(query, result, credentials, clientIp, flags);
+            fireQuietly(path, ctx, flags);
+        });
     }
 
     @Override
     public void fireCategoryEvent(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
                                   String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
-        String path = client.buildCategoryPixelPath(query, result, credentials, clientIp, flags);
-        executor.execute(() -> fireQuietly(path, ctx, flags));
+        submitQuietly(() -> {
+            String path = client.buildCategoryPixelPath(query, result, credentials, clientIp, flags);
+            fireQuietly(path, ctx, flags);
+        });
     }
 
     @Override
     public void fireWidgetEvent(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
                                 String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
-        String path = client.buildWidgetPixelPath(query, result, credentials, clientIp, flags);
-        executor.execute(() -> fireQuietly(path, ctx, flags));
+        submitQuietly(() -> {
+            String path = client.buildWidgetPixelPath(query, result, credentials, clientIp, flags);
+            fireQuietly(path, ctx, flags);
+        });
     }
 
     @Override
@@ -54,9 +61,27 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
                                           DiscoveryCredentials credentials, String clientIp,
                                           ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
-        String path = client.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, url,
-                credentials, clientIp, flags);
-        executor.execute(() -> fireQuietly(path, ctx, flags));
+        submitQuietly(() -> {
+            String path = client.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, url,
+                    credentials, clientIp, flags);
+            fireQuietly(path, ctx, flags);
+        });
+    }
+
+    private void submitQuietly(Runnable task) {
+        try {
+            executor.execute(() -> {
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    log.warn("Discovery pixel event failed before send: {}", e.getMessage());
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            log.warn("Discovery pixel event dropped: executor rejected task: {}", e.getMessage());
+        } catch (RuntimeException e) {
+            log.warn("Discovery pixel event submission failed: {}", e.getMessage());
+        }
     }
 
     private void fireQuietly(String path, ClientContext ctx, PixelFlags flags) {

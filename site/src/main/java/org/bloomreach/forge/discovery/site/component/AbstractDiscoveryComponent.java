@@ -14,6 +14,8 @@ import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
+import org.hippoecm.hst.core.container.ComponentManager;
+import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.hippoecm.hst.site.HstServices;
 import org.slf4j.Logger;
@@ -30,6 +32,7 @@ import java.util.Optional;
 public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractDiscoveryComponent.class);
+    private static final String DISCOVERY_ADDON_MODULE = "org.bloomreach.forge.discovery.site";
 
     /**
      * Sets {@code editMode} on the FTL model once, before every component renders.
@@ -46,11 +49,40 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         if (!HstServices.isAvailable() || HstServices.getComponentManager() == null) {
             throw new ConfigurationException("HST component manager is not available while resolving service: " + type.getName());
         }
-        Object component = HstServices.getComponentManager().getComponent(type.getName());
+
+        ComponentManager componentManager = HstServices.getComponentManager();
+        T component = null;
+        try {
+            component = componentManager.getComponent(type);
+        } catch (ComponentsException e) {
+            log.debug("Typed HST lookup failed for {}. Falling back to bean-name lookup.", type.getName(), e);
+        }
+        if (component == null) {
+            component = type.cast(componentManager.getComponent(type.getName()));
+        }
+        if (component == null) {
+            component = lookupAddonModuleService(componentManager, type);
+        }
         if (component == null) {
             throw new ConfigurationException("Required HST service is not available: " + type.getName());
         }
-        return type.cast(component);
+        return component;
+    }
+
+    private <T> T lookupAddonModuleService(ComponentManager componentManager, Class<T> type) {
+        try {
+            return componentManager.getComponent(type, DISCOVERY_ADDON_MODULE);
+        } catch (ComponentsException e) {
+            log.debug("Addon-module typed HST lookup failed for {} in {}. Falling back to bean-name lookup.",
+                    type.getName(), DISCOVERY_ADDON_MODULE, e);
+        }
+        try {
+            return type.cast(componentManager.getComponent(type.getName(), DISCOVERY_ADDON_MODULE));
+        } catch (RuntimeException e) {
+            log.debug("Addon-module bean-name HST lookup failed for {} in {}.",
+                    type.getName(), DISCOVERY_ADDON_MODULE, e);
+            return null;
+        }
     }
 
     /**

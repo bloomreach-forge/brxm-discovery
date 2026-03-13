@@ -15,7 +15,7 @@ You may need to suppress or tag pixels when:
 
 ## Default behaviour
 
-Once the plugin is installed, `brxmdis.pixelService` is wired automatically from `brxm-discovery-site.xml`. Pixels fire on cache-miss page renders as soon as valid Discovery credentials are configured.
+Once the plugin is installed, `brxmdis.pixelService` is wired automatically from the site addon assembly. Pixels fire on cache-miss page renders as soon as valid Discovery credentials are configured.
 
 No extra configuration is required for production.
 

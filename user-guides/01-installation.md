@@ -69,7 +69,7 @@ Add `brxm-discovery-site` to your site `webapp` WAR:
 
 If your project has a separate site components JAR, it does not need this dependency unless you compile custom Java code directly against the addon APIs.
 
-This JAR provides Spring beans auto-registered via `META-INF/hst-assembly/overrides/brxm-discovery-site.xml`:
+This JAR provides its core site wiring through the addon assembly loaded from `META-INF/hst-assembly/addon/module.xml` and `META-INF/hst-assembly/addon/brxm-discovery-site.xml`:
 
 | Bean | Role |
 |---|---|
@@ -79,6 +79,7 @@ This JAR provides Spring beans auto-registered via `META-INF/hst-assembly/overri
 | `DiscoveryConfigJcrListener` | Invalidates config cache on CMS node changes (no restart needed) |
 | `DiscoveryConfigResolver` | Two-tier config resolution (env/sys/JCR + coded defaults) |
 | `ConfigBackedDiscoveryResourceResolver` | CRISP resolver that reads active base URIs from shared Discovery config |
+| `DiscoveryConfigProviderServiceRegistration` | Registers `DiscoveryConfigProvider` in `HippoServiceRegistry` for CRISP resolver access |
 | `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on an injected executor |
 
 **HST components** (reference by fully-qualified class name in your HST config):
@@ -129,6 +130,7 @@ You still need to:
    This causes `ResourceBrokerServiceRegistrationBean` to register the `ResourceServiceBroker` in
    `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
    Without this setting, all Discovery API calls will throw `ConfigurationException` with a clear message.
+   The plugin also registers `DiscoveryConfigProvider` into `HippoServiceRegistry` on the site side so the CRISP addon-module resolvers can reuse shared Discovery config without direct Spring refs across addon modules.
 2. Set credentials via env vars / system properties, or via the global JCR config node (see [06-credential-injection.md](06-credential-injection.md))
 3. Wire HST components into your HST page configuration (see [00-quick-start.md](00-quick-start.md))
 
@@ -146,6 +148,28 @@ brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 ```
 
 And navigate to `http://localhost:8080/cms/ws/discovery/picker/search` — a JSON response (not a 404) confirms the endpoint is live.
+
+## Troubleshooting
+
+### `Required HST service is not available: org.bloomreach.forge.discovery.site.platform.HstDiscoveryService`
+
+This usually means the site webapp is running an older addon snapshot or was not redeployed after the addon changed. Reinstall the addon locally, rebuild the host project, and restart the site webapp.
+
+### `No resource space for 'discoverySearchAPI'`
+
+This usually means the site webapp is still using stale CRISP resolver wiring from an older addon snapshot. Rebuild and redeploy the site webapp so the current resolver assembly is loaded.
+
+### Local snapshot refresh sequence
+
+```bash
+cd /path/to/brxm-discovery
+mvn -DskipTests install
+
+cd /path/to/your-project
+mvn clean install
+```
+
+If your project compiles custom Java against addon APIs, keep `brxm-discovery-site` in the relevant `site/components` module as well. The runtime entry point is still the site webapp.
 
 ---
 

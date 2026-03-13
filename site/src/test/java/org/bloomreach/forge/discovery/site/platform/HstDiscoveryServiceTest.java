@@ -286,6 +286,26 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
+    void recommend_sameQueryDifferentLabels_reusesRequestCache() {
+        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-123", null, null, null, 8, null, null, "band-a");
+        service.recommend(request, "w-123", null, null, null, 8, null, null, "band-b");
+
+        verify(client, times(1)).recommend(any(), any(), any());
+    }
+
+    @Test
+    void recommend_differentContextProductIds_doNotShareCache() {
+        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-123", null, "sku-1", null, 8, null, null, "band-a");
+        service.recommend(request, "w-123", null, "sku-2", null, 8, null, null, "band-b");
+
+        verify(client, times(2)).recommend(any(), any(), any());
+    }
+
+    @Test
     void fetchProduct_firesProductPageViewPixel() {
         var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
         when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))

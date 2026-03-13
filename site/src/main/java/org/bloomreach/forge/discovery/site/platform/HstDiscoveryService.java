@@ -188,12 +188,12 @@ public class HstDiscoveryService {
 
         RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, contextPageType,
                 limit, fields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(), runtimeContext.brUid2());
-        return DiscoveryRequestCache.getRecommendations(request, label, effectiveWidgetId)
+        return DiscoveryRequestCache.getRecommendations(request, query)
                 .orElseGet(() -> {
                     RecommendationResult fresh = client.recommend(query, runtimeContext.credentials(), runtimeContext.clientContext());
                     List<ProductSummary> enriched = applyEnrichment(fresh.products());
                     RecommendationResult result = new RecommendationResult(fresh.widgetResultId(), enriched);
-                    DiscoveryRequestCache.putRecommendations(request, label, effectiveWidgetId, result);
+                    DiscoveryRequestCache.putRecommendations(request, query, result);
                     if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
                         pixelService.fireWidgetEvent(query, result, runtimeContext.credentials(),
                                 runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());

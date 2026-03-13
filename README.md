@@ -39,7 +39,7 @@ The plugin bootstraps generic CRISP spaces automatically:
 - `discoveryPathwaysAPI`
 - `discoveryAutosuggestAPI`
 
-Their active base URIs come from shared Discovery config. `environment=STAGING` switches defaults to the staging endpoints when explicit `brxdis:*BaseUri` properties are not set.
+Their active base URIs come from shared Discovery config. `environment=STAGING` switches defaults to the staging endpoints when explicit `brxdis:*BaseUri` properties are not set. On the site side, the addon also registers `DiscoveryConfigProvider` in `HippoServiceRegistry` so the CRISP addon-module resolvers can read the same config without direct sibling Spring bean refs.
 
 ## Config summary
 
@@ -71,6 +71,23 @@ mvn clean test
 
 ```bash
 mvn -pl shared,cms,site -am test
+```
+
+## Troubleshooting
+
+- `Required HST service is not available: org.bloomreach.forge.discovery.site.platform.HstDiscoveryService`
+  Usually means the site webapp is running an older addon snapshot. Reinstall the addon locally, rebuild the host project, then restart the site webapp.
+- `No resource space for 'discoverySearchAPI'`
+  Usually means the site webapp did not pick up the current CRISP resolver wiring from the updated addon snapshot. Rebuild and redeploy the site webapp.
+
+Typical local snapshot refresh:
+
+```bash
+cd /path/to/brxm-discovery
+mvn -DskipTests install
+
+cd /path/to/your-project
+mvn clean install
 ```
 
 ## User guides

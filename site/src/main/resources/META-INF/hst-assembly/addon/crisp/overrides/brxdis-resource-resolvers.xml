@@ -31,7 +31,6 @@
         class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
-    <property name="configProvider" ref="brxmdis.configProvider"/>
     <property name="api" value="search"/>
   </bean>
 
@@ -40,7 +39,6 @@
         class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
-    <property name="configProvider" ref="brxmdis.configProvider"/>
     <property name="api" value="pathways"/>
   </bean>
 
@@ -49,7 +47,6 @@
         class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
         lazy-init="true">
     <property name="cacheEnabled" value="false"/>
-    <property name="configProvider" ref="brxmdis.configProvider"/>
     <property name="api" value="autosuggest"/>
   </bean>
 

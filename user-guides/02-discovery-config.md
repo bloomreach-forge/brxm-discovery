@@ -113,6 +113,8 @@ The CMS module bootstraps the Discovery CRISP resource spaces automatically via 
 
 The request credentials are added per request. `account_id` and `domain_key` go in the query string, `auth_key` is used for standard Discovery requests, and the Pathways v2 call sends `auth-key` as a header.
 
+On the site side, the resolver does not direct-wire `DiscoveryConfigProvider` from the Discovery addon Spring context. Instead, the site addon registers `DiscoveryConfigProvider` in `HippoServiceRegistry`, and the CRISP resolver looks it up there at runtime. This avoids cross-addon Spring visibility issues in real host projects.
+
 ### Overriding base URIs (staging / private cloud)
 
 Set the Discovery config properties instead of editing CRISP nodes directly:

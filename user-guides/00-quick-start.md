@@ -56,6 +56,7 @@ crisp.broker.registerService = true
 ```
 
 This registers `ResourceServiceBroker` into `HippoServiceRegistry` at startup. Without it, Discovery API calls will fail at request time.
+The plugin also registers `DiscoveryConfigProvider` in `HippoServiceRegistry` so the CRISP addon-module resolvers can read the same Discovery config as the site service layer.
 
 The plugin bootstraps the generic CRISP resource spaces (`discoverySearchAPI`, `discoveryPathwaysAPI`, `discoveryAutosuggestAPI`) automatically. Their active base URIs come from the shared Discovery config, so you do not need separate production and staging CRISP definitions in your project.
 
@@ -186,6 +187,10 @@ brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 2. If using JCR-based config: verify the node exists at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`.
 
 **If you see a `ConfigurationException: CRISP ResourceServiceBroker not found`**, `crisp.broker.registerService = true` is missing from the **site** webapp `hst-config.properties`.
+
+**If you see `Required HST service is not available: org.bloomreach.forge.discovery.site.platform.HstDiscoveryService`**, rebuild and redeploy the site webapp against the current addon snapshot.
+
+**If you see `No resource space for 'discoverySearchAPI'`**, the site webapp is still using stale CRISP resolver wiring from an older addon snapshot. Reinstall the addon locally, rebuild the host project, and restart the site webapp.
 
 **For the Page Model API** (headless delivery), call `http://localhost:8080/site/search?q=shirt` with `Accept: application/json` — the response will include `searchResult`, `products`, `facets`, and `pagination` in the JSON model.
 
