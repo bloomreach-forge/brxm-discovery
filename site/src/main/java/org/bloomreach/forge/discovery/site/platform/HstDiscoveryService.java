@@ -59,6 +59,17 @@ public class HstDiscoveryService {
         this.runtimeContextFactory = new DiscoveryRuntimeContextFactory(configProvider);
     }
 
+    /** Package-private seam for tests — allows injecting a pre-built factory with custom env resolution. */
+    HstDiscoveryService(DiscoveryApiClient client,
+                        DiscoveryRuntimeContextFactory runtimeContextFactory,
+                        DiscoveryPixelService pixelService,
+                        SoREnrichmentProvider enrichmentProvider) {
+        this.client = client;
+        this.pixelService = pixelService;
+        this.enrichmentProvider = enrichmentProvider;
+        this.runtimeContextFactory = runtimeContextFactory;
+    }
+
     // ── Request-based API (used by HST components) ─────────────────────────────
 
     public SearchResponse search(HstRequest request) {

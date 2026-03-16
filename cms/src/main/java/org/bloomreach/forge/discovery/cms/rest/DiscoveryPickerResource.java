@@ -2,6 +2,8 @@ package org.bloomreach.forge.discovery.cms.rest;
 
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
@@ -16,6 +18,7 @@ import org.bloomreach.forge.discovery.cms.rest.dto.PickerItemDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
 import org.bloomreach.forge.discovery.config.ConfigDefaults;
+import org.bloomreach.forge.discovery.config.DiscoveryChannelConfigReader;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
@@ -25,6 +28,8 @@ import org.bloomreach.forge.discovery.request.DiscoveryRequestSpec;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.Arrays;
 import java.util.List;
@@ -53,6 +58,7 @@ import java.util.function.Function;
 @Produces(MediaType.APPLICATION_JSON)
 public class DiscoveryPickerResource {
 
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryPickerResource.class);
     private static final int MAX_PAGE_SIZE = 100;
     private static final DiscoveryRequestFactory REQUEST_FACTORY = new DiscoveryRequestFactory();
 
@@ -65,6 +71,7 @@ public class DiscoveryPickerResource {
     private final DiscoveryPickerResponseMapper responseMapper;
     // Extracted as a Function to allow injection of a test double
     final Function<String, String> httpGateway;
+    private final Function<String, String> envResolver;
 
     public DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
                                    Function<String, String> httpGateway) {
@@ -74,21 +81,32 @@ public class DiscoveryPickerResource {
     DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
                             Function<String, String> httpGateway,
                             DiscoveryPickerResponseMapper responseMapper) {
+        this(moduleSession, configProvider, httpGateway, responseMapper, System::getenv);
+    }
+
+    /** Package-private seam for tests — allows injecting a custom env resolver. */
+    DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
+                            Function<String, String> httpGateway,
+                            DiscoveryPickerResponseMapper responseMapper,
+                            Function<String, String> envResolver) {
         this.moduleSession = moduleSession;
         this.configProvider = configProvider;
         this.httpGateway = httpGateway;
         this.responseMapper = responseMapper;
+        this.envResolver = envResolver;
     }
 
     @GET
     @Path("/search")
     public PickerSearchResponseDto search(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId,
             @QueryParam("q") @DefaultValue("*") String q,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("pageSize") @DefaultValue("12") int pageSize) {
 
         int safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
-        DiscoveryConfig config = resolveConfig();
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
         DiscoveryCredentials credentials = config.credentials();
         DiscoverySettings settings = config.settings();
         SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), Map.of(), brUid2(), null, requestUrl());
@@ -105,7 +123,10 @@ public class DiscoveryPickerResource {
      */
     @GET
     @Path("/items")
-    public PickerSearchResponseDto items(@QueryParam("ids") String ids) {
+    public PickerSearchResponseDto items(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("ids") String ids) {
 
         if (ids == null || ids.isBlank()) {
             return new PickerSearchResponseDto(List.of(), 0L, 0, 0);
@@ -119,7 +140,7 @@ public class DiscoveryPickerResource {
             return new PickerSearchResponseDto(List.of(), 0L, 0, 0);
         }
 
-        DiscoveryConfig config = resolveConfig();
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
         DiscoveryCredentials credentials = config.credentials();
         // fq=pid:"id1"&fq=pid:"id2" — multiple values produce OR within same field
         SearchQuery query = new SearchQuery("*", 0, pidList.size(), null,
@@ -135,8 +156,10 @@ public class DiscoveryPickerResource {
     @GET
     @Path("/widgets")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<PickerWidgetDto> listWidgets() {
-        DiscoveryConfig config = resolveConfig();
+    public List<PickerWidgetDto> listWidgets(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId) {
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.merchantWidgets(config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toWidgets(json);
@@ -150,8 +173,10 @@ public class DiscoveryPickerResource {
      */
     @GET
     @Path("/categories")
-    public List<PickerCategoryDto> categories() {
-        DiscoveryConfig config = resolveConfig();
+    public List<PickerCategoryDto> categories(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId) {
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
         CategoryQuery query = new CategoryQuery("", 0, 0, null, Map.of(), brUid2(), null, requestUrl());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
@@ -174,15 +199,42 @@ public class DiscoveryPickerResource {
         return "uid=" + java.util.UUID.randomUUID();
     }
 
-    private DiscoveryConfig resolveConfig() {
+    private void refreshSession() {
         try {
-            DiscoveryConfig config = configProvider.get(moduleSession);
+            moduleSession.refresh(false);
+        } catch (RepositoryException e) {
+            log.warn("brxm-discovery: could not refresh module session: {}", e.getMessage());
+        }
+    }
+
+    private DiscoveryConfig resolveConfig(String channelId, String documentId) {
+        try {
+            refreshSession();
+            DiscoveryConfig base = configProvider.get(moduleSession);
+            String effectiveChannelId = !channelId.isBlank()
+                    ? channelId
+                    : resolveChannelFromDocument(documentId, moduleSession);
+            DiscoveryCredentials overrides = DiscoveryChannelConfigReader.resolveFromJcr(effectiveChannelId, moduleSession, envResolver);
+            DiscoveryConfig config = overrides != null ? base.withCredentialOverrides(overrides) : base;
             validateConfig(config);
             return config;
         } catch (NotFoundException | InternalServerErrorException e) {
             throw e;
         } catch (RuntimeException e) {
             throw new InternalServerErrorException("Failed to resolve Discovery configuration", e);
+        }
+    }
+
+    private String resolveChannelFromDocument(String documentId, Session session) {
+        if (documentId == null || documentId.isBlank()) return "";
+        try {
+            Node docNode = session.getNodeByIdentifier(documentId);
+            String[] parts = docNode.getPath().split("/");
+            // /content/documents/{siteName}/... → parts[3] = siteName
+            return parts.length >= 4 ? parts[3] : "";
+        } catch (RepositoryException e) {
+            log.debug("[resolveChannelFromDocument] documentId='{}': {}", documentId, e.getMessage());
+            return "";
         }
     }
 

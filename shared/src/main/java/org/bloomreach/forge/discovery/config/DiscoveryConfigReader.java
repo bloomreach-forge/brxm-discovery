@@ -166,6 +166,9 @@ public class DiscoveryConfigReader {
     }
 
     private DiscoverySettings readSettings(Optional<Node> node, String environment) throws RepositoryException {
+        if (isStaging(environment)) {
+            log.info("brxm-discovery: running against STAGING Discovery endpoints");
+        }
         return new DiscoverySettings(
                 structural(node, ConfigDefaults.BASE_URI_JCR, defaultBaseUri(environment)),
                 structural(node, ConfigDefaults.PATHWAYS_BASE_URI_JCR, defaultPathwaysBaseUri(environment)),

@@ -106,6 +106,7 @@
     var ui           = null;
     var documentId   = "";
     var currentValue = "";
+    var channelId    = "";
     var currentPage  = 0;
     var lastQuery    = "*";
 
@@ -125,6 +126,7 @@
       try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
       documentId   = data.documentId   || "";
       currentValue = data.currentValue || "";
+      channelId    = data.channelId    || "";
       doSearch("*", 0);
       searchInput.focus();
     })
@@ -154,6 +156,7 @@
       grid.replaceChildren();
 
       var url = buildApiUrl(ui, "/discovery/picker/search", {
+        channelId:  channelId,
         documentId: documentId,
         q:          q,
         page:       page,

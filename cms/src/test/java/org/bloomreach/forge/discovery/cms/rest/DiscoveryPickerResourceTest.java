@@ -5,12 +5,17 @@ import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.List;
 import java.util.function.Function;
@@ -23,6 +28,9 @@ import static org.mockito.Mockito.*;
 class DiscoveryPickerResourceTest {
 
     @Mock Session session;
+    @Mock Node rootNode;
+    @Mock Node hstRootNode;
+    @Mock NodeIterator hstRootIterator;
     @Mock DiscoveryConfigProvider configProvider;
     @Mock Function<String, String> httpGateway;
 
@@ -59,7 +67,7 @@ class DiscoveryPickerResourceTest {
     void search_delegatesToHttpGatewayAndParsesResult() {
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
-        PickerSearchResponseDto resp = resource.search("shirt", 0, 12);
+        PickerSearchResponseDto resp = resource.search("", "", "shirt", 0, 12);
 
         assertEquals(1, resp.items().size());
         assertEquals("p1", resp.items().get(0).id());
@@ -73,7 +81,7 @@ class DiscoveryPickerResourceTest {
     void search_urlContainsAccountIdAndQuery() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.search("shirt", 0, 12);
+        resource.search("", "", "shirt", 0, 12);
 
         verify(httpGateway).apply(argThat(url ->
                 url.contains("account_id=acc1") && url.contains("q=shirt")));
@@ -83,7 +91,7 @@ class DiscoveryPickerResourceTest {
     void search_emptyResults_returnsZeroItems() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        PickerSearchResponseDto resp = resource.search("*", 0, 12);
+        PickerSearchResponseDto resp = resource.search("", "", "*", 0, 12);
 
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
@@ -93,7 +101,7 @@ class DiscoveryPickerResourceTest {
     void search_capsPageSizeAtMaximum() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.search("*", 0, 99999);
+        resource.search("", "", "*", 0, 99999);
 
         verify(httpGateway).apply(argThat(url -> url.contains("rows=100")));
     }
@@ -102,7 +110,7 @@ class DiscoveryPickerResourceTest {
     void search_encodesSpecialCharsInQuery() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.search("shirt&auth_key=injected", 0, 12);
+        resource.search("", "", "shirt&auth_key=injected", 0, 12);
 
         // The injected value must be percent-encoded, not treated as a separator
         verify(httpGateway).apply(argThat(url ->
@@ -114,7 +122,7 @@ class DiscoveryPickerResourceTest {
         when(configProvider.get(session)).thenThrow(new IllegalStateException("node not found"));
 
         assertThrows(jakarta.ws.rs.InternalServerErrorException.class,
-                () -> resource.search("q", 0, 12));
+                () -> resource.search("", "", "q", 0, 12));
     }
 
     @Test
@@ -123,14 +131,14 @@ class DiscoveryPickerResourceTest {
                 .thenThrow(new jakarta.ws.rs.InternalServerErrorException("Discovery API returned HTTP 503"));
 
         assertThrows(jakarta.ws.rs.InternalServerErrorException.class,
-                () -> resource.search("shirt", 0, 12));
+                () -> resource.search("", "", "shirt", 0, 12));
     }
 
     // ---- items() --------------------------------------------------------
 
     @Test
     void items_returnsEmptyResponseWhenIdsBlank() {
-        PickerSearchResponseDto resp = resource.items("");
+        PickerSearchResponseDto resp = resource.items("", "", "");
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
         verifyNoInteractions(configProvider);
@@ -138,7 +146,7 @@ class DiscoveryPickerResourceTest {
 
     @Test
     void items_returnsEmptyResponseWhenIdsNull() {
-        PickerSearchResponseDto resp = resource.items(null);
+        PickerSearchResponseDto resp = resource.items("", "", null);
         assertEquals(0, resp.items().size());
         verifyNoInteractions(configProvider);
     }
@@ -147,7 +155,7 @@ class DiscoveryPickerResourceTest {
     void items_buildsSearchQueryWithPidFilter() {
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
-        PickerSearchResponseDto resp = resource.items("p1");
+        PickerSearchResponseDto resp = resource.items("", "", "p1");
 
         assertEquals(1, resp.items().size());
         verify(httpGateway).apply(argThat(url -> url.contains("fq=pid")));
@@ -157,7 +165,7 @@ class DiscoveryPickerResourceTest {
     void items_stripsWhitespaceFromCommaSeparatedIds() {
         when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
 
-        resource.items("p1 , p2, p3");
+        resource.items("", "", "p1 , p2, p3");
 
         // All three pids should produce fq params
         verify(httpGateway).apply(argThat(url -> {
@@ -183,7 +191,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        List<PickerCategoryDto> result = resource.categories();
+        List<PickerCategoryDto> result = resource.categories("", "");
 
         assertEquals(2, result.size());
         assertTrue(result.stream().anyMatch(c -> "cat1".equals(c.id()) && "Shirts".equals(c.name())));
@@ -194,7 +202,7 @@ class DiscoveryPickerResourceTest {
     void categories_emptyMap_returnsEmpty() {
         when(httpGateway.apply(anyString())).thenReturn("{\"category_map\":{}}");
 
-        List<PickerCategoryDto> result = resource.categories();
+        List<PickerCategoryDto> result = resource.categories("", "");
 
         assertTrue(result.isEmpty());
     }
@@ -203,7 +211,7 @@ class DiscoveryPickerResourceTest {
     void categories_urlContainsSearchTypeCategoryAndRows0WithEmptyQ() {
         when(httpGateway.apply(anyString())).thenReturn("{\"category_map\":{}}");
 
-        resource.categories();
+        resource.categories("", "");
 
         verify(httpGateway).apply(argThat(url ->
                 url.contains("search_type=category") && url.contains("rows=0")
@@ -219,7 +227,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        List<PickerCategoryDto> result = resource.categories();
+        List<PickerCategoryDto> result = resource.categories("", "");
 
         assertEquals(1, result.size());
         assertEquals("cat_no_name", result.get(0).id());
@@ -232,7 +240,7 @@ class DiscoveryPickerResourceTest {
     void widgets_urlUsesAccountIdAndDomainKey() {
         when(httpGateway.apply(anyString())).thenReturn("{\"response\":{\"widgets\":[]}}");
 
-        resource.listWidgets();
+        resource.listWidgets("", "");
 
         verify(httpGateway).apply(argThat(url ->
                 url.contains("/api/v1/merchant/widgets")
@@ -250,7 +258,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        List<PickerWidgetDto> result = resource.listWidgets();
+        List<PickerWidgetDto> result = resource.listWidgets("", "");
 
         assertEquals(1, result.size());
         PickerWidgetDto w = result.get(0);
@@ -272,7 +280,7 @@ class DiscoveryPickerResourceTest {
                 """;
         when(httpGateway.apply(anyString())).thenReturn(json);
 
-        PickerSearchResponseDto resp = resource.search("*", 0, 12);
+        PickerSearchResponseDto resp = resource.search("", "", "*", 0, 12);
 
         assertNull(resp.items().get(0).price());
     }
@@ -281,9 +289,81 @@ class DiscoveryPickerResourceTest {
     void search_missingResponseNode_returnsEmptyList() {
         when(httpGateway.apply(anyString())).thenReturn("{}");
 
-        PickerSearchResponseDto resp = resource.search("*", 0, 12);
+        PickerSearchResponseDto resp = resource.search("", "", "*", 0, 12);
 
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
+    }
+
+    // ---- session refresh -------------------------------------------------
+
+    @Test
+    void search_refreshesSessionBeforeResolvingConfig() throws RepositoryException {
+        when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
+
+        resource.search("", "", "*", 0, 12);
+
+        verify(session).refresh(false);
+    }
+
+    // ---- channelId overrides -----------------------------------------------
+
+    @Test
+    void search_withBlankChannelId_usesGlobalConfig() {
+        when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
+
+        resource.search("", "", "*", 0, 12);
+
+        verify(httpGateway).apply(argThat(url -> url.contains("account_id=acc1")));
+    }
+
+    @Test
+    void search_withDocumentId_appliesChannelCredentials(@Mock Node channelInfoNode,
+                                                         @Mock Node docHandleNode,
+                                                         @Mock Property accountProp,
+                                                         @Mock Property domainProp,
+                                                         @Mock Property apiKeyEnvVarProp) throws RepositoryException {
+        // Create resource with seam envResolver so CHAN_API_KEY resolves to a known value
+        DiscoveryPickerResource resourceWithSeam = new DiscoveryPickerResource(
+                session, configProvider, httpGateway,
+                new DiscoveryPickerResponseMapper(),
+                name -> "CHAN_API_KEY".equals(name) ? "chan-api-key" : null);
+
+        // documentId resolves to channelId via document path: /content/documents/{siteName}/...
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(docHandleNode);
+        when(docHandleNode.getPath()).thenReturn("/content/documents/myChannel/folder/doc");
+
+        String channelId = "myChannel";
+        String path = "/hst:myproject/hst:configurations/" + channelId + "/hst:workspace/hst:channel/hst:channelinfo";
+        when(session.getRootNode()).thenReturn(rootNode);
+        when(rootNode.getNodes("hst:*")).thenReturn(hstRootIterator);
+        when(hstRootIterator.hasNext()).thenReturn(true, false);
+        when(hstRootIterator.nextNode()).thenReturn(hstRootNode);
+        when(hstRootNode.getPath()).thenReturn("/hst:myproject");
+        when(session.nodeExists(path)).thenReturn(true);
+        when(session.getNode(path)).thenReturn(channelInfoNode);
+
+        when(channelInfoNode.hasProperty("discoveryAccountId")).thenReturn(true);
+        when(channelInfoNode.getProperty("discoveryAccountId")).thenReturn(accountProp);
+        when(accountProp.getString()).thenReturn("chan-acct");
+
+        when(channelInfoNode.hasProperty("discoveryDomainKey")).thenReturn(true);
+        when(channelInfoNode.getProperty("discoveryDomainKey")).thenReturn(domainProp);
+        when(domainProp.getString()).thenReturn("chan-domain");
+
+        when(channelInfoNode.hasProperty("discoveryApiKeyEnvVar")).thenReturn(true);
+        when(channelInfoNode.getProperty("discoveryApiKeyEnvVar")).thenReturn(apiKeyEnvVarProp);
+        when(apiKeyEnvVarProp.getString()).thenReturn("CHAN_API_KEY");
+
+        when(channelInfoNode.hasProperty("discoveryAuthKeyEnvVar")).thenReturn(false);
+
+        when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
+
+        // channelId="" but documentId="doc-uuid" → server derives channelId from document path
+        resourceWithSeam.search("", "doc-uuid", "*", 0, 12);
+
+        // channel credentials replace global → URL contains channel account_id and domain_key
+        verify(httpGateway).apply(argThat(url ->
+                url.contains("account_id=chan-acct") && url.contains("domain_key=chan-domain")));
     }
 }

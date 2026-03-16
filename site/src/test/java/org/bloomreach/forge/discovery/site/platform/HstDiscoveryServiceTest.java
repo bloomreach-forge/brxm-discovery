@@ -633,4 +633,61 @@ class HstDiscoveryServiceTest {
         assertEquals("en-US,en;q=0.9", ctx.acceptLanguage());
         assertEquals("203.0.113.42, 10.0.0.1", ctx.xForwardedFor());
     }
+
+    // ── channel credential overrides ────────────────────────────────────────
+
+    @Test
+    void channelAccountIdOverridesGlobalConfig() {
+        // Create service backed by a factory with a custom envResolver so we can supply the channel apiKey
+        DiscoveryRuntimeContextFactory factory = new DiscoveryRuntimeContextFactory(
+                configProvider, name -> "CHAN_API_KEY".equals(name) ? "chan-api-key" : null);
+        service = new HstDiscoveryService(client, factory, pixelService, null);
+
+        when(mount.getChannelInfo()).thenReturn(channelInfo);
+        when(channelInfo.getDiscoveryAccountId()).thenReturn("chan-acct");
+        when(channelInfo.getDiscoveryDomainKey()).thenReturn("chan-domain");
+        when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("CHAN_API_KEY");
+        when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
+
+        DiscoveryCredentials channelCreds = new DiscoveryCredentials(
+                "chan-acct", "chan-domain", "chan-api-key", null, null);
+        when(client.search(any(SearchQuery.class), eq(channelCreds), any(ClientContext.class)))
+                .thenReturn(searchResponse);
+
+        SearchResponse result = service.search(request);
+
+        assertSame(searchResult, result.result());
+        ArgumentCaptor<DiscoveryCredentials> credsCaptor = ArgumentCaptor.forClass(DiscoveryCredentials.class);
+        verify(client).search(any(SearchQuery.class), credsCaptor.capture(), any(ClientContext.class));
+        assertEquals("chan-acct", credsCaptor.getValue().accountId());
+        assertEquals("chan-domain", credsCaptor.getValue().domainKey());
+        assertEquals("chan-api-key", credsCaptor.getValue().apiKey());
+        // global domain/key are NOT used — channel credentials replace entirely
+        assertNull(credsCaptor.getValue().authKey());
+    }
+
+    @Test
+    void noChannelInfo_usesGlobalConfig() {
+        when(mount.getChannelInfo()).thenReturn(null);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(searchResponse);
+
+        SearchResponse result = service.search(request);
+
+        assertSame(searchResult, result.result());
+        verify(client).search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class));
+    }
+
+    @Test
+    void channelApiKeyEnvVar_configuredButMissing_throwsConfigException() {
+        // Channel has opted-in by providing an env-var name, but the env var doesn't exist.
+        // Full replacement means apiKey resolves to null → validation must throw ConfigurationException.
+        when(mount.getChannelInfo()).thenReturn(channelInfo);
+        when(channelInfo.getDiscoveryAccountId()).thenReturn("");
+        when(channelInfo.getDiscoveryDomainKey()).thenReturn("");
+        when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("BRXDIS_NONEXISTENT_ENV_VAR_XYZ");
+        when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
+
+        assertThrows(ConfigurationException.class, () -> service.search(request));
+    }
 }

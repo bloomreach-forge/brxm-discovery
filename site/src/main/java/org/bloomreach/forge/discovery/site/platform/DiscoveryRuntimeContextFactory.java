@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.platform;
 
 import jakarta.servlet.http.Cookie;
+import org.bloomreach.forge.discovery.config.DiscoveryChannelConfigReader;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
@@ -20,6 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 final class DiscoveryRuntimeContextFactory {
 
@@ -27,9 +29,17 @@ final class DiscoveryRuntimeContextFactory {
     private static final String ATTR = DiscoveryRuntimeContextFactory.class.getName();
 
     private final DiscoveryConfigProvider configProvider;
+    private final Function<String, String> envResolver;
 
     DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider) {
+        this(configProvider, System::getenv);
+    }
+
+    /** Package-private seam for tests — allows injecting a custom env resolver. */
+    DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
+                                   Function<String, String> envResolver) {
         this.configProvider = configProvider;
+        this.envResolver = envResolver;
     }
 
     DiscoveryRuntimeContext get(HstRequest request) {
@@ -39,7 +49,10 @@ final class DiscoveryRuntimeContextFactory {
             return runtimeContext;
         }
 
-        DiscoveryConfig config = configFor(requestContext);
+        DiscoveryConfig rawConfig = configProvider.get(sessionOf(requestContext));
+        DiscoveryConfig config = applyChannelOverrides(rawConfig, requestContext);
+        logCredentials(config.credentials());
+        validateCredentials(config.credentials());
         String pageUrl = pageUrl(request);
         DiscoveryRuntimeContext runtimeContext = new DiscoveryRuntimeContext(
                 config,
@@ -56,21 +69,41 @@ final class DiscoveryRuntimeContextFactory {
     }
 
     DiscoveryConfig configFor(HstRequestContext ctx) {
-        Session requestSession = null;
+        DiscoveryConfig config = configProvider.get(sessionOf(ctx));
+        validateCredentials(config.credentials());
+        return config;
+    }
+
+    private static Session sessionOf(HstRequestContext ctx) {
         try {
-            requestSession = ctx.getSession();
+            return ctx.getSession();
         } catch (RepositoryException e) {
             log.debug("[configFor] Cannot acquire request JCR session: {}", e.getMessage());
+            return null;
         }
-        DiscoveryConfig config = configProvider.get(requestSession);
-        DiscoveryCredentials credentials = config.credentials();
+    }
+
+    private static void logCredentials(DiscoveryCredentials credentials) {
         if (log.isDebugEnabled()) {
             log.debug("[configFor] accountId='{}' domainKey='{}' apiKey={} authKey={}",
                     credentials.accountId(), credentials.domainKey(),
                     maskSecret(credentials.apiKey()), maskSecret(credentials.authKey()));
         }
-        validateCredentials(credentials);
-        return config;
+    }
+
+    private DiscoveryConfig applyChannelOverrides(DiscoveryConfig config, HstRequestContext ctx) {
+        Mount mount = ctx.getResolvedMount().getMount();
+        DiscoveryChannelInfo channelInfo = mount.getChannelInfo();
+        if (channelInfo == null) {
+            return config;
+        }
+        DiscoveryCredentials overrides = DiscoveryChannelConfigReader.resolveOverrides(
+                channelInfo.getDiscoveryAccountId(),
+                channelInfo.getDiscoveryDomainKey(),
+                channelInfo.getDiscoveryApiKeyEnvVar(),
+                channelInfo.getDiscoveryAuthKeyEnvVar(),
+                envResolver);
+        return overrides != null ? config.withCredentials(overrides) : config;
     }
 
     static String resolvePixelRegion(DiscoveryChannelInfo channelInfo) {
