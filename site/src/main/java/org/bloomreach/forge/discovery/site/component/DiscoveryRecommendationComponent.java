@@ -92,30 +92,22 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         return resolveStandalonePid(request, info);
     }
 
-    /** productDetailBand mode: PID from PDP cache or PPR backfill. Empty = abort. */
+    /** productDetailBand mode: PID from PDP cache or backfill. Empty = abort. */
     private Optional<String> resolveProductDetailBandPid(HstRequest request, String label, String widgetId) {
         boolean labelPresent = DiscoveryRequestCache.isProductDetailBandPresent(request, label);
         if (!labelPresent) {
-            if (isIsolatedComponentRender(request)) {
-                Optional<String> backfilled = backfillProductDetailPid(request, label);
-                if (backfilled.isPresent()) return backfilled;
-                String pid = getPublicRequestParameter(request, "pid");
-                if (pid == null || pid.isBlank()) {
-                    setModelAndAttribute(request, "products", List.of());
-                    setModelAndAttribute(request, "widgetId", widgetId);
-                    return Optional.empty();
-                }
-                return Optional.of(pid);
-            } else {
-                if (isEditMode(request)) {
-                    request.setAttribute("brxdis_warning",
-                        "No product detail label '" + label + "' found. Add a Product Detail component " +
-                        "with label='" + label + "' to this page.");
-                }
-                setModelAndAttribute(request, "products", List.of());
-                setModelAndAttribute(request, "widgetId", widgetId);
-                return Optional.empty();
+            Optional<String> backfilled = backfillProductDetailPid(request, label);
+            if (backfilled.isPresent()) return backfilled;
+            String pid = getPublicRequestParameter(request, "pid");
+            if (pid != null && !pid.isBlank()) return Optional.of(pid);
+            if (isEditMode(request)) {
+                request.setAttribute("brxdis_warning",
+                    "No product detail label '" + label + "' found. Add a Product Detail component " +
+                    "with label='" + label + "' to this page.");
             }
+            setModelAndAttribute(request, "products", List.of());
+            setModelAndAttribute(request, "widgetId", widgetId);
+            return Optional.empty();
         }
         Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, label);
         if (cached.isEmpty()) {

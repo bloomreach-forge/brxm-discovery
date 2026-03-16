@@ -136,10 +136,9 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     /**
-     * On a PPR (isolated component re-render), walks the page's HST component
-     * configuration tree to check whether a data component with the matching
-     * band is actually configured on this page. Returns false on all non-PPR
-     * requests (live delivery and full-page preview) — no performance impact.
+     * Walks the page's HST component configuration tree to check whether a
+     * data component with the matching band is actually configured on this page.
+     * Uses the in-memory config model — no JCR reads.
      */
     protected boolean isBandConfiguredOnPage(HstRequest request, String label) {
         return isBandConfiguredOnPage(request, label, DiscoverySearchComponent.class)
@@ -151,13 +150,13 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     /**
-     * In PPR (isolated component re-render) mode, the data-fetching component (Search/Category)
-     * does not execute, leaving the request cache empty. This method locates the producer's
-     * component config from the page tree, re-runs the API call with its stored parameters,
-     * and returns the result so the view component can display live data in the editor.
+     * When the request cache is empty (consumer ran before producer, or PPR mode),
+     * locates the producer's component config from the page tree, re-runs the API call
+     * with its stored parameters, and populates the cache so subsequent components
+     * get a cache hit.
      *
-     * <p>Returns {@link Optional#empty()} when not in PPR mode, when no matching producer is
-     * found, or when the fetch fails (exception is logged as WARN).
+     * <p>Returns {@link Optional#empty()} when no matching producer is found on the page
+     * or when the fetch fails (exception is logged as WARN).
      */
     protected Optional<SearchResponse> backfillSearchResponse(HstRequest request, String label) {
         Optional<SearchResponse> category = backfillCategoryResponse(request, label);
@@ -180,10 +179,12 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         String segment = catConfig.getParameter("segment");
         String efq = catConfig.getParameter("exclusionFilter");
         try {
-            return Optional.of(getDiscoveryService()
-                    .browse(request, categoryId, pageSize, sort, label, statsFields, segment, efq));
+            SearchResponse result = getDiscoveryService()
+                    .browse(request, categoryId, pageSize, sort, label, statsFields, segment, efq);
+            DiscoveryRequestCache.markCategoryBandPresent(request, label);
+            return Optional.of(result);
         } catch (Exception e) {
-            log.warn("PPR backfill for category label '{}' failed: {}", label, e.getMessage());
+            log.warn("Backfill for category label '{}' failed: {}", label, e.getMessage());
             return Optional.empty();
         }
     }
@@ -200,23 +201,25 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         String segment = searchConfig.getParameter("segment");
         String efq = searchConfig.getParameter("exclusionFilter");
         try {
-            return Optional.of(getDiscoveryService().search(request, pageSize, sort,
-                    blankToNull(catalogName), label, statsFields, segment, efq));
+            SearchResponse result = getDiscoveryService().search(request, pageSize, sort,
+                    blankToNull(catalogName), label, statsFields, segment, efq);
+            DiscoveryRequestCache.markSearchBandPresent(request, label);
+            return Optional.of(result);
         } catch (Exception e) {
-            log.warn("PPR backfill for search label '{}' failed: {}", label, e.getMessage());
+            log.warn("Backfill for search label '{}' failed: {}", label, e.getMessage());
             return Optional.empty();
         }
     }
 
     /**
-     * In PPR mode, the PDP component did not run, so the request cache has no product PID.
-     * This method locates the {@link DiscoveryProductDetailComponent} config from the page tree,
-     * extracts the PID via the same two-stage resolution the component itself uses:
+     * When the PDP component has not yet run (consumer-before-producer or PPR mode),
+     * locates the {@link DiscoveryProductDetailComponent} config from the page tree
+     * and extracts the PID via two-stage resolution:
      * <ol>
      *   <li>Document picker path → bean → {@code productId} field</li>
      *   <li>URL param name stored in component config (default: {@code "pid"})</li>
      * </ol>
-     * Returns {@link Optional#empty()} when not in PPR mode, when no matching producer is found,
+     * Returns {@link Optional#empty()} when no matching producer is found on the page
      * or when no PID can be resolved.
      */
     protected Optional<String> backfillProductDetailPid(HstRequest request, String label) {
@@ -241,7 +244,6 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     private HstComponentConfiguration findDataComponentConfig(HstRequest request, String label, Class<?> dataClass) {
-        if (!isIsolatedComponentRender(request)) return null;
         HstRequestContext ctx = request.getRequestContext();
         if (ctx == null) return null;
         var siteMapItem = ctx.getResolvedSiteMapItem();
@@ -273,15 +275,15 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     /**
      * Shared data-source resolution used by view components (ProductGrid, Facets).
-     * Probes the request cache for search and category results, runs a PPR backfill
-     * when in isolated-component-render mode, and sets {@code label} / {@code labelConnected}
+     * Probes the request cache for search and category results, backfills from the
+     * page's component tree on cache miss, and sets {@code label} / {@code labelConnected}
      * on the model. Also emits a CMS-preview warning when no data source is wired.
      */
     protected DataSourceResult resolveDataSource(HstRequest request, String label) {
         Optional<SearchResponse> cached = DiscoveryRequestCache.getSearchResponse(request, label)
                 .or(() -> DiscoveryRequestCache.getCategoryResponse(request, label));
         boolean backfilled = false;
-        if (cached.isEmpty() && isIsolatedComponentRender(request)) {
+        if (cached.isEmpty()) {
             cached = backfillSearchResponse(request, label);
             backfilled = cached.isPresent();
         }

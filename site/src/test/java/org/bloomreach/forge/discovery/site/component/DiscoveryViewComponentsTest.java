@@ -186,8 +186,8 @@ class DiscoveryViewComponentsTest {
 
     @Test
     void productGrid_editMode_bandAbsent_noWarning() {
-        // Isolated component re-render (PPR): isBandConfiguredOnPage override returns true
-        // (data component found in page tree) → no false "band not connected" warning.
+        // Data component found in page tree → isBandConfiguredOnPage returns true
+        // → no false "band not connected" warning.
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
         TestableProductGridComponent component = new TestableProductGridComponent();
@@ -301,34 +301,42 @@ class DiscoveryViewComponentsTest {
         verify(request).setAttribute("label", "default");
     }
 
-    // --- PPR backfill ---
+    // --- Backfill (consumer-before-producer / PPR) ---
 
     @Test
-    void productGrid_pprMode_backfillsFromProducer_showsProducts() {
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("some-ns");
-
+    void productGrid_cacheMiss_backfillsFromProducer_showsProducts() {
         TestableProductGridComponent grid = new TestableProductGridComponent();
         grid.setBackfillResponse(searchResponse);
         grid.doBeforeRender(request, response);
 
         verify(request).setModel("products", searchResult.products());
+        verify(request).setModel("labelConnected", true);
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
 
     @Test
-    void facet_pprMode_backfillsFromProducer_showsFacets() {
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("some-ns");
-
+    void facet_cacheMiss_backfillsFromProducer_showsFacets() {
         TestableFacetComponent facet = new TestableFacetComponent();
         facet.setBackfillResponse(searchResponse);
         facet.doBeforeRender(request, response);
 
         verify(request).setModel("facets", searchResult.facets());
+        verify(request).setModel("labelConnected", true);
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
+    }
+
+    @Test
+    void productGrid_producerAlreadyRan_noBackfill() {
+        // Producer ran first → cache hit. Backfill should NOT be invoked.
+        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResponse);
+        lenient().when(requestContext.getAttribute(SEARCH_BAND_MARKER)).thenReturn(Boolean.TRUE);
+
+        TestableProductGridComponent grid = new TestableProductGridComponent();
+        grid.setBackfillResponse(null); // would fail if called
+        grid.doBeforeRender(request, response);
+
+        verify(request).setModel("products", searchResult.products());
+        verify(request).setModel("labelConnected", true);
     }
 
     // --- Testable subclasses that override getComponentParametersInfo ---

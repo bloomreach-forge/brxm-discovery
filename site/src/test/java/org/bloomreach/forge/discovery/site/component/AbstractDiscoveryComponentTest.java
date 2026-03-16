@@ -127,11 +127,8 @@ class AbstractDiscoveryComponentTest {
     // ── isBandConfiguredOnPage ────────────────────────────────────────────
 
     @Test
-    void isBandConfiguredOnPage_ppr_matchingComponent_returnsTrue() {
+    void isBandConfiguredOnPage_matchingComponent_returnsTrue() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
@@ -143,11 +140,8 @@ class AbstractDiscoveryComponentTest {
     }
 
     @Test
-    void isBandConfiguredOnPage_ppr_wrongBand_returnsFalse() {
+    void isBandConfiguredOnPage_wrongBand_returnsFalse() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
@@ -159,11 +153,8 @@ class AbstractDiscoveryComponentTest {
     }
 
     @Test
-    void isBandConfiguredOnPage_ppr_noMatchingClass_returnsFalse() {
+    void isBandConfiguredOnPage_noMatchingClass_returnsFalse() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
@@ -173,14 +164,18 @@ class AbstractDiscoveryComponentTest {
     }
 
     @Test
-    void isBandConfiguredOnPage_notPpr_returnsFalse() {
-        when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn(null); // full-page load
+    void isBandConfiguredOnPage_nullContext_returnsFalse() {
+        when(request.getRequestContext()).thenReturn(null);
 
         assertFalse(new TestableComponent(discoveryService).isBandConfiguredOnPage(request, "default", DiscoverySearchComponent.class));
-        verify(requestContext, never()).getResolvedSiteMapItem();
+    }
+
+    @Test
+    void isBandConfiguredOnPage_noResolvedSiteMapItem_returnsFalse() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(null);
+
+        assertFalse(new TestableComponent(discoveryService).isBandConfiguredOnPage(request, "default", DiscoverySearchComponent.class));
     }
 
     // ── isIsolatedComponentRender ─────────────────────────────────────────
@@ -265,11 +260,7 @@ class AbstractDiscoveryComponentTest {
      */
     @Test
     void backfillSearchResponse_catConfigPresentButBlankCategoryId_fallsThroughToSearch() {
-        // PPR mode
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
 
