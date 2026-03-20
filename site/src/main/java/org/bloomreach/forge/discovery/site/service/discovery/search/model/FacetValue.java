@@ -6,5 +6,7 @@ public record FacetValue(
         String catId,
         String crumb,
         String treePath,
-        String parent
+        String parent,
+        Double start,
+        Double end
 ) {}

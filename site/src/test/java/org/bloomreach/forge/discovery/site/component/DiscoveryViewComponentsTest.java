@@ -54,7 +54,7 @@ class DiscoveryViewComponentsTest {
                 new ProductSummary("p1", "Shoe", "http://shoe", "http://img", BigDecimal.TEN, "USD", Map.of())
         );
         Map<String, Facet> facets = Map.of(
-                "brand", new Facet("brand", "text", List.of(new FacetValue("Nike", 10, null, null, null, null)))
+                "brand", new Facet("brand", "text", List.of(new FacetValue("Nike", 10, null, null, null, null, null, null)))
         );
         searchResult = new SearchResult(products, 42L, 1, 12, facets);
         categoryResult = new SearchResult(products, 100L, 0, 24, facets);

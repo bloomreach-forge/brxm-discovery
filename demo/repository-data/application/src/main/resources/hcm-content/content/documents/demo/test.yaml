@@ -119,7 +119,7 @@
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-17T09:25:43.021Z
+      hippostdpubwf:lastModificationDate: 2026-03-20T11:38:12.229Z
       hippostdpubwf:lastModifiedBy: admin
     /product[2]:
       jcr:primaryType: brxdis:productDetailDocument

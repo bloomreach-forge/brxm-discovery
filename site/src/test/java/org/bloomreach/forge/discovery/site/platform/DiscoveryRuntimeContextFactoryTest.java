@@ -17,12 +17,17 @@ import javax.jcr.Session;
 import java.util.HashMap;
 import java.util.Map;
 
+import jakarta.servlet.http.Cookie;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -107,5 +112,35 @@ class DiscoveryRuntimeContextFactoryTest {
         when(request.getHeader("X-Forwarded-For")).thenReturn(null);
 
         assertEquals("10.0.0.1", factory.get(request).clientIp());
+    }
+
+    // ── Cookie cache ──────────────────────────────────────────────────────────
+
+    @Test
+    void brUid2Cookie_resolvedFromCookieArray() {
+        Cookie brUid = new Cookie("_br_uid_2", "uid-value-123");
+        when(request.getCookies()).thenReturn(new Cookie[]{brUid});
+
+        assertEquals("uid-value-123", factory.get(request).brUid2());
+    }
+
+    @Test
+    void missingBrUid2Cookie_returnsNull() {
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("other", "x")});
+
+        assertNull(factory.get(request).brUid2());
+    }
+
+    @Test
+    void cookieArrayScannedOncePerRequest_cachedOnContext() {
+        Cookie brUid = new Cookie("_br_uid_2", "uid-abc");
+        when(request.getCookies()).thenReturn(new Cookie[]{brUid});
+
+        // Two calls to get() on the same request — the second hits the HstRequestContext cache,
+        // so getCookies() should only be called once.
+        factory.get(request);
+        factory.get(request);
+
+        verify(request, times(1)).getCookies();
     }
 }

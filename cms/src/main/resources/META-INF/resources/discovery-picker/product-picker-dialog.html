@@ -6,75 +6,226 @@
   <title>Select Product</title>
   <link rel="stylesheet" href="picker-dialog.css"/>
   <style>
-    html, body { width: 100%; height: 100%; min-width: 600px; min-height: 460px; }
+    html, body { width: 100%; height: 100%; min-width: 700px; min-height: 460px; }
 
-    /* ---- Product grid ---- */
-    #grid-scroll { overflow-y: auto; flex: 1; background: var(--bg); }
-
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-      gap: 12px;
-      padding: 14px;
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .picker-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
     }
 
+    /* ── Sidebar ─────────────────────────────────────────────────────────── */
+    .picker-sidebar {
+      width: 188px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      overflow-y: auto;
+      padding: 10px 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .sidebar-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--text-faint);
+      padding: 0 14px 8px;
+    }
+
+    .cat-item {
+      display: flex;
+      align-items: center;
+      padding: 7px 14px 7px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-left: 2px solid transparent;
+      transition: background .12s, border-color .12s, color .12s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+      animation: catIn 0.22s ease-out both;
+    }
+    .cat-item:hover  { background: var(--row-hover); color: var(--text); }
+    .cat-item.active {
+      border-left-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+      background: var(--accent-subtle);
+    }
+    /* Stagger category items */
+    .cat-item:nth-child(1)  { animation-delay:  10ms; }
+    .cat-item:nth-child(2)  { animation-delay:  30ms; }
+    .cat-item:nth-child(3)  { animation-delay:  50ms; }
+    .cat-item:nth-child(4)  { animation-delay:  70ms; }
+    .cat-item:nth-child(5)  { animation-delay:  90ms; }
+    .cat-item:nth-child(6)  { animation-delay: 110ms; }
+    .cat-item:nth-child(7)  { animation-delay: 130ms; }
+    .cat-item:nth-child(8)  { animation-delay: 150ms; }
+    .cat-item:nth-child(9)  { animation-delay: 170ms; }
+    .cat-item:nth-child(10) { animation-delay: 190ms; }
+    .cat-item:nth-child(11) { animation-delay: 210ms; }
+    .cat-item:nth-child(12) { animation-delay: 230ms; }
+    .cat-item:nth-child(n+13) { animation-delay: 250ms; }
+
+    @keyframes catIn {
+      from { opacity: 0; transform: translateX(-4px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Grid scroll ─────────────────────────────────────────────────────── */
+    #grid-scroll {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    /* ── Product Grid ────────────────────────────────────────────────────── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 12px;
+    }
+
+    /* ── Product Card ────────────────────────────────────────────────────── */
     .product-card {
       background: var(--surface);
-      border: 1.5px solid var(--border);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       cursor: pointer;
       overflow: hidden;
       position: relative;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+      animation: cardIn 0.28s ease-out both;
     }
     .product-card:hover {
       border-color: var(--accent);
-      box-shadow: 0 3px 12px rgba(21, 88, 214, 0.13);
+      box-shadow: 0 4px 22px var(--accent-ring);
+      transform: translateY(-2px);
     }
     .product-card.selected {
       border-color: var(--accent);
       background: var(--accent-subtle);
     }
+    /* Checkmark badge */
     .product-card.selected::after {
       content: '\2713';
       position: absolute;
-      top: 5px;
+      top: 6px;
       right: 6px;
-      width: 18px;
-      height: 18px;
+      width: 19px;
+      height: 19px;
       background: var(--accent);
       color: #fff;
       border-radius: 50%;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      line-height: 18px;
+      line-height: 19px;
       text-align: center;
+      z-index: 2;
     }
-    .product-card img {
+
+    /* Card image wrap — holds dot-grid placeholder + gradient overlay */
+    .card-image-wrap {
+      position: relative;
       width: 100%;
       aspect-ratio: 1 / 1;
-      object-fit: contain;
-      background: var(--surface-lift);
-      display: block;
+      overflow: hidden;
+      /* Subtle dot-grid as texture/placeholder */
+      background-color: var(--surface-lift);
+      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+      background-size: 14px 14px;
     }
-    .card-body { padding: 7px 9px 9px; }
+    .card-image-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.32s ease;
+    }
+    .product-card:hover .card-image-wrap img { transform: scale(1.05); }
+
+    /* Editorial gradient fade: image bleeds into card body */
+    .card-image-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 28px;
+      background: linear-gradient(to bottom, transparent, var(--surface));
+      pointer-events: none;
+      z-index: 1;
+    }
+    .product-card.selected .card-image-wrap::after {
+      background: linear-gradient(to bottom, transparent, var(--accent-subtle));
+    }
+
+    .card-body {
+      padding: 6px 9px 9px;
+    }
     .card-title {
       font-size: 11.5px;
       font-weight: 500;
-      line-height: 1.35;
+      line-height: 1.38;
       color: var(--text);
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
-    .card-price { font-size: 12px; color: var(--accent); margin-top: 3px; font-weight: 600; }
+    .card-price {
+      font-size: 11.5px;
+      color: var(--accent);
+      margin-top: 3px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
 
-    /* ---- Footer ---- */
-    #footer { justify-content: space-between; gap: 12px; }
-    #status { display: flex; align-items: center; gap: 6px; }
-    #status.error { color: var(--error); }
+    /* ── Card stagger animation ──────────────────────────────────────────── */
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(7px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .product-card:nth-child(1)  { animation-delay:   0ms; }
+    .product-card:nth-child(2)  { animation-delay:  35ms; }
+    .product-card:nth-child(3)  { animation-delay:  70ms; }
+    .product-card:nth-child(4)  { animation-delay: 105ms; }
+    .product-card:nth-child(5)  { animation-delay: 140ms; }
+    .product-card:nth-child(6)  { animation-delay: 175ms; }
+    .product-card:nth-child(7)  { animation-delay: 210ms; }
+    .product-card:nth-child(8)  { animation-delay: 245ms; }
+    .product-card:nth-child(9)  { animation-delay: 280ms; }
+    .product-card:nth-child(10) { animation-delay: 315ms; }
+    .product-card:nth-child(11) { animation-delay: 350ms; }
+    .product-card:nth-child(12) { animation-delay: 385ms; }
+
+    /* ── Footer overrides ────────────────────────────────────────────────── */
+    #footer              { justify-content: space-between; gap: 12px; }
+    #status              { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+    #status.error        { color: var(--error); }
+    .cat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 7px;
+      border-radius: 100px;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      font-size: 10.5px;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -84,8 +235,13 @@
   <button id="search-btn" class="btn btn-primary">Search</button>
 </div>
 
-<div id="grid-scroll">
-  <div id="grid"></div>
+<div id="body" class="picker-body">
+  <div id="sidebar" class="picker-sidebar">
+    <div class="sidebar-label">Categories</div>
+  </div>
+  <div id="grid-scroll">
+    <div id="grid"></div>
+  </div>
 </div>
 
 <div id="footer" class="footer">
@@ -102,21 +258,24 @@
   (function () {
     "use strict";
 
-    var PAGE_SIZE    = 12;
-    var ui           = null;
-    var documentId   = "";
-    var currentValue = "";
-    var channelId    = "";
-    var currentPage  = 0;
-    var lastQuery    = "*";
+    var PAGE_SIZE     = 12;
+    var ui            = null;
+    var documentId    = "";
+    var currentValue  = "";
+    var channelId     = "";
+    var currentPage   = 0;
+    var lastQuery     = "*";
+    var activeCatId   = "";
+    var activeCatName = "";
 
-    var searchInput  = document.getElementById("search-input");
-    var searchBtn    = document.getElementById("search-btn");
-    var grid         = document.getElementById("grid");
-    var pagination   = document.getElementById("pagination");
-    var status       = document.getElementById("status");
+    var searchInput = document.getElementById("search-input");
+    var searchBtn   = document.getElementById("search-btn");
+    var sidebar     = document.getElementById("sidebar");
+    var grid        = document.getElementById("grid");
+    var pagination  = document.getElementById("pagination");
+    var status      = document.getElementById("status");
 
-    /* ---- Bootstrap ---------------------------------------------------- */
+    /* ── Bootstrap ─────────────────────────────────────────────────────── */
     UiExtension.register().then(function (registeredUi) {
       ui = registeredUi;
       return ui.dialog.options();
@@ -127,6 +286,7 @@
       documentId   = data.documentId   || "";
       currentValue = data.currentValue || "";
       channelId    = data.channelId    || "";
+      loadCategories();
       doSearch("*", 0);
       searchInput.focus();
     })
@@ -134,7 +294,7 @@
       setStatusEl(status, "error", "Failed to initialise: " + (err && err.message || err));
     });
 
-    /* ---- Events ------------------------------------------------------- */
+    /* ── Events ────────────────────────────────────────────────────────── */
     searchBtn.addEventListener("click", function () {
       lastQuery   = searchInput.value.trim() || "*";
       currentPage = 0;
@@ -144,10 +304,61 @@
       if (e.key === "Enter") searchBtn.click();
     });
 
-    /* ---- Search ------------------------------------------------------- */
+    /* ── Categories sidebar ────────────────────────────────────────────── */
+    function loadCategories() {
+      if (!documentId) return;
+      var url = buildApiUrl(ui, "/discovery/picker/categories", {
+        channelId:  channelId,
+        documentId: documentId
+      });
+      fetch(url, { credentials: "include" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (categories) {
+          renderSidebar(categories || []);
+        })
+        .catch(function () {
+          /* sidebar failure is non-fatal — product search still works */
+        });
+    }
+
+    function renderSidebar(categories) {
+      var allItem = document.createElement("div");
+      allItem.className      = "cat-item active";
+      allItem.textContent    = "All Products";
+      allItem.dataset.catId  = "";
+      allItem.addEventListener("click", function () { selectCategory("", ""); });
+      sidebar.appendChild(allItem);
+
+      categories.forEach(function (cat) {
+        var item = document.createElement("div");
+        item.className     = "cat-item";
+        item.textContent   = cat.name || cat.id;
+        item.title         = cat.name || cat.id;
+        item.dataset.catId = cat.id;
+        item.addEventListener("click", function () {
+          selectCategory(cat.id, cat.name || cat.id);
+        });
+        sidebar.appendChild(item);
+      });
+    }
+
+    function selectCategory(catId, catName) {
+      activeCatId   = catId;
+      activeCatName = catName;
+      sidebar.querySelectorAll(".cat-item").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.catId === catId);
+      });
+      currentPage = 0;
+      doSearch(lastQuery, 0);
+    }
+
+    /* ── Search ────────────────────────────────────────────────────────── */
     function doSearch(q, page) {
       if (!documentId) {
-        setStatusEl(status, "error", "No documentId available — cannot resolve Discovery config.");
+        setStatusEl(status, "error", "No documentId available \u2014 cannot resolve Discovery config.");
         return;
       }
       setStatusEl(status, "", "Searching\u2026", true);
@@ -155,13 +366,16 @@
       pagination.style.display = "none";
       grid.replaceChildren();
 
-      var url = buildApiUrl(ui, "/discovery/picker/search", {
+      var params = {
         channelId:  channelId,
         documentId: documentId,
         q:          q,
         page:       page,
         pageSize:   PAGE_SIZE
-      });
+      };
+      if (activeCatId) params.catId = activeCatId;
+
+      var url = buildApiUrl(ui, "/discovery/picker/search", params);
 
       fetch(url, { credentials: "include" })
         .then(function (res) {
@@ -172,7 +386,7 @@
           currentPage = page;
           renderGrid(data.items || []);
           renderPagination(data.total || 0);
-          setStatusEl(status, "", (data.total || 0) + " product(s) found.");
+          renderStatus(data.total || 0);
         })
         .catch(function (err) {
           setStatusEl(status, "error", "Search failed: " + err.message);
@@ -182,12 +396,28 @@
         });
     }
 
-    /* ---- Render grid -------------------------------------------------- */
+    function renderStatus(total) {
+      status.className = "";
+      status.replaceChildren();
+
+      var count = document.createElement("span");
+      count.textContent = total.toLocaleString() + " product" + (total !== 1 ? "s" : "");
+      status.appendChild(count);
+
+      if (activeCatName) {
+        var badge = document.createElement("span");
+        badge.className   = "cat-badge";
+        badge.textContent = activeCatName;
+        status.appendChild(badge);
+      }
+    }
+
+    /* ── Render grid ───────────────────────────────────────────────────── */
     function renderGrid(items) {
       grid.replaceChildren();
       if (!items.length) {
         var msg = document.createElement("p");
-        msg.className = "empty-grid";
+        msg.className   = "empty-grid";
         msg.textContent = "No products found.";
         grid.appendChild(msg);
         return;
@@ -195,13 +425,20 @@
       items.forEach(function (item) {
         var card = document.createElement("div");
         card.className = "product-card" + (item.id === currentValue ? " selected" : "");
-        card.title = item.title || item.id || "";
+        card.title     = item.title || item.id || "";
+
+        /* Image wrap (dot-grid placeholder + gradient overlay via CSS) */
+        var imgWrap = document.createElement("div");
+        imgWrap.className = "card-image-wrap";
 
         var img = document.createElement("img");
-        img.src     = item.imageUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
+        img.src     = item.imageUrl || "";
         img.alt     = "";
         img.loading = "lazy";
-        card.appendChild(img);
+        /* Hide broken image icon on load error; dot-grid bg shows through */
+        img.onerror = function () { this.style.display = "none"; };
+        imgWrap.appendChild(img);
+        card.appendChild(imgWrap);
 
         var body  = document.createElement("div");
         body.className = "card-body";
@@ -219,16 +456,12 @@
         }
 
         card.appendChild(body);
-
-        card.addEventListener("click", function () {
-          ui.dialog.close(item.id);
-        });
-
+        card.addEventListener("click", function () { ui.dialog.close(item.id); });
         grid.appendChild(card);
       });
     }
 
-    /* ---- Render pagination -------------------------------------------- */
+    /* ── Render pagination ─────────────────────────────────────────────── */
     function renderPagination(total) {
       var totalPages = Math.ceil(total / PAGE_SIZE) || 1;
       if (totalPages <= 1) {

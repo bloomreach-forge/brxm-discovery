@@ -9,5 +9,7 @@ public record FacetValueDto(
         @JsonProperty("cat_name") String catName,
         @JsonProperty("crumb") String crumb,
         @JsonProperty("tree_path") String treePath,
-        @JsonProperty("parent") String parent
+        @JsonProperty("parent") String parent,
+        @JsonProperty("start") Double start,
+        @JsonProperty("end") Double end
 ) {}

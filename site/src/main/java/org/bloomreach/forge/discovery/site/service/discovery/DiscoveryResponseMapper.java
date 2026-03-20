@@ -147,7 +147,7 @@ public class DiscoveryResponseMapper {
 
     private FacetValue toFacetValue(FacetValueDto dto) {
         String name = dto.catName() != null ? dto.catName() : dto.name();
-        return new FacetValue(name, dto.count(), dto.catId(), dto.crumb(), dto.treePath(), dto.parent());
+        return new FacetValue(name, dto.count(), dto.catId(), dto.crumb(), dto.treePath(), dto.parent(), dto.start(), dto.end());
     }
 
     private Map<String, FieldStats> toStats(StatsDto statsDto) {

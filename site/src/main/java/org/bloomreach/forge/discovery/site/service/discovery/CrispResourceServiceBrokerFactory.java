@@ -21,18 +21,36 @@ public class CrispResourceServiceBrokerFactory {
     private static final Logger log = LoggerFactory.getLogger(CrispResourceServiceBrokerFactory.class);
     private static final String CRISP_HST_ADDON_MODULE = "org.onehippo.cms7.crisp.hst";
 
+    private volatile ResourceServiceBroker cachedBroker;
+
     public ResourceServiceBroker getObject() {
-        ResourceServiceBroker broker = lookupHstBroker();
-        if (broker == null) {
-            broker = HippoServiceRegistry.getService(ResourceServiceBroker.class);
+        ResourceServiceBroker broker = cachedBroker;
+        if (broker != null) {
+            return broker;
         }
-        if (broker == null) {
-            throw new ConfigurationException(
-                    "CRISP ResourceServiceBroker not found in the HST component manager or HippoServiceRegistry. " +
-                    "Ensure the CRISP HST addon is present in the site webapp and, for cross-webapp sharing, " +
-                    "crisp.broker.registerService=true is set in the relevant hst-config.properties.");
+        synchronized (this) {
+            broker = cachedBroker;
+            if (broker != null) {
+                return broker;
+            }
+            broker = lookupHstBroker();
+            if (broker == null) {
+                broker = HippoServiceRegistry.getService(ResourceServiceBroker.class);
+            }
+            if (broker == null) {
+                throw new ConfigurationException(
+                        "CRISP ResourceServiceBroker not found in the HST component manager or HippoServiceRegistry. " +
+                        "Ensure the CRISP HST addon is present in the site webapp and, for cross-webapp sharing, " +
+                        "crisp.broker.registerService=true is set in the relevant hst-config.properties.");
+            }
+            cachedBroker = broker;
+            return broker;
         }
-        return broker;
+    }
+
+    /** Clears the cached broker, forcing a fresh lookup on the next {@link #getObject()} call. */
+    public void reset() {
+        cachedBroker = null;
     }
 
     static ResourceServiceBroker lookupHstBroker() {

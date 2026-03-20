@@ -39,10 +39,10 @@
     brxdis:displayName: Homepage Recommendations
     brxdis:widgetId: 2jnxqelz
     hippo:availability: []
-    hippostd:holder: admin
     hippostd:retainable: false
     hippostd:state: draft
+    hippostd:transferable: false
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-03-16T21:12:21.268Z
+    hippostdpubwf:lastModificationDate: 2026-03-20T12:25:38.689Z
     hippostdpubwf:lastModifiedBy: admin

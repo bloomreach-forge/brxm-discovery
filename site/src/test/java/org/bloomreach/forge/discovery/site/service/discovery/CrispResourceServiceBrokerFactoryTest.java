@@ -11,6 +11,8 @@ import org.onehippo.cms7.crisp.api.broker.ResourceServiceBroker;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CrispResourceServiceBrokerFactoryTest {
@@ -56,5 +58,40 @@ class CrispResourceServiceBrokerFactoryTest {
                 () -> new CrispResourceServiceBrokerFactory().getObject());
 
         org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("CRISP ResourceServiceBroker not found"));
+    }
+
+    @Test
+    void getObject_calledTwice_returnsTheSameInstanceWithoutRedoingLookup() {
+        ResourceServiceBroker broker = mock(ResourceServiceBroker.class);
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(ResourceServiceBroker.class)).thenReturn(broker);
+        HstServices.setComponentManager(componentManager);
+
+        CrispResourceServiceBrokerFactory factory = new CrispResourceServiceBrokerFactory();
+        ResourceServiceBroker first = factory.getObject();
+        ResourceServiceBroker second = factory.getObject();
+
+        assertSame(first, second);
+        // The component manager lookup should only happen once
+        verify(componentManager, times(1)).getComponent(ResourceServiceBroker.class);
+    }
+
+    @Test
+    void reset_clearsCache_nextCallRelookupsLive() {
+        ResourceServiceBroker broker1 = mock(ResourceServiceBroker.class);
+        ResourceServiceBroker broker2 = mock(ResourceServiceBroker.class);
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(ResourceServiceBroker.class))
+                .thenReturn(broker1)
+                .thenReturn(broker2);
+        HstServices.setComponentManager(componentManager);
+
+        CrispResourceServiceBrokerFactory factory = new CrispResourceServiceBrokerFactory();
+        ResourceServiceBroker first = factory.getObject();
+        factory.reset();
+        ResourceServiceBroker second = factory.getObject();
+
+        assertSame(broker1, first);
+        assertSame(broker2, second);
     }
 }

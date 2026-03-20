@@ -69,7 +69,7 @@
             background: #eff6ff
         }
 
-        /* Facet groups — collapsible via <details> */
+        /* Facet groups — collapsible via details element */
         .brxdis-facets__group {
             border-top: 1px solid #e5e7eb
         }

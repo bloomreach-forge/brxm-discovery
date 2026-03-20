@@ -104,7 +104,8 @@ public class DiscoveryPickerResource {
             @QueryParam("documentId") @DefaultValue("") String documentId,
             @QueryParam("q") @DefaultValue("*") String q,
             @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("pageSize") @DefaultValue("12") int pageSize) {
+            @QueryParam("pageSize") @DefaultValue("12") int pageSize,
+            @QueryParam("catId") @DefaultValue("") String catId) {
 
         if (q.length() > 1000) {
             throw new BadRequestException("Query exceeds maximum allowed length of 1000 characters");
@@ -113,7 +114,8 @@ public class DiscoveryPickerResource {
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         DiscoveryCredentials credentials = config.credentials();
         DiscoverySettings settings = config.settings();
-        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), Map.of(), brUid2(), null, requestUrl());
+        Map<String, List<String>> filters = catId.isBlank() ? Map.of() : Map.of("cat_id", List.of(catId));
+        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), filters, brUid2(), null, requestUrl());
         String url = buildAbsoluteUrl(settings, REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return responseMapper.toSearchResponse(json, page, safePageSize);
@@ -167,6 +169,30 @@ public class DiscoveryPickerResource {
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.merchantWidgets(config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toWidgets(json);
+    }
+
+    /**
+     * Browses products within a specific category.
+     *
+     * <p>Uses {@code search_type=category&q={catId}} against the core API so
+     * the Discovery engine returns products ranked by category relevance.
+     */
+    @GET
+    @Path("/browse")
+    public PickerSearchResponseDto browse(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("catId") @DefaultValue("") String catId,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("pageSize") @DefaultValue("9") int pageSize) {
+
+        int safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        CategoryQuery query = new CategoryQuery(catId, page, safePageSize,
+                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
+        String json = httpGateway.apply(url);
+        return responseMapper.toSearchResponse(json, page, safePageSize);
     }
 
     /**

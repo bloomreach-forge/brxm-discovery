@@ -123,6 +123,66 @@ class DiscoveryResponseMapperTest {
     }
 
     @Test
+    void toSearchResult_mapsRangeFacet_startAndEnd() throws Exception {
+        String json = """
+                {
+                  "response": {"numFound": 20, "docs": []},
+                  "facet_counts": {
+                    "facets": [
+                      {
+                        "name": "price",
+                        "type": "text_price_range",
+                        "value": [
+                          {"name": "0.0 TO 25.0",  "count": 42, "start": 0.0,  "end": 25.0},
+                          {"name": "25.0 TO 50.0", "count": 17, "start": 25.0, "end": 50.0}
+                        ]
+                      }
+                    ]
+                  }
+                }
+                """;
+        stubResource(json);
+
+        SearchResult result = mapper.toSearchResult(resource, 0, 20);
+
+        var priceFacet = result.facets().get("price");
+        assertEquals("text_price_range", priceFacet.type());
+        assertEquals(2, priceFacet.value().size());
+        var bucket1 = priceFacet.value().get(0);
+        assertEquals("0.0 TO 25.0", bucket1.name());
+        assertEquals(42L, bucket1.count());
+        assertEquals(0.0, bucket1.start());
+        assertEquals(25.0, bucket1.end());
+        var bucket2 = priceFacet.value().get(1);
+        assertEquals(25.0, bucket2.start());
+        assertEquals(50.0, bucket2.end());
+    }
+
+    @Test
+    void toSearchResult_textFacetValue_startAndEndAreNull() throws Exception {
+        String json = """
+                {
+                  "response": {"numFound": 5, "docs": []},
+                  "facet_counts": {
+                    "facets": [
+                      {
+                        "name": "brand",
+                        "value": [{"name": "Nike", "count": 10}]
+                      }
+                    ]
+                  }
+                }
+                """;
+        stubResource(json);
+
+        SearchResult result = mapper.toSearchResult(resource, 0, 5);
+
+        var value = result.facets().get("brand").value().get(0);
+        assertNull(value.start());
+        assertNull(value.end());
+    }
+
+    @Test
     void toSearchResult_nullFacetCounts_returnsEmptyFacets() throws Exception {
         stubResource("""
                 {"response": {"numFound": 0, "docs": []}}
