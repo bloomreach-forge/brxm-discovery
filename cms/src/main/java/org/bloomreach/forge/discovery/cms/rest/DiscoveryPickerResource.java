@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.cms.rest;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import org.slf4j.Logger;
@@ -105,6 +106,9 @@ public class DiscoveryPickerResource {
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("pageSize") @DefaultValue("12") int pageSize) {
 
+        if (q.length() > 1000) {
+            throw new BadRequestException("Query exceeds maximum allowed length of 1000 characters");
+        }
         int safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         DiscoveryCredentials credentials = config.credentials();
@@ -229,9 +233,15 @@ public class DiscoveryPickerResource {
         if (documentId == null || documentId.isBlank()) return "";
         try {
             Node docNode = session.getNodeByIdentifier(documentId);
-            String[] parts = docNode.getPath().split("/");
-            // /content/documents/{siteName}/... → parts[3] = siteName
-            return parts.length >= 4 ? parts[3] : "";
+            String path = docNode.getPath();
+            String[] parts = path.split("/");
+            // Expected: /content/documents/{siteName}/...  →  parts[3] = siteName
+            if (parts.length < 4 || !"content".equals(parts[1]) || !"documents".equals(parts[2])) {
+                log.warn("[resolveChannelFromDocument] Unexpected document path '{}'; " +
+                        "cannot resolve channel — falling back to global config", path);
+                return "";
+            }
+            return parts[3];
         } catch (RepositoryException e) {
             log.debug("[resolveChannelFromDocument] documentId='{}': {}", documentId, e.getMessage());
             return "";

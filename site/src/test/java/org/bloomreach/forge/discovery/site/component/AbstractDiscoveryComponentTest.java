@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.search.model.SearchMetadata;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
@@ -96,16 +97,6 @@ class AbstractDiscoveryComponentTest {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
 
         assertFalse(new TestableComponent(discoveryService).isEditMode(request));
-    }
-
-    // ── setModelAndAttribute ──────────────────────────────────────────────
-
-    @Test
-    void setModelAndAttribute_setsBoth() {
-        new TestableComponent(discoveryService).setModelAndAttribute(request, "foo", "bar");
-
-        verify(request).setModel("foo", "bar");
-        verify(request).setAttribute("foo", "bar");
     }
 
     // ── getPublicRequestParameterAsInt ────────────────────────────────────
@@ -287,8 +278,7 @@ class AbstractDiscoveryComponentTest {
 
         SearchResult result = new SearchResult(List.of(), 1L, 0, 12, Map.of());
         SearchResponse mockResponse = new SearchResponse(result, SearchMetadata.empty());
-        when(discoveryService.search(eq(request), eq(12), isNull(), isNull(), eq("default"),
-                eq(List.of()), isNull(), isNull()))
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(mockResponse);
 
         // "category" URL param blank → no cat id; "q" param present → search executes
@@ -297,7 +287,7 @@ class AbstractDiscoveryComponentTest {
         var response = component.backfillSearchResponse(request, "default");
 
         assertTrue(response.isPresent(), "Expected search fallback result when cat categoryId is blank");
-        verify(discoveryService, never()).browse(any(), any(), anyInt(), any(), any(), any(), any(), any());
+        verify(discoveryService, never()).browse(any(), any(), any(SearchRequestOptions.class));
     }
 
     // ── testable subclass ─────────────────────────────────────────────────

@@ -53,8 +53,8 @@ public class DiscoveryProductHighlightComponent extends AbstractDiscoveryCompone
                     "No products configured. Select Product Detail Documents in component properties.");
         }
 
-        setModelAndAttribute(request, "products", products);
-        setModelAndAttribute(request, "productBeans", productBeans);
+        request.setModel("products", products);
+        request.setModel("productBeans", productBeans);
         log.debug("ProductHighlight returned {} of {} products", products.stream().filter(Objects::nonNull).count(), MAX_SLOTS);
     }
 }

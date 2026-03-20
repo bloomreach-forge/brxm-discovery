@@ -82,11 +82,17 @@
         <constructor-arg ref="brxmdis.pixelExecutor"/>
     </bean>
 
+    <bean id="brxmdis.runtimeContextFactory"
+          class="org.bloomreach.forge.discovery.site.platform.DiscoveryRuntimeContextFactory"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.configProvider"/>
+    </bean>
+
     <bean id="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
           class="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
           lazy-init="true">
         <constructor-arg ref="brxmdis.discoveryClient"/>
-        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.runtimeContextFactory"/>
         <constructor-arg ref="brxmdis.pixelService"/>
         <constructor-arg><null/></constructor-arg>
     </bean>

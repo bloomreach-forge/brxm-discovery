@@ -34,7 +34,7 @@ class DiscoveryProductHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("products"), captor.capture());
+        verify(request).setModel(eq("products"), captor.capture());
         assertEquals(4, captor.getValue().size());
         assertTrue(captor.getValue().stream().allMatch(p -> p == null));
         verifyNoInteractions(discoveryService);
@@ -49,7 +49,7 @@ class DiscoveryProductHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("products"), captor.capture());
+        verify(request).setModel(eq("products"), captor.capture());
         assertEquals(4, captor.getValue().size());
         assertSame(product, captor.getValue().get(0));
         assertTrue(captor.getValue().subList(1, 4).stream().allMatch(p -> p == null));
@@ -66,7 +66,7 @@ class DiscoveryProductHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("products"), captor.capture());
+        verify(request).setModel(eq("products"), captor.capture());
         assertEquals(4, captor.getValue().size());
         assertEquals(2, captor.getValue().stream().filter(p -> p != null).count());
         assertSame(p1, captor.getValue().get(0));
@@ -81,7 +81,7 @@ class DiscoveryProductHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ProductSummary>> captor = ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("products"), captor.capture());
+        verify(request).setModel(eq("products"), captor.capture());
         assertEquals(4, captor.getValue().size());
         assertTrue(captor.getValue().stream().allMatch(p -> p == null));
     }

@@ -4,6 +4,7 @@ import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
@@ -65,7 +66,8 @@ class HstDiscoveryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HstDiscoveryService(client, configProvider, pixelService, null);
+        DiscoveryRuntimeContextFactory factory = new DiscoveryRuntimeContextFactory(configProvider);
+        service = new HstDiscoveryService(client, factory, pixelService, null);
 
         validConfig = new DiscoveryConfig(
                 "acct", "domain", "key", null,
@@ -121,7 +123,7 @@ class HstDiscoveryServiceTest {
     void search_withComponentFallbacks_passedThroughToQueryBuilder() {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        SearchResponse result = service.search(request, 24, "price asc");
+        SearchResponse result = service.search(request, new SearchRequestOptions(24, "price asc", null, "default", List.of(), null, null));
 
         assertSame(searchResult, result.result());
         ArgumentCaptor<SearchQuery> captor = ArgumentCaptor.forClass(SearchQuery.class);
@@ -136,7 +138,7 @@ class HstDiscoveryServiceTest {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
-        service.search(request, 0, null);
+        service.search(request, SearchRequestOptions.defaults());
 
         // both use the same underlying query (cache hit on second), client called once
         verify(client, times(1)).search(any(), any(), any());
@@ -156,8 +158,8 @@ class HstDiscoveryServiceTest {
     void search_withNamedBand_storesCacheUnderBandKey() {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        SearchResponse r1 = service.search(request, 12, null, null, "band-a");
-        SearchResponse r2 = service.search(request, 12, null, null, "band-b");
+        SearchResponse r1 = service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
+        SearchResponse r2 = service.search(request, new SearchRequestOptions(12, null, null, "band-b", List.of(), null, null));
 
         // Two different bands → two client calls (independent caches)
         verify(client, times(2)).search(any(), any(), any());
@@ -169,8 +171,8 @@ class HstDiscoveryServiceTest {
     void search_withNamedBand_cacheHitOnSameBand() {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        service.search(request, 12, null, null, "band-a");
-        service.search(request, 12, null, null, "band-a");
+        service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
+        service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
 
         // Same band → cache hit on second call
         verify(client, times(1)).search(any(), any(), any());
@@ -198,7 +200,7 @@ class HstDiscoveryServiceTest {
         var catResponse = new SearchResponse(catResult, SearchMetadata.empty());
         when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
 
-        SearchResponse result = service.browse(request, "cat-123", 24, "price asc");
+        SearchResponse result = service.browse(request, "cat-123", new SearchRequestOptions(24, "price asc", null, "default", List.of(), null, null));
 
         assertSame(catResult, result.result());
         ArgumentCaptor<CategoryQuery> captor = ArgumentCaptor.forClass(CategoryQuery.class);
@@ -213,8 +215,8 @@ class HstDiscoveryServiceTest {
         var catResponse = new SearchResponse(new SearchResult(List.of(), 5L, 0, 10, Map.of()), SearchMetadata.empty());
         when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
 
-        service.browse(request, "cat-1", 10, null, "band-a");
-        service.browse(request, "cat-1", 10, null, "band-b");
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-b", List.of(), null, null));
 
         verify(client, times(2)).category(any(), any(), any());
     }
@@ -224,8 +226,8 @@ class HstDiscoveryServiceTest {
         when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(new SearchResponse(new SearchResult(List.of(), 5L, 0, 10, Map.of()), SearchMetadata.empty()));
 
-        service.browse(request, "cat-1", 10, null, "band-a");
-        service.browse(request, "cat-1", 10, null, "band-a");
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
 
         verify(client, times(1)).category(any(), any(), any());
     }
@@ -472,7 +474,7 @@ class HstDiscoveryServiceTest {
     @Test
     void search_nullPixelService_doesNotThrow() {
         HstDiscoveryService noPixel = new HstDiscoveryService(
-                client, configProvider, null, null);
+                client, new DiscoveryRuntimeContextFactory(configProvider), null, null);
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         assertDoesNotThrow(() -> noPixel.search(request));
@@ -482,7 +484,7 @@ class HstDiscoveryServiceTest {
     void search_appliesEnrichmentOnCacheMiss() {
         SoREnrichmentProvider enricher = mock(SoREnrichmentProvider.class);
         HstDiscoveryService enrichedService = new HstDiscoveryService(
-                client, configProvider, pixelService, enricher);
+                client, new DiscoveryRuntimeContextFactory(configProvider), pixelService, enricher);
         List<ProductSummary> enrichedProducts = List.of(
                 new ProductSummary("e1", "Enriched", null, null, null, null, null));
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
@@ -649,9 +651,7 @@ class HstDiscoveryServiceTest {
         when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("CHAN_API_KEY");
         when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
 
-        DiscoveryCredentials channelCreds = new DiscoveryCredentials(
-                "chan-acct", "chan-domain", "chan-api-key", null, null);
-        when(client.search(any(SearchQuery.class), eq(channelCreds), any(ClientContext.class)))
+        when(client.search(any(SearchQuery.class), any(DiscoveryCredentials.class), any(ClientContext.class)))
                 .thenReturn(searchResponse);
 
         SearchResponse result = service.search(request);

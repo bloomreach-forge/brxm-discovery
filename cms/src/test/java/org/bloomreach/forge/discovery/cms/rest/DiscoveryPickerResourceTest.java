@@ -20,6 +20,10 @@ import javax.jcr.Session;
 import java.util.List;
 import java.util.function.Function;
 
+import static org.mockito.Mockito.mock;
+
+import jakarta.ws.rs.BadRequestException;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -62,6 +66,24 @@ class DiscoveryPickerResourceTest {
     }
 
     // ---- search() -------------------------------------------------------
+
+    // ── Part 1B: query length guard ───────────────────────────────────────
+
+    @Test
+    void search_queryExceeds1000Chars_throwsBadRequest() {
+        String tooLong = "a".repeat(1001);
+
+        assertThrows(BadRequestException.class, () -> resource.search("", "", tooLong, 0, 12));
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void search_queryOf1000Chars_acceptedNormally() {
+        when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
+        String exactly1000 = "a".repeat(1000);
+
+        assertDoesNotThrow(() -> resource.search("", "", exactly1000, 0, 12));
+    }
 
     @Test
     void search_delegatesToHttpGatewayAndParsesResult() {
@@ -267,6 +289,35 @@ class DiscoveryPickerResourceTest {
         assertEquals("item", w.type());
         assertTrue(w.enabled());
         assertEquals("Homepage widget", w.description());
+    }
+
+    // ---- resolveChannelFromDocument path validation ----------------------
+
+    @Test
+    void search_withDocumentId_nonStandardPath_usesGlobalConfig() throws RepositoryException {
+        // Path like /apps/config/mysite/doc has parts[3]="mysite" but is NOT under /content/documents/
+        // Before fix: attempts channel lookup with the wrong index value
+        // After fix: returns "" immediately and uses global config
+        Node docNode = mock(Node.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(docNode);
+        when(docNode.getPath()).thenReturn("/apps/config/mysite/document");
+        when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
+
+        resource.search("", "doc-uuid", "*", 0, 12);
+
+        verify(httpGateway).apply(argThat(url -> url.contains("account_id=acc1")));
+    }
+
+    @Test
+    void search_withDocumentId_tooShortPath_usesGlobalConfig() throws RepositoryException {
+        Node docNode = mock(Node.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(docNode);
+        when(docNode.getPath()).thenReturn("/content/doc"); // only 2 segments after root
+        when(httpGateway.apply(anyString())).thenReturn(EMPTY_JSON);
+
+        resource.search("", "doc-uuid", "*", 0, 12);
+
+        verify(httpGateway).apply(argThat(url -> url.contains("account_id=acc1")));
     }
 
     // ---- JSON parsing ---------------------------------------------------

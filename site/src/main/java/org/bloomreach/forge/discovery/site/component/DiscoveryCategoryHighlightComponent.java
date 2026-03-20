@@ -42,6 +42,6 @@ public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryCompon
                     "No categories configured. Select Category Documents in component properties.");
         }
 
-        setModelAndAttribute(request, "categories", categories);
+        request.setModel("categories", categories);
     }
 }

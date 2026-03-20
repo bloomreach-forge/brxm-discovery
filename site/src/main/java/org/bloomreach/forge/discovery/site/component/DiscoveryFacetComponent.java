@@ -24,6 +24,6 @@ public class DiscoveryFacetComponent extends AbstractDiscoveryComponent {
 
         var ds = resolveDataSource(request, label);
         Map<?, ?> facets = ds.result().map(SearchResult::facets).orElse(Map.of());
-        setModelAndAttribute(request, "facets", facets);
+        request.setModel("facets", facets);
     }
 }

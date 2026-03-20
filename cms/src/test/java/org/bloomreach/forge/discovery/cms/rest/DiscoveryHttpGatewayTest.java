@@ -4,10 +4,12 @@ import jakarta.ws.rs.InternalServerErrorException;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,6 +53,20 @@ class DiscoveryHttpGatewayTest {
                 () -> new DiscoveryHttpGateway(client).apply("https://example.com/api"));
 
         assertEquals("Discovery API request failed: socket closed", exception.getMessage());
+    }
+
+    // ── Part 5B: per-request timeout ──────────────────────────────────────────
+
+    @Test
+    void apply_timeoutThrowsServerError() throws Exception {
+        HttpClient client = mock(HttpClient.class);
+        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenThrow(new HttpTimeoutException("request timed out"));
+
+        InternalServerErrorException exception = assertThrows(InternalServerErrorException.class,
+                () -> new DiscoveryHttpGateway(client).apply("https://example.com/api"));
+
+        assertEquals("Discovery API request failed: request timed out", exception.getMessage());
     }
 
     @Test

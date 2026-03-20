@@ -1,15 +1,11 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
-import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
-import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.config.ConfigDefaults;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.component.support.bean.BaseHstComponent;
-import org.hippoecm.hst.configuration.components.HstComponentConfiguration;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -34,6 +30,9 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     private static final Logger log = LoggerFactory.getLogger(AbstractDiscoveryComponent.class);
     private static final String DISCOVERY_ADDON_MODULE = "org.bloomreach.forge.discovery.site";
 
+    private final DataSourceResolver dataSourceResolver =
+            new DataSourceResolver(this::getDiscoveryService, this::getPublicRequestParameter);
+
     /**
      * Sets {@code editMode} on the FTL model once, before every component renders.
      * All brxdis templates use {@code (editMode!false)} so this guarantees a non-null
@@ -42,7 +41,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     @Override
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
-        setModelAndAttribute(request, "editMode", isEditMode(request));
+        request.setModel("editMode", isEditMode(request));
     }
 
     protected <T> T lookupService(Class<T> type) {
@@ -146,7 +145,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     protected boolean isBandConfiguredOnPage(HstRequest request, String label, Class<?> dataComponentClass) {
-        return findDataComponentConfig(request, label, dataComponentClass) != null;
+        return dataSourceResolver.findDataComponentConfig(request, label, dataComponentClass) != null;
     }
 
     /**
@@ -159,56 +158,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
      * or when the fetch fails (exception is logged as WARN).
      */
     protected Optional<SearchResponse> backfillSearchResponse(HstRequest request, String label) {
-        Optional<SearchResponse> category = backfillCategoryResponse(request, label);
-        if (category.isPresent()) return category;
-        return backfillSearchBrowseResponse(request, label);
-    }
-
-    private Optional<SearchResponse> backfillCategoryResponse(HstRequest request, String label) {
-        HstComponentConfiguration catConfig = findDataComponentConfig(request, label, DiscoveryCategoryComponent.class);
-        if (catConfig == null) return Optional.empty();
-        String docPath = catConfig.getParameter("document");
-        DiscoveryCategoryBean doc = getHippoBeanForPath(request, docPath, DiscoveryCategoryBean.class);
-        String categoryId = doc != null && doc.getCategoryId() != null && !doc.getCategoryId().isBlank()
-                ? doc.getCategoryId()
-                : getPublicRequestParameter(request, DiscoveryCategoryComponent.CAT_ID_PARAM);
-        if (categoryId == null || categoryId.isBlank()) return Optional.empty();
-        int pageSize = parseIntOrDefault(catConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
-        String sort = catConfig.getParameter("defaultSort");
-        List<String> statsFields = parseStatsFields(catConfig.getParameter("statsFields"));
-        String segment = catConfig.getParameter("segment");
-        String efq = catConfig.getParameter("exclusionFilter");
-        try {
-            SearchResponse result = getDiscoveryService()
-                    .browse(request, categoryId, pageSize, sort, label, statsFields, segment, efq);
-            DiscoveryRequestCache.markCategoryBandPresent(request, label);
-            return Optional.of(result);
-        } catch (Exception e) {
-            log.warn("Backfill for category label '{}' failed: {}", label, e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    private Optional<SearchResponse> backfillSearchBrowseResponse(HstRequest request, String label) {
-        HstComponentConfiguration searchConfig = findDataComponentConfig(request, label, DiscoverySearchComponent.class);
-        if (searchConfig == null) return Optional.empty();
-        String query = getPublicRequestParameter(request, "q");
-        if (query == null || query.isBlank()) return Optional.empty();
-        int pageSize = parseIntOrDefault(searchConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
-        String sort = searchConfig.getParameter("defaultSort");
-        String catalogName = searchConfig.getParameter("catalogName");
-        List<String> statsFields = parseStatsFields(searchConfig.getParameter("statsFields"));
-        String segment = searchConfig.getParameter("segment");
-        String efq = searchConfig.getParameter("exclusionFilter");
-        try {
-            SearchResponse result = getDiscoveryService().search(request, pageSize, sort,
-                    blankToNull(catalogName), label, statsFields, segment, efq);
-            DiscoveryRequestCache.markSearchBandPresent(request, label);
-            return Optional.of(result);
-        } catch (Exception e) {
-            log.warn("Backfill for search label '{}' failed: {}", label, e.getMessage());
-            return Optional.empty();
-        }
+        return dataSourceResolver.backfillSearchResponse(request, label);
     }
 
     /**
@@ -223,43 +173,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
      * or when no PID can be resolved.
      */
     protected Optional<String> backfillProductDetailPid(HstRequest request, String label) {
-        HstComponentConfiguration pdpConfig =
-                findDataComponentConfig(request, label, DiscoveryProductDetailComponent.class);
-        if (pdpConfig == null) return Optional.empty();
-
-        // Stage 1: document picker path → bean → productId field
-        String docPath = pdpConfig.getParameter("document");
-        DiscoveryProductDetailBean doc =
-                getHippoBeanForPath(request, docPath, DiscoveryProductDetailBean.class);
-        if (doc != null) {
-            String pid = doc.getProductId();
-            if (pid != null && !pid.isBlank()) return Optional.of(pid);
-        }
-
-        // Stage 2: URL param name stored in component config (default: "pid")
-        String urlParam = pdpConfig.getParameter("productUrlParam");
-        if (urlParam == null || urlParam.isBlank()) urlParam = "pid";
-        String pid = getPublicRequestParameter(request, urlParam);
-        return (pid != null && !pid.isBlank()) ? Optional.of(pid) : Optional.empty();
-    }
-
-    private HstComponentConfiguration findDataComponentConfig(HstRequest request, String label, Class<?> dataClass) {
-        HstRequestContext ctx = request.getRequestContext();
-        if (ctx == null) return null;
-        var siteMapItem = ctx.getResolvedSiteMapItem();
-        if (siteMapItem == null) return null;
-        var pageConfig = siteMapItem.getHstComponentConfiguration();
-        if (pageConfig == null) return null;
-        String targetClassName = dataClass.getName();
-        return pageConfig.flattened()
-                .filter(c -> targetClassName.equals(c.getComponentClassName()))
-                .filter(c -> label.equals(effectiveLabel(c.getParameter("label"))))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static String effectiveLabel(String param) {
-        return (param == null || param.isBlank()) ? "default" : param;
+        return dataSourceResolver.backfillProductDetailPid(request, label);
     }
 
     protected static List<String> parseStatsFields(String value) {
@@ -295,8 +209,8 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
             labelConnected = backfilled || isBandConfiguredOnPage(request, label);
         }
         warnIfMissingDataSource(request, !labelConnected, label);
-        setModelAndAttribute(request, "label", label);
-        setModelAndAttribute(request, "labelConnected", labelConnected);
+        request.setModel("label", label);
+        request.setModel("labelConnected", labelConnected);
         return new DataSourceResult(result, labelConnected);
     }
 
@@ -321,16 +235,6 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         if (ctx == null || !ctx.isChannelManagerPreviewRequest()) return false;
         var baseUrl = ctx.getBaseURL();
         return baseUrl != null && baseUrl.getComponentRenderingWindowReferenceNamespace() != null;
-    }
-
-    /**
-     * Sets a value on both the Page Model API ({@code setModel}) and the FTL attribute map
-     * ({@code setAttribute}) in one call. Every Discovery component needs both; this
-     * eliminates the mechanical two-line pattern.
-     */
-    protected void setModelAndAttribute(HstRequest request, String key, Object value) {
-        request.setModel(key, value);
-        request.setAttribute(key, value);
     }
 
     /**

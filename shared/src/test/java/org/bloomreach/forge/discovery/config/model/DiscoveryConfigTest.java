@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.config.model;
 
+import org.bloomreach.forge.discovery.config.ConfigDefaults;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,11 +55,59 @@ class DiscoveryConfigTest {
         assertEquals("env-api", result.apiKey());
         assertEquals("env-auth", result.authKey());
         assertEquals("STAGING", result.environment());
-        assertEquals("https://core.dxpapi.com", result.baseUri());
-        assertEquals("https://pathways.dxpapi.com", result.pathwaysBaseUri());
-        assertEquals("https://suggest.dxpapi.com", result.autosuggestBaseUri());
+        assertEquals(ConfigDefaults.STAGING_BASE_URI, result.baseUri());
+        assertEquals(ConfigDefaults.STAGING_PATHWAYS_BASE_URI, result.pathwaysBaseUri());
+        assertEquals(ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, result.autosuggestBaseUri());
         assertEquals(12, result.defaultPageSize());
         assertEquals("price asc", result.defaultSort());
+    }
+
+    @Test
+    void withCredentials_stagingEnvironmentOverride_updatesDerivedBaseUris() {
+        DiscoveryConfig base = new DiscoveryConfig(
+                "acct", "domain", "api", null,
+                ConfigDefaults.BASE_URI, ConfigDefaults.PATHWAYS_BASE_URI, ConfigDefaults.AUTOSUGGEST_BASE_URI,
+                "PRODUCTION", 12, "");
+        DiscoveryCredentials stagingCreds = new DiscoveryCredentials(null, null, null, null, "STAGING");
+
+        DiscoveryConfig result = base.withCredentials(stagingCreds);
+
+        assertEquals("STAGING", result.environment());
+        assertEquals(ConfigDefaults.STAGING_BASE_URI, result.baseUri());
+        assertEquals(ConfigDefaults.STAGING_PATHWAYS_BASE_URI, result.pathwaysBaseUri());
+        assertEquals(ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, result.autosuggestBaseUri());
+    }
+
+    @Test
+    void withCredentials_preservesCustomUri_whenEnvironmentChangesToStaging() {
+        DiscoveryConfig base = new DiscoveryConfig(
+                "acct", "domain", "api", null,
+                "https://custom.example.com", ConfigDefaults.PATHWAYS_BASE_URI, ConfigDefaults.AUTOSUGGEST_BASE_URI,
+                "PRODUCTION", 12, "");
+        DiscoveryCredentials stagingCreds = new DiscoveryCredentials(null, null, null, null, "STAGING");
+
+        DiscoveryConfig result = base.withCredentials(stagingCreds);
+
+        assertEquals("STAGING", result.environment());
+        assertEquals("https://custom.example.com", result.baseUri());
+        assertEquals(ConfigDefaults.STAGING_PATHWAYS_BASE_URI, result.pathwaysBaseUri());
+        assertEquals(ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, result.autosuggestBaseUri());
+    }
+
+    @Test
+    void withCredentials_noEnvironmentChange_urisUnchanged() {
+        DiscoveryConfig base = new DiscoveryConfig(
+                "acct", "domain", "old-api", null,
+                ConfigDefaults.STAGING_BASE_URI, ConfigDefaults.STAGING_PATHWAYS_BASE_URI,
+                ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, "STAGING", 12, "");
+        DiscoveryCredentials updatedCreds = new DiscoveryCredentials("acct", "domain", "new-api", null, null);
+
+        DiscoveryConfig result = base.withCredentials(updatedCreds);
+
+        assertEquals("STAGING", result.environment());
+        assertEquals(ConfigDefaults.STAGING_BASE_URI, result.baseUri());
+        assertEquals(ConfigDefaults.STAGING_PATHWAYS_BASE_URI, result.pathwaysBaseUri());
+        assertEquals(ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI, result.autosuggestBaseUri());
     }
 
     @Test

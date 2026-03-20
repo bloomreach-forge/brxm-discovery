@@ -104,9 +104,7 @@ class DiscoveryRecommendationComponentTest {
         componentWith("w-42", 8, null).doBeforeRender(request, response);
 
         verify(request).setModel("products", products);
-        verify(request).setAttribute("products", products);
         verify(request).setModel("widgetId", "w-42");
-        verify(request).setAttribute("widgetId", "w-42");
     }
 
     @Test
@@ -114,7 +112,6 @@ class DiscoveryRecommendationComponentTest {
         componentWith(null, 8, null).doBeforeRender(request, response);
 
         verify(request).setModel("widgetId", "");
-        verify(request).setAttribute("widgetId", "");
     }
 
     // ── productDetailBand mode ───────────────────────────────────────────────

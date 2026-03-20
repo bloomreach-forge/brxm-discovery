@@ -52,7 +52,7 @@ final class DiscoveryPickerResponseMapper {
             }
             return result;
         } catch (IOException e) {
-            return List.of();
+            throw new InternalServerErrorException("Failed to parse widget list response", e);
         }
     }
 

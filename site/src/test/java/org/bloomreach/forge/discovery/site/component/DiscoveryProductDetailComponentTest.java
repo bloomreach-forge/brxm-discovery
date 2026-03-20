@@ -69,7 +69,6 @@ class DiscoveryProductDetailComponentTest {
 
         verifyNoInteractions(discoveryService);
         verify(request).setModel("product", null);
-        verify(request).setAttribute("product", null);
     }
 
     @Test
@@ -77,7 +76,6 @@ class DiscoveryProductDetailComponentTest {
         component("").doBeforeRender(request, response);
 
         verify(request).setModel("label", "default");
-        verify(request).setAttribute("label", "default");
     }
 
     // ── product found → model set ─────────────────────────────────────────────
@@ -90,7 +88,6 @@ class DiscoveryProductDetailComponentTest {
         component("p-1").doBeforeRender(request, response);
 
         verify(request).setModel("product", product);
-        verify(request).setAttribute("product", product);
     }
 
     // ── product not found → null model ───────────────────────────────────────
@@ -102,7 +99,6 @@ class DiscoveryProductDetailComponentTest {
         component("p-99").doBeforeRender(request, response);
 
         verify(request).setModel("product", null);
-        verify(request).setAttribute("product", null);
     }
 
     // ── Stage 2: document bean provides PID when URL param absent ────────────
@@ -204,7 +200,6 @@ class DiscoveryProductDetailComponentTest {
         component("bad-pid").doBeforeRender(request, response);
 
         verify(request).setModel("pid", "bad-pid");
-        verify(request).setAttribute("pid", "bad-pid");
     }
 
     // ── testable subclass ─────────────────────────────────────────────────────

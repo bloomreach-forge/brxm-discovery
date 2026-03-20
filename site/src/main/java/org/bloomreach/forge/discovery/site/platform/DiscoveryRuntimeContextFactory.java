@@ -22,21 +22,24 @@ import javax.jcr.Session;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
-final class DiscoveryRuntimeContextFactory {
+public final class DiscoveryRuntimeContextFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryRuntimeContextFactory.class);
     private static final String ATTR = DiscoveryRuntimeContextFactory.class.getName();
+    private static final Pattern IP_PATTERN =
+            Pattern.compile("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$|^[0-9a-fA-F:]+$");
 
     private final DiscoveryConfigProvider configProvider;
     private final Function<String, String> envResolver;
 
-    DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider) {
+    public DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider) {
         this(configProvider, System::getenv);
     }
 
-    /** Package-private seam for tests — allows injecting a custom env resolver. */
-    DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
+    /** Seam for tests — allows injecting a custom env resolver. */
+    public DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
                                    Function<String, String> envResolver) {
         this.configProvider = configProvider;
         this.envResolver = envResolver;
@@ -170,7 +173,11 @@ final class DiscoveryRuntimeContextFactory {
     private static String extractClientIp(HstRequest request) {
         String xff = request.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+            String candidate = xff.split(",")[0].trim();
+            if (IP_PATTERN.matcher(candidate).matches()) {
+                return candidate;
+            }
+            log.debug("Ignoring malformed X-Forwarded-For value: {}", candidate);
         }
         String remoteAddr = request.getRemoteAddr();
         return remoteAddr != null ? remoteAddr : "";

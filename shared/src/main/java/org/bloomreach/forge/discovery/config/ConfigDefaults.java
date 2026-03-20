@@ -44,4 +44,34 @@ public final class ConfigDefaults {
     public static final String STAGING_ENVIRONMENT = "STAGING";
     public static final int DEFAULT_PAGE_SIZE = 12;
     public static final String DEFAULT_SORT = "";
+
+    public static boolean isStaging(String environment) {
+        return STAGING_ENVIRONMENT.equalsIgnoreCase(environment);
+    }
+
+    /**
+     * Resolves the effective base URI for the given environment.
+     * Null, or either known default (production or staging), defers to the active environment.
+     * A custom (non-default) URI is returned unchanged — enables private API endpoints.
+     */
+    public static String resolveBaseUri(String uri, String environment) {
+        if (uri == null || uri.equals(BASE_URI) || uri.equals(STAGING_BASE_URI)) {
+            return isStaging(environment) ? STAGING_BASE_URI : BASE_URI;
+        }
+        return uri;
+    }
+
+    public static String resolvePathwaysBaseUri(String uri, String environment) {
+        if (uri == null || uri.equals(PATHWAYS_BASE_URI) || uri.equals(STAGING_PATHWAYS_BASE_URI)) {
+            return isStaging(environment) ? STAGING_PATHWAYS_BASE_URI : PATHWAYS_BASE_URI;
+        }
+        return uri;
+    }
+
+    public static String resolveAutosuggestBaseUri(String uri, String environment) {
+        if (uri == null || uri.equals(AUTOSUGGEST_BASE_URI) || uri.equals(STAGING_AUTOSUGGEST_BASE_URI)) {
+            return isStaging(environment) ? STAGING_AUTOSUGGEST_BASE_URI : AUTOSUGGEST_BASE_URI;
+        }
+        return uri;
+    }
 }

@@ -38,16 +38,16 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         final String label      = info.getConnectTo();
 
         DiscoveryRecommendationBean document = getHippoBeanForPath(request, info.getDocument(), DiscoveryRecommendationBean.class);
-        request.setAttribute("document", document);
-        request.setAttribute("showPrice", info.isShowPrice());
-        request.setAttribute("showDescription", info.isShowDescription());
-        setModelAndAttribute(request, "dataSource", dataSource);
-        setModelAndAttribute(request, "label", label);
+        request.setModel("document", document);
+        request.setModel("showPrice", info.isShowPrice());
+        request.setModel("showDescription", info.isShowDescription());
+        request.setModel("dataSource", dataSource);
+        request.setModel("label", label);
 
         String widgetId = resolveWidgetId(document, request);
         if (widgetId == null || widgetId.isBlank()) {
-            setModelAndAttribute(request, "products", List.of());
-            setModelAndAttribute(request, "widgetId", "");
+            request.setModel("products", List.of());
+            request.setModel("widgetId", "");
             return;
         }
 
@@ -64,8 +64,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
                 request, widgetId, null, contextProductId, contextPageType, limit, fields, filter, label);
         List<ProductSummary> products = recResult.products();
 
-        setModelAndAttribute(request, "products", products);
-        setModelAndAttribute(request, "widgetId", widgetId);
+        request.setModel("products", products);
+        request.setModel("widgetId", widgetId);
 
         log.debug("Recommendations widget '{}' dataSource='{}' label='{}' returned {} products",
                 widgetId, dataSource, label, products.size());
@@ -105,8 +105,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
                     "No product detail label '" + label + "' found. Add a Product Detail component " +
                     "with label='" + label + "' to this page.");
             }
-            setModelAndAttribute(request, "products", List.of());
-            setModelAndAttribute(request, "widgetId", widgetId);
+            request.setModel("products", List.of());
+            request.setModel("widgetId", widgetId);
             return Optional.empty();
         }
         Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, label);
@@ -116,8 +116,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
                     "Product detail label '" + label + "' is present but no product ID was resolved. " +
                     "Ensure the Product Detail component has a valid product configured.");
             }
-            setModelAndAttribute(request, "products", List.of());
-            setModelAndAttribute(request, "widgetId", widgetId);
+            request.setModel("products", List.of());
+            request.setModel("widgetId", widgetId);
             return Optional.empty();
         }
         return Optional.of(cached.get().id());

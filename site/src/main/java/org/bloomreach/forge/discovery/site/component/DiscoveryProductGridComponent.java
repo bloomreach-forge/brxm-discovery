@@ -29,7 +29,7 @@ public class DiscoveryProductGridComponent extends AbstractDiscoveryComponent {
                 .map(r -> new PaginationModel(r.total(), r.page(), r.pageSize()))
                 .orElse(new PaginationModel(0L, 0, 0));
 
-        setModelAndAttribute(request, "products", products);
-        setModelAndAttribute(request, "pagination", pagination);
+        request.setModel("products", products);
+        request.setModel("pagination", pagination);
     }
 }

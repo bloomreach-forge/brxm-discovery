@@ -166,32 +166,24 @@ public class DiscoveryConfigReader {
     }
 
     private DiscoverySettings readSettings(Optional<Node> node, String environment) throws RepositoryException {
-        if (isStaging(environment)) {
+        if (ConfigDefaults.isStaging(environment)) {
             log.info("brxm-discovery: running against STAGING Discovery endpoints");
         }
         return new DiscoverySettings(
-                structural(node, ConfigDefaults.BASE_URI_JCR, defaultBaseUri(environment)),
-                structural(node, ConfigDefaults.PATHWAYS_BASE_URI_JCR, defaultPathwaysBaseUri(environment)),
-                structural(node, ConfigDefaults.AUTOSUGGEST_BASE_URI_JCR, defaultAutosuggestBaseUri(environment)),
+                ConfigDefaults.resolveBaseUri(structuralOrNull(node, ConfigDefaults.BASE_URI_JCR), environment),
+                ConfigDefaults.resolvePathwaysBaseUri(structuralOrNull(node, ConfigDefaults.PATHWAYS_BASE_URI_JCR), environment),
+                ConfigDefaults.resolveAutosuggestBaseUri(structuralOrNull(node, ConfigDefaults.AUTOSUGGEST_BASE_URI_JCR), environment),
                 structuralInt(node, DEFAULT_PAGE_SIZE),
                 structural(node, DEFAULT_SORT)
         );
     }
 
-    static String defaultBaseUri(String environment) {
-        return isStaging(environment) ? ConfigDefaults.STAGING_BASE_URI : ConfigDefaults.BASE_URI;
-    }
-
-    static String defaultPathwaysBaseUri(String environment) {
-        return isStaging(environment) ? ConfigDefaults.STAGING_PATHWAYS_BASE_URI : ConfigDefaults.PATHWAYS_BASE_URI;
-    }
-
-    static String defaultAutosuggestBaseUri(String environment) {
-        return isStaging(environment) ? ConfigDefaults.STAGING_AUTOSUGGEST_BASE_URI : ConfigDefaults.AUTOSUGGEST_BASE_URI;
-    }
-
-    private static boolean isStaging(String environment) {
-        return ConfigDefaults.STAGING_ENVIRONMENT.equalsIgnoreCase(environment);
+    static String structuralOrNull(Optional<Node> node, String jcrProp) throws RepositoryException {
+        if (node.isPresent() && node.get().hasProperty(jcrProp)) {
+            String value = node.get().getProperty(jcrProp).getString();
+            if (value != null && !value.isBlank()) return value;
+        }
+        return null;
     }
 
     record CredentialSource(String envVar, String sysProp, String jcrProp) { }

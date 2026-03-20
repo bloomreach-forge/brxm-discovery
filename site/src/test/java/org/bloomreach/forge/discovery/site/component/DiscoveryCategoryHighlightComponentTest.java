@@ -30,7 +30,7 @@ class DiscoveryCategoryHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
                 ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("categories"), captor.capture());
+        verify(request).setModel(eq("categories"), captor.capture());
         assertTrue(captor.getValue().isEmpty());
     }
 
@@ -42,7 +42,7 @@ class DiscoveryCategoryHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
                 ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("categories"), captor.capture());
+        verify(request).setModel(eq("categories"), captor.capture());
         assertEquals(1, captor.getValue().size());
         assertSame(bean, captor.getValue().get(0));
     }
@@ -56,7 +56,7 @@ class DiscoveryCategoryHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
                 ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("categories"), captor.capture());
+        verify(request).setModel(eq("categories"), captor.capture());
         assertEquals(2, captor.getValue().size());
     }
 
@@ -69,7 +69,7 @@ class DiscoveryCategoryHighlightComponentTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
                 ArgumentCaptor.forClass(List.class);
-        verify(request).setAttribute(eq("categories"), captor.capture());
+        verify(request).setModel(eq("categories"), captor.capture());
         assertEquals(1, captor.getValue().size());
     }
 

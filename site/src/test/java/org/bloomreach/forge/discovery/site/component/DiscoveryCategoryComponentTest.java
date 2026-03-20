@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchMetadata;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -49,35 +51,66 @@ class DiscoveryCategoryComponentTest {
 
     @Test
     void delegatesToServiceWithCategoryIdAndComponentParams() {
-        when(discoveryService.browse(request, "cat-123", 24, "price asc", "default", List.of(), "", "")).thenReturn(categoryResponse);
+        when(discoveryService.browse(eq(request), eq("cat-123"),
+                argThat(o -> o.pageSize() == 24 && "price asc".equals(o.sort()))))
+                .thenReturn(categoryResponse);
 
         componentWith("cat-123", 24, "price asc").doBeforeRender(request, response);
 
-        verify(discoveryService).browse(request, "cat-123", 24, "price asc", "default", List.of(), "", "");
+        verify(discoveryService).browse(eq(request), eq("cat-123"),
+                argThat(o -> o.pageSize() == 24 && "price asc".equals(o.sort())));
     }
 
     @Test
     void delegatesToServiceWithZeroPageSizeWhenNotSet() {
-        when(discoveryService.browse(eq(request), eq("shoes"), eq(0), eq(""), eq("default"), eq(List.of()), eq(""), eq("")))
+        when(discoveryService.browse(eq(request), eq("shoes"), argThat(o -> o.pageSize() == 0 && "".equals(o.sort()))))
                 .thenReturn(categoryResponse);
 
         componentWith("shoes", 0, "").doBeforeRender(request, response);
 
-        verify(discoveryService).browse(request, "shoes", 0, "", "default", List.of(), "", "");
+        verify(discoveryService).browse(eq(request), eq("shoes"), argThat(o -> o.pageSize() == 0 && "".equals(o.sort())));
     }
 
     // ── model keys ──────────────────────────────────────────────────────────
 
     @Test
     void setsCategoryResultAndCategoryIdOnModel() {
-        when(discoveryService.browse(eq(request), anyString(), anyInt(), any(), any(), any(), any(), any())).thenReturn(categoryResponse);
+        when(discoveryService.browse(eq(request), anyString(), any(SearchRequestOptions.class))).thenReturn(categoryResponse);
 
         componentWith("electronics", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("categoryResult", categoryResult);
-        verify(request).setAttribute("categoryResult", categoryResult);
         verify(request).setModel("categoryId", "electronics");
-        verify(request).setAttribute("categoryId", "electronics");
+    }
+
+    // ── null / blank categoryId guard ───────────────────────────────────────
+
+    @Test
+    void blankCategoryId_noServiceCall_setsEmptyResult() {
+        componentWith("", 12, "").doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+        verify(request).setModel("categoryId", "");
+        verify(request).setModel(eq("categoryResult"),
+                argThat(r -> r instanceof SearchResult sr && sr.total() == 0L && sr.products().isEmpty()));
+    }
+
+    @Test
+    void nullCategoryId_noServiceCall() {
+        componentWith(null, 12, "").doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+    }
+
+    // ── exception propagation ───────────────────────────────────────────────
+
+    @Test
+    void serviceThrows_exceptionPropagates() {
+        when(discoveryService.browse(eq(request), eq("cat-1"), any(SearchRequestOptions.class)))
+                .thenThrow(new RuntimeException("API down"));
+
+        assertThrows(RuntimeException.class,
+                () -> componentWith("cat-1", 12, "").doBeforeRender(request, response));
     }
 
     // ── testable subclass ───────────────────────────────────────────────────

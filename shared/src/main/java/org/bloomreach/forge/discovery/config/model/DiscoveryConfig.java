@@ -1,5 +1,7 @@
 package org.bloomreach.forge.discovery.config.model;
 
+import org.bloomreach.forge.discovery.config.ConfigDefaults;
+
 public record DiscoveryConfig(
         String accountId,
         String domainKey,
@@ -43,7 +45,16 @@ public record DiscoveryConfig(
     }
 
     public DiscoveryConfig withCredentials(DiscoveryCredentials credentials) {
-        return of(credentials, settings());
+        String newEnv = (credentials.environment() != null && !credentials.environment().isBlank())
+                ? credentials.environment() : this.environment;
+        return new DiscoveryConfig(
+                credentials.accountId(), credentials.domainKey(),
+                credentials.apiKey(), credentials.authKey(),
+                ConfigDefaults.resolveBaseUri(baseUri, newEnv),
+                ConfigDefaults.resolvePathwaysBaseUri(pathwaysBaseUri, newEnv),
+                ConfigDefaults.resolveAutosuggestBaseUri(autosuggestBaseUri, newEnv),
+                newEnv, defaultPageSize, defaultSort
+        );
     }
 
     public DiscoveryConfig withCredentialOverrides(DiscoveryConfig overrides) {

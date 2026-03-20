@@ -72,7 +72,6 @@ class DiscoveryViewComponentsTest {
         grid.doBeforeRender(request, response);
 
         verify(request).setModel("products", searchResult.products());
-        verify(request).setAttribute("products", searchResult.products());
 
         ArgumentCaptor<PaginationModel> captor = ArgumentCaptor.forClass(PaginationModel.class);
         verify(request).setModel(eq("pagination"), captor.capture());
@@ -278,7 +277,6 @@ class DiscoveryViewComponentsTest {
         new TestableProductGridComponent("default").doBeforeRender(request, response);
 
         verify(request).setModel("label", "default");
-        verify(request).setAttribute("label", "default");
     }
 
     @Test
@@ -298,7 +296,6 @@ class DiscoveryViewComponentsTest {
         new TestableFacetComponent("default").doBeforeRender(request, response);
 
         verify(request).setModel("label", "default");
-        verify(request).setAttribute("label", "default");
     }
 
     // --- Backfill (consumer-before-producer / PPR) ---

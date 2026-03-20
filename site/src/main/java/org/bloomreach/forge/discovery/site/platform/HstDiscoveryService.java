@@ -1,7 +1,6 @@
 package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
-import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
@@ -50,20 +49,9 @@ public class HstDiscoveryService {
     private final DiscoveryRuntimeContextFactory runtimeContextFactory;
 
     public HstDiscoveryService(DiscoveryApiClient client,
-                               DiscoveryConfigProvider configProvider,
+                               DiscoveryRuntimeContextFactory runtimeContextFactory,
                                DiscoveryPixelService pixelService,
                                SoREnrichmentProvider enrichmentProvider) {
-        this.client = client;
-        this.pixelService = pixelService;
-        this.enrichmentProvider = enrichmentProvider;
-        this.runtimeContextFactory = new DiscoveryRuntimeContextFactory(configProvider);
-    }
-
-    /** Package-private seam for tests — allows injecting a pre-built factory with custom env resolution. */
-    HstDiscoveryService(DiscoveryApiClient client,
-                        DiscoveryRuntimeContextFactory runtimeContextFactory,
-                        DiscoveryPixelService pixelService,
-                        SoREnrichmentProvider enrichmentProvider) {
         this.client = client;
         this.pixelService = pixelService;
         this.enrichmentProvider = enrichmentProvider;
@@ -73,43 +61,24 @@ public class HstDiscoveryService {
     // ── Request-based API (used by HST components) ─────────────────────────────
 
     public SearchResponse search(HstRequest request) {
-        return search(request, 0, null, null, "default", List.of());
+        return search(request, SearchRequestOptions.defaults());
     }
 
-    public SearchResponse search(HstRequest request, int componentPageSize, String componentSort) {
-        return search(request, componentPageSize, componentSort, null, "default", List.of());
-    }
-
-    public SearchResponse search(HstRequest request, int componentPageSize, String componentSort,
-                                 String catalogName) {
-        return search(request, componentPageSize, componentSort, catalogName, "default", List.of());
-    }
-
-    public SearchResponse search(HstRequest request, int componentPageSize, String componentSort,
-                                 String catalogName, String label) {
-        return search(request, componentPageSize, componentSort, catalogName, label, List.of());
-    }
-
-    public SearchResponse search(HstRequest request, int componentPageSize, String componentSort,
-                                 String catalogName, String label, List<String> statsFields) {
-        return search(request, componentPageSize, componentSort, catalogName, label, statsFields, null, null);
-    }
-
-    public SearchResponse search(HstRequest request, int componentPageSize, String componentSort,
-                                 String catalogName, String label, List<String> statsFields,
-                                 String componentSegment, String efq) {
+    public SearchResponse search(HstRequest request, SearchRequestOptions options) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         SearchQuery baseQuery = QueryParamParser.toSearchQuery(
-                runtimeContext.paramProvider(), runtimeContext.settings(), componentPageSize, componentSort, catalogName,
+                runtimeContext.paramProvider(), runtimeContext.settings(),
+                options.pageSize(), options.sort(), options.catalogName(),
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
-        SearchQuery query = statsFields != null && !statsFields.isEmpty()
-                ? baseQuery.withStatsFields(statsFields) : baseQuery;
-        if (query.segment() == null && componentSegment != null && !componentSegment.isBlank()) {
-            query = query.withSegment(componentSegment);
+        SearchQuery query = options.statsFields() != null && !options.statsFields().isEmpty()
+                ? baseQuery.withStatsFields(options.statsFields()) : baseQuery;
+        if (query.segment() == null && options.segment() != null && !options.segment().isBlank()) {
+            query = query.withSegment(options.segment());
         }
-        if (efq != null && !efq.isBlank()) {
-            query = query.withEfq(efq);
+        if (options.efq() != null && !options.efq().isBlank()) {
+            query = query.withEfq(options.efq());
         }
+        final String label = options.label() != null ? options.label() : "default";
         final SearchQuery finalQuery = query;
         return DiscoveryRequestCache.getSearchResponse(request, label)
                 .orElseGet(() -> {
@@ -125,41 +94,24 @@ public class HstDiscoveryService {
     }
 
     public SearchResponse browse(HstRequest request, String categoryId) {
-        return browse(request, categoryId, 0, null, "default", List.of());
+        return browse(request, categoryId, SearchRequestOptions.defaults());
     }
 
-    public SearchResponse browse(HstRequest request, String categoryId,
-                                 int componentPageSize, String componentSort) {
-        return browse(request, categoryId, componentPageSize, componentSort, "default", List.of());
-    }
-
-    public SearchResponse browse(HstRequest request, String categoryId,
-                                 int componentPageSize, String componentSort, String label) {
-        return browse(request, categoryId, componentPageSize, componentSort, label, List.of());
-    }
-
-    public SearchResponse browse(HstRequest request, String categoryId,
-                                 int componentPageSize, String componentSort,
-                                 String label, List<String> statsFields) {
-        return browse(request, categoryId, componentPageSize, componentSort, label, statsFields, null, null);
-    }
-
-    public SearchResponse browse(HstRequest request, String categoryId,
-                                 int componentPageSize, String componentSort,
-                                 String label, List<String> statsFields,
-                                 String componentSegment, String efq) {
+    public SearchResponse browse(HstRequest request, String categoryId, SearchRequestOptions options) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         CategoryQuery baseQuery = QueryParamParser.toCategoryQuery(
-                categoryId, runtimeContext.paramProvider(), runtimeContext.settings(), componentPageSize, componentSort,
+                categoryId, runtimeContext.paramProvider(), runtimeContext.settings(),
+                options.pageSize(), options.sort(),
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
-        CategoryQuery query = statsFields != null && !statsFields.isEmpty()
-                ? baseQuery.withStatsFields(statsFields) : baseQuery;
-        if (query.segment() == null && componentSegment != null && !componentSegment.isBlank()) {
-            query = query.withSegment(componentSegment);
+        CategoryQuery query = options.statsFields() != null && !options.statsFields().isEmpty()
+                ? baseQuery.withStatsFields(options.statsFields()) : baseQuery;
+        if (query.segment() == null && options.segment() != null && !options.segment().isBlank()) {
+            query = query.withSegment(options.segment());
         }
-        if (efq != null && !efq.isBlank()) {
-            query = query.withEfq(efq);
+        if (options.efq() != null && !options.efq().isBlank()) {
+            query = query.withEfq(options.efq());
         }
+        final String label = options.label() != null ? options.label() : "default";
         final CategoryQuery finalQuery = query;
         return DiscoveryRequestCache.getCategoryResponse(request, label)
                 .orElseGet(() -> {

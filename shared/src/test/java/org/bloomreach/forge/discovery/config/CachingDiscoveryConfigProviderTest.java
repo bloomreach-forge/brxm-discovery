@@ -9,6 +9,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.jcr.Session;
+import java.util.List;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -88,6 +96,50 @@ class CachingDiscoveryConfigProviderTest {
         assertSame(validConfig, result);
         verify(resolver).resolve(session);
         verify(session, never()).logout();
+    }
+
+    // ── Part 5A: cache invalidation ───────────────────────────────────────────
+
+    @Test
+    void invalidate_clearsCacheSoNextGetRefetches() {
+        when(resolver.resolve(session)).thenReturn(validConfig);
+
+        provider.get(() -> session);    // populates cache
+        provider.invalidate();          // clears cache
+        provider.get(() -> session);    // should re-fetch
+
+        verify(resolver, times(2)).resolve(session);
+    }
+
+    // ── concurrency: resolver must be called at most once under concurrent first access ──
+
+    @Test
+    void concurrentFirstAccess_resolverCalledOnlyOnce() throws Exception {
+        int threadCount = 20;
+        CyclicBarrier barrier = new CyclicBarrier(threadCount);
+        AtomicInteger resolveCount = new AtomicInteger();
+        CachingDiscoveryConfigProvider freshProvider =
+                new CachingDiscoveryConfigProvider(resolver, () -> session);
+
+        when(resolver.resolve(session)).thenAnswer(inv -> {
+            resolveCount.incrementAndGet();
+            Thread.sleep(5); // widen race window so concurrent threads stack up
+            return validConfig;
+        });
+
+        ExecutorService exec = Executors.newFixedThreadPool(threadCount);
+        List<Future<DiscoveryConfig>> futures = IntStream.range(0, threadCount)
+                .mapToObj(i -> exec.submit(() -> {
+                    try { barrier.await(); } catch (Exception ignored) {}
+                    return freshProvider.get(() -> session);
+                }))
+                .toList();
+
+        for (Future<DiscoveryConfig> f : futures) f.get(10, TimeUnit.SECONDS);
+        exec.shutdown();
+
+        assertEquals(1, resolveCount.get(),
+                "resolver.resolve() should be called exactly once; actual: " + resolveCount.get());
     }
 
     @Test

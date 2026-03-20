@@ -4,6 +4,7 @@ import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstComponentException;
@@ -36,7 +37,7 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
         // 1. Category document (editor-configured via Channel Manager)
         DiscoveryCategoryBean document = getHippoBeanForPath(
                 request, info.getDocument(), DiscoveryCategoryBean.class);
-        request.setAttribute("document", document);
+        request.setModel("document", document);
         String categoryId = document != null && document.getCategoryId() != null
                 && !document.getCategoryId().isBlank()
                 ? document.getCategoryId()
@@ -49,21 +50,22 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
                         "No category configured. Attach a Category Document to this component " +
                         "or pass a '?category=' URL parameter.");
             }
-            setModelAndAttribute(request, "categoryId", "");
-            setModelAndAttribute(request, "categoryResult", emptyResult());
+            request.setModel("categoryId", "");
+            request.setModel("categoryResult", emptyResult());
             return;
         }
 
         HstDiscoveryService svc = getDiscoveryService();
         List<String> statsFields = parseStatsFields(info.getStatsFields());
-        SearchResponse browseResponse = svc.browse(request, categoryId, info.getPageSize(), info.getDefaultSort(),
-                label, statsFields, info.getSegment(), info.getExclusionFilter());
+        SearchResponse browseResponse = svc.browse(request, categoryId, new SearchRequestOptions(
+                info.getPageSize(), info.getDefaultSort(), null,
+                label, statsFields, info.getSegment(), info.getExclusionFilter()));
 
-        setModelAndAttribute(request, "categoryId", categoryId);
-        setModelAndAttribute(request, "categoryResult", browseResponse.result());
-        setModelAndAttribute(request, "stats", browseResponse.metadata().stats());
-        setModelAndAttribute(request, "label", label);
-        setModelAndAttribute(request, "campaign", browseResponse.metadata().campaign());
+        request.setModel("categoryId", categoryId);
+        request.setModel("categoryResult", browseResponse.result());
+        request.setModel("stats", browseResponse.metadata().stats());
+        request.setModel("label", label);
+        request.setModel("campaign", browseResponse.metadata().campaign());
 
         log.debug("Category '{}' returned {} results (page {})",
                 categoryId, browseResponse.result().total(), browseResponse.result().page());

@@ -15,21 +15,28 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
     private static final Logger log = LoggerFactory.getLogger(CachingDiscoveryConfigProvider.class);
 
     private final DiscoveryConfigResolver resolver;
+    private final SessionSupplier defaultSessionSupplier;
     private volatile DiscoveryConfig cachedConfig;
 
     public CachingDiscoveryConfigProvider(DiscoveryConfigResolver resolver) {
-        this.resolver = resolver;
-    }
-
-    @Override
-    public DiscoveryConfig get() {
-        return get(() -> {
+        this(resolver, () -> {
             HippoRepository hippoRepo = HippoServiceRegistry.getService(HippoRepository.class);
             if (hippoRepo == null) {
                 throw new IllegalStateException("HippoRepository not yet registered in HippoServiceRegistry");
             }
             return hippoRepo.login(new SimpleCredentials("system", new char[0]));
         });
+    }
+
+    /** Seam for tests — allows injecting a custom session supplier without HippoServiceRegistry. */
+    CachingDiscoveryConfigProvider(DiscoveryConfigResolver resolver, SessionSupplier defaultSessionSupplier) {
+        this.resolver = resolver;
+        this.defaultSessionSupplier = defaultSessionSupplier;
+    }
+
+    @Override
+    public DiscoveryConfig get() {
+        return get(defaultSessionSupplier);
     }
 
     @Override
@@ -48,13 +55,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
 
     @Override
     public DiscoverySettings settings() {
-        return settings(() -> {
-            HippoRepository hippoRepo = HippoServiceRegistry.getService(HippoRepository.class);
-            if (hippoRepo == null) {
-                throw new IllegalStateException("HippoRepository not yet registered in HippoServiceRegistry");
-            }
-            return hippoRepo.login(new SimpleCredentials("system", new char[0]));
-        });
+        return settings(defaultSessionSupplier);
     }
 
     @Override
@@ -139,10 +140,15 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider {
     }
 
     private DiscoveryConfig currentBaseConfig(ConfigLoader loader) throws Exception {
-        DiscoveryConfig config = cachedConfig;
+        DiscoveryConfig config = cachedConfig;   // unsynchronized fast path (cache hit)
         if (config == null) {
-            config = loader.load();
-            cachedConfig = config;
+            synchronized (this) {
+                config = cachedConfig;           // re-read inside lock
+                if (config == null) {
+                    config = loader.load();
+                    cachedConfig = config;
+                }
+            }
         }
         return config;
     }

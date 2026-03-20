@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -27,6 +28,7 @@ public final class DiscoveryHttpGateway implements Function<String, String> {
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
                 .GET()
                 .header("Accept", "application/json")
+                .timeout(Duration.ofSeconds(10))
                 .build();
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
