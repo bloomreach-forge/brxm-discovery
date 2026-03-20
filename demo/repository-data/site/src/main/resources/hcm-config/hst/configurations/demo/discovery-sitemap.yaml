@@ -12,9 +12,9 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:sitemap/recommendations:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/recommendations-page
-    /hst:hst/hst:configurations/demo/hst:sitemap/autosuggest:
+    /hst:hst/hst:configurations/demo/hst:sitemap/specific-category:
       jcr:primaryType: hst:sitemapitem
-      hst:componentconfigurationid: hst:pages/autosuggest-page
+      hst:componentconfigurationid: hst:pages/specific-category-page
     /hst:hst/hst:configurations/demo/hst:sitemap/product:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/product-detail-page

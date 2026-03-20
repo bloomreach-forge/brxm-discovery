@@ -267,6 +267,7 @@
     var lastQuery     = "*";
     var activeCatId   = "";
     var activeCatName = "";
+    var mode          = "search"; // "search" | "browse"
 
     var searchInput = document.getElementById("search-input");
     var searchBtn   = document.getElementById("search-btn");
@@ -296,8 +297,14 @@
 
     /* ── Events ────────────────────────────────────────────────────────── */
     searchBtn.addEventListener("click", function () {
-      lastQuery   = searchInput.value.trim() || "*";
-      currentPage = 0;
+      lastQuery     = searchInput.value.trim() || "*";
+      currentPage   = 0;
+      mode          = "search";
+      activeCatId   = "";
+      activeCatName = "";
+      sidebar.querySelectorAll(".cat-item").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.catId === "");
+      });
       doSearch(lastQuery, 0);
     });
     searchInput.addEventListener("keydown", function (e) {
@@ -352,7 +359,52 @@
         el.classList.toggle("active", el.dataset.catId === catId);
       });
       currentPage = 0;
-      doSearch(lastQuery, 0);
+      if (catId) {
+        mode = "browse";
+        doBrowse(catId, 0);
+      } else {
+        mode = "search";
+        doSearch(lastQuery, 0);
+      }
+    }
+
+    /* ── Browse (category) ─────────────────────────────────────────────── */
+    function doBrowse(catId, page) {
+      if (!documentId) {
+        setStatusEl(status, "error", "No documentId available \u2014 cannot resolve Discovery config.");
+        return;
+      }
+      setStatusEl(status, "", "Loading\u2026", true);
+      searchBtn.disabled = true;
+      pagination.style.display = "none";
+      grid.replaceChildren();
+
+      var params = {
+        channelId:  channelId,
+        documentId: documentId,
+        catId:      catId,
+        page:       page,
+        pageSize:   PAGE_SIZE
+      };
+      var url = buildApiUrl(ui, "/discovery/picker/browse", params);
+
+      fetch(url, { credentials: "include" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          currentPage = page;
+          renderGrid(data.items || []);
+          renderPagination(data.total || 0);
+          renderStatus(data.total || 0);
+        })
+        .catch(function (err) {
+          setStatusEl(status, "error", "Browse failed: " + err.message);
+        })
+        .finally(function () {
+          searchBtn.disabled = false;
+        });
     }
 
     /* ── Search ────────────────────────────────────────────────────────── */
@@ -373,7 +425,6 @@
         page:       page,
         pageSize:   PAGE_SIZE
       };
-      if (activeCatId) params.catId = activeCatId;
 
       var url = buildApiUrl(ui, "/discovery/picker/search", params);
 
@@ -475,7 +526,10 @@
       prev.className   = "page-btn";
       prev.textContent = "\u2039 Prev";
       prev.disabled    = (currentPage === 0);
-      prev.addEventListener("click", function () { doSearch(lastQuery, currentPage - 1); });
+      prev.addEventListener("click", function () {
+        if (mode === "browse") doBrowse(activeCatId, currentPage - 1);
+        else doSearch(lastQuery, currentPage - 1);
+      });
       pagination.appendChild(prev);
 
       var info = document.createElement("span");
@@ -487,7 +541,10 @@
       next.className   = "page-btn";
       next.textContent = "Next \u203a";
       next.disabled    = (currentPage >= totalPages - 1);
-      next.addEventListener("click", function () { doSearch(lastQuery, currentPage + 1); });
+      next.addEventListener("click", function () {
+        if (mode === "browse") doBrowse(activeCatId, currentPage + 1);
+        else doSearch(lastQuery, currentPage + 1);
+      });
       pagination.appendChild(next);
     }
   }());

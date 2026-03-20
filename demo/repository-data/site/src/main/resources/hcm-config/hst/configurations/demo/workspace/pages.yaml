@@ -131,23 +131,48 @@ definitions:
             hst:parametervalues: ['', test/other-recommendation, '8', 'brxdis:pid']
             hst:template: brxdis-recommendations
             hst:xtype: hst.Item
-      /autosuggest-page:
+      /specific-category-page:
         jcr:primaryType: hst:component
         hst:referencecomponent: hst:abstractpages/base
         /main:
-          jcr:primaryType: hst:containercomponent
-          hst:xtype: hst.vBox
-          hippo:identifier: 02237295-ba42-4178-8f10-6c843dc9cb8c
-          hst:lastmodified: 2026-03-07T10:52:43.565Z
-          /search-bar:
-            jcr:primaryType: hst:containeritemcomponent
-            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
-            hst:label: Discovery Search Bar
-            hst:parameternames: [resultsPage, debounceMs, suggestionsLimit, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
-              suggestionsEnabled, placeholder, minChars]
-            hst:parametervalues: [/search, '250', '5', 'off', 'on', Search..., '2']
-            hst:template: brxdis-search
-            hst:xtype: hst.Item
+          jcr:primaryType: hst:component
+          hst:template: search-layout
+          /search:
+            jcr:primaryType: hst:containercomponent
+            hst:xtype: hst.nomarkup
+            hippo:identifier: e7b2f3a1-4c8d-4e9f-b1a2-6c7d8e9f0a1b
+            /category-bar:
+              jcr:primaryType: hst:containeritemcomponent
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryComponent
+              hst:template: brxdis-category
+              hst:xtype: hst.Item
+              hst:parameternames: [exclusionFilter, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+                document, segment, statsFields, pageSize, defaultSort, label]
+              hst:parametervalues: ['', 'off', test/cat, '', '', '12', '', default]
+          /sidebar:
+            jcr:primaryType: hst:containercomponent
+            hst:xtype: hst.nomarkup
+            hippo:identifier: f8c3a4b2-5d9e-4f0a-c2b3-7d8e9f0a1b2c
+            /facets:
+              jcr:primaryType: hst:containeritemcomponent
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryFacetComponent
+              hst:label: Discovery Facets
+              hst:template: brxdis-facets
+              hst:xtype: hst.Item
+              hst:parameternames: [connectTo]
+              hst:parametervalues: [default]
+          /content:
+            jcr:primaryType: hst:containercomponent
+            hst:xtype: hst.nomarkup
+            hippo:identifier: a9d4b5c3-6e0f-4a1b-d3c4-8e9f0a1b2c3d
+            /product-grid:
+              jcr:primaryType: hst:containeritemcomponent
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductGridComponent
+              hst:label: Discovery Product Grid
+              hst:template: brxdis-product-grid
+              hst:xtype: hst.Item
+              hst:parameternames: [connectTo]
+              hst:parametervalues: [default]
       /product-detail-page:
         jcr:primaryType: hst:component
         hst:referencecomponent: hst:abstractpages/base
