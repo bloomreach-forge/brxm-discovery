@@ -20,12 +20,14 @@ import java.util.Map;
 import jakarta.servlet.http.Cookie;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,6 +41,7 @@ class DiscoveryRuntimeContextFactoryTest {
     @Mock ResolvedMount resolvedMount;
     @Mock Mount mount;
     @Mock jakarta.servlet.http.HttpServletRequest servletRequest;
+    @Mock jakarta.servlet.http.HttpServletResponse servletResponse;
 
     private final Map<String, Object> attrs = new HashMap<>();
     private DiscoveryRuntimeContextFactory factory;
@@ -68,11 +71,13 @@ class DiscoveryRuntimeContextFactoryTest {
         lenient().when(request.getServerPort()).thenReturn(443);
         lenient().when(request.getRequestURI()).thenReturn("/search");
         lenient().when(request.getQueryString()).thenReturn(null);
+        lenient().when(request.getHeader(anyString())).thenReturn(null);
         lenient().when(request.getHeader("Referer")).thenReturn(null);
         lenient().when(request.getHeader("User-Agent")).thenReturn(null);
         lenient().when(request.getHeader("Accept-Language")).thenReturn(null);
         lenient().when(request.getRemoteAddr()).thenReturn("10.0.0.1");
         lenient().when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        lenient().when(requestContext.getServletResponse()).thenReturn(servletResponse);
         lenient().when(servletRequest.getParameter(anyString())).thenReturn(null);
         lenient().when(servletRequest.getParameterMap()).thenReturn(Map.of());
     }
@@ -125,10 +130,18 @@ class DiscoveryRuntimeContextFactoryTest {
     }
 
     @Test
-    void missingBrUid2Cookie_returnsNull() {
+    void brUid2RequestAttribute_takesPrecedenceOverCookieArray() {
+        attrs.put(DiscoveryBrUid2Service.class.getName() + ".value", "uid-from-request-attr");
+
+        assertEquals("uid-from-request-attr", factory.get(request).brUid2());
+    }
+
+    @Test
+    void missingBrUid2Cookie_generatesAndPersistsCookie() {
         when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("other", "x")});
 
-        assertNull(factory.get(request).brUid2());
+        assertNotNull(factory.get(request).brUid2());
+        verify(servletResponse).addHeader(contains("Set-Cookie"), contains("_br_uid_2="));
     }
 
     @Test
@@ -142,5 +155,6 @@ class DiscoveryRuntimeContextFactoryTest {
         factory.get(request);
 
         verify(request, times(1)).getCookies();
+        verify(servletResponse, never()).addHeader(contains("Set-Cookie"), contains("_br_uid_2="));
     }
 }

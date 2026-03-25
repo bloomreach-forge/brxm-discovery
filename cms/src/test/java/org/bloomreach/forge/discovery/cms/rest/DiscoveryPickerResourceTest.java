@@ -370,6 +370,65 @@ class DiscoveryPickerResourceTest {
         verify(httpGateway).apply(argThat(url -> url.contains("account_id=acc1")));
     }
 
+    // ---- categoryProducts() ---------------------------------------------
+
+    @Test
+    void categoryProducts_directCategoryId_skipJcrAndBrowses() throws RepositoryException {
+        // categoryId passed directly (live pre-save value from browser) — no JCR variant read needed
+        when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
+
+        List<?> items = resource.categoryProducts("", "women", 2, "");
+
+        assertEquals(1, items.size());
+        verify(httpGateway).apply(argThat(url ->
+                url.contains("search_type=category") && url.contains("q=women") && url.contains("rows=2")));
+        // getNodeByIdentifier must NOT be called (no JCR lookup for categoryId)
+        verify(session, never()).getNodeByIdentifier(anyString());
+    }
+
+    @Test
+    void categoryProducts_fallsBackToJcrWhenNoCategoryIdParam() throws RepositoryException {
+        // no direct categoryId → read from JCR variant child
+        Node handle = mock(Node.class);
+        Node variant = mock(Node.class);
+        NodeIterator variantIter = mock(NodeIterator.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getPath()).thenReturn("/apps/config/doc"); // non-standard → no channel override
+        when(handle.getNodes()).thenReturn(variantIter);
+        when(variantIter.hasNext()).thenReturn(true, false);
+        when(variantIter.nextNode()).thenReturn(variant);
+        Property catIdProp = mock(Property.class);
+        when(variant.hasProperty("brxdis:categoryId")).thenReturn(true);
+        when(variant.getProperty("brxdis:categoryId")).thenReturn(catIdProp);
+        when(catIdProp.getString()).thenReturn("women");
+
+        when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
+
+        List<?> items = resource.categoryProducts("doc-uuid", "", 2, "");
+
+        assertEquals(1, items.size());
+        verify(httpGateway).apply(argThat(url ->
+                url.contains("search_type=category") && url.contains("q=women") && url.contains("rows=2")));
+    }
+
+    @Test
+    void categoryProducts_missingCategoryId_returnsEmptyList() throws RepositoryException {
+        // handle with a variant that has no brxdis:categoryId, no direct param
+        Node handle = mock(Node.class);
+        Node variant = mock(Node.class);
+        NodeIterator variantIter = mock(NodeIterator.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getNodes()).thenReturn(variantIter);
+        when(variantIter.hasNext()).thenReturn(true, false);
+        when(variantIter.nextNode()).thenReturn(variant);
+        when(variant.hasProperty("brxdis:categoryId")).thenReturn(false);
+
+        List<?> items = resource.categoryProducts("doc-uuid", "", 2, "");
+
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
     // ---- JSON parsing ---------------------------------------------------
 
     @Test

@@ -292,6 +292,58 @@ For headless delivery, a search page with composable components produces:
 
 ---
 
+---
+
+## `DiscoveryCategoryHighlightComponent`
+
+Renders a grid of curated category tiles (up to 4) sourced from `brxdis:categoryDocument` pickers configured in the Channel Manager. Each tile optionally shows a row of product thumbnails below the category name, driven by the `brxdis:productPreviewCount` field on the document.
+
+### Component parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `document1`–`document4` | JCR path | `""` | Paths to `brxdis:categoryDocument` nodes. Empty slots are skipped. |
+
+### Models set on the request
+
+| Key | Type | Description |
+|---|---|---|
+| `categories` | `List<DiscoveryCategoryBean>` | Resolved category beans in slot order. |
+| `previewProducts` | `Map<String, List<ProductSummary>>` | Preview products keyed by `categoryId`. Empty map when all counts are zero or `HstDiscoveryService` is unavailable. Served from `CategoryPreviewCache` (~5-min TTL) — not re-fetched from Discovery on every request. |
+
+### `DiscoveryCategoryBean` accessors
+
+| Method | Returns | Description |
+|---|---|---|
+| `getCategoryId()` | `String` | The Discovery category ID stored in `brxdis:categoryId`. |
+| `getDisplayName()` | `String` | Editor-facing label stored in `brxdis:displayName`. |
+| `getProductPreviewCount()` | `int` | Number of preview products (0–4) stored in `brxdis:productPreviewCount`. Returns `0` if absent or unparseable. |
+
+### FTL access
+
+```ftl
+<#assign previewProds = (previewProducts!{})[cat.categoryId!""]![]>
+<#list previewProds as p>
+  <img src="${p.imageUrl()!""}" alt="${(p.title()!"")?html}">
+</#list>
+```
+
+The bundled `brxdis-category-highlight.ftl` template handles this rendering automatically.
+
+### HST configuration
+
+```yaml
+definitions:
+  config:
+    /hst:hst/hst:configurations/<your-site>/hst:components:
+      /category-highlight:
+        jcr:primaryType: hst:component
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryHighlightComponent
+        hst:template: brxdis-category-highlight
+```
+
+---
+
 ## Error handling
 
 `ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the global JCR config node is absent, the plugin falls back to env/sys + coded defaults rather than failing.

@@ -40,6 +40,14 @@ definitions:
               hipposysedit:multiple: false
               hipposysedit:ordered: false
               hipposysedit:primary: false
+            /productPreviewCount:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:productPreviewCount
+              hipposysedit:type: OpenUiString
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
         /hipposysedit:prototypes:
           jcr:primaryType: hipposysedit:prototypeset
           /hipposysedit:prototype:
@@ -52,6 +60,7 @@ definitions:
             hippostdpubwf:lastModifiedBy: ''
             brxdis:displayName: ''
             brxdis:categoryId: ''
+            brxdis:productPreviewCount: '0'
         /editor:templates:
           jcr:primaryType: editor:templateset
           /_default_:
@@ -81,6 +90,15 @@ definitions:
               /cluster.options:
                 jcr:primaryType: frontend:pluginconfig
                 ui.extension: discoveryCategoryPicker
+            /productPreviewCount:
+              jcr:primaryType: frontend:plugin
+              caption: 'Product Preview'
+              field: productPreviewCount
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+                ui.extension: discoveryCategoryProductPreview
       /productDetailDocument:
         jcr:primaryType: hipposysedit:templatetype
         jcr:mixinTypes: ['editor:editable', 'mix:referenceable']

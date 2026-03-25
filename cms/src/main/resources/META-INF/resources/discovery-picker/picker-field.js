@@ -49,6 +49,7 @@ function initPickerField(cfg) {
         currentValue = String(selectedId);
         ui.document.field.setValue(currentValue);
         refreshDisplay(currentValue);
+        if (cfg.onValueChange) cfg.onValueChange(currentValue, documentId);
       }
     })
     .catch(function (err) {

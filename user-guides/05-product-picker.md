@@ -12,13 +12,18 @@ The picker talks to the CMS REST endpoint (`{cms}/ws/discovery/picker`) — not 
 
 When `brxm-discovery-cms` is on the CMS classpath, HCM bootstraps:
 
-- **`discoveryProductPicker`** Open UI extension node at
-  `/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker`
+- **`discoveryProductPicker`** — product search picker (dialog)
+- **`discoveryWidgetPicker`** — recommendation widget picker (dialog)
+- **`discoveryCategoryPicker`** — category picker (dialog)
+- **`discoveryCategoryProductPreview`** — inline product count selector + live thumbnail preview (see [below](#discoverycategoryproductpreview-inline-field))
+
+All four are registered under `/hippo:configuration/hippo:frontend/cms/ui-extensions/`.
+
 - **Picker daemon module** at
   `/hippo:configuration/hippo:modules/brxm-discovery`
-  which registers the JAX-RS endpoints `{cms}/ws/discovery/picker/search`, `.../items`, `.../categories`, and `.../widgets`
-- **Static HTML/JS app** served at
-  `{cms}/discovery-picker/index.html`
+  which registers the JAX-RS endpoints at `{cms}/ws/discovery/picker/`:
+  `search`, `items`, `categories`, `browse`, `widgets`, `category-products`
+- **Static HTML/JS** served at `{cms}/discovery-picker/`
 
 You do not need to configure any of this. You only need to add the picker field to your document types.
 
@@ -68,23 +73,57 @@ The stored value is a single PID string (e.g. `"SKU-12345"`).
 
 ## REST endpoint reference
 
-Both endpoints are available at `{cms}/ws/discovery/picker/`:
+All endpoints are at `{cms}/ws/discovery/picker/`.
 
 ### `GET /search`
 
-| Parameter | Required | Description |
+| Parameter | Default | Description |
 |---|---|---|
-| `q` | No | Search query. Defaults to `*`. |
-| `page` | No | Zero-based page. Defaults to `0`. |
-| `pageSize` | No | Results per page. Defaults to `12`. |
+| `q` | `*` | Search query. |
+| `page` | `0` | Zero-based page. |
+| `pageSize` | `12` | Results per page. |
+| `documentId` | `""` | Handle UUID — used to derive channel credentials. |
+| `channelId` | `""` | Explicit channel ID override. |
 
 ### `GET /items`
 
-| Parameter | Required | Description |
+| Parameter | Default | Description |
 |---|---|---|
-| `ids` | No | Comma-separated list of PIDs to fetch by ID. Returns empty list if blank. |
+| `ids` | — | Comma-separated PIDs. Returns empty list if blank. |
+| `documentId` | `""` | Handle UUID. |
+| `channelId` | `""` | Channel ID override. |
 
-### Response format (both endpoints)
+### `GET /categories`
+
+Returns the full category tree for the configured channel (used by the category picker dialog).
+
+### `GET /browse`
+
+| Parameter | Default | Description |
+|---|---|---|
+| `catId` | — | Category ID to browse. |
+| `page` | `0` | Zero-based page. |
+| `pageSize` | `9` | Results per page. |
+| `documentId` | `""` | Handle UUID. |
+
+### `GET /widgets`
+
+Returns all available recommendation widgets for the channel.
+
+### `GET /category-products`
+
+Used by the `discoveryCategoryProductPreview` inline field to fetch a thumbnail preview.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `documentId` | `""` | Handle UUID. Used to read `brxdis:categoryId` from the JCR draft variant when `categoryId` is not supplied. |
+| `categoryId` | `""` | Direct category ID. When present, JCR is not read — this is the live pre-save value forwarded by the category picker via `postMessage`. |
+| `count` | `4` | Number of products to return (capped at 4). |
+| `channelId` | `""` | Channel ID override. |
+
+Returns a JSON array of `PickerItemDto` (`id`, `title`, `imageUrl`, `price`).
+
+### Response format (`/search`, `/items`, `/browse`)
 
 ```json
 {
@@ -119,6 +158,41 @@ The plugin deliberately stores only the ID — full product data (price, stock, 
 
 ---
 
+## `discoveryCategoryProductPreview` inline field
+
+This extension is used on the built-in `brxdis:categoryDocument` type. It lets editors choose how many product thumbnails (0–4) to show inside each category tile on the site, and previews those thumbnails live inside the document editor without saving.
+
+### How it works
+
+1. The CMS renders the field as a compact inline iframe.
+2. On load, the field reads its stored value (the count) and fetches thumbnails via `GET /category-products`.
+3. When the **category picker** above changes the selected category, it broadcasts a `brxdis:categoryChanged` message to all sibling iframes via `window.parent.frames`. The product preview field receives it, stores the live `categoryId`, and immediately re-fetches — no JCR save required.
+4. On dropdown change, the field updates its stored value via `ui.document.field.setValue()` and re-fetches.
+
+### Site-side behaviour
+
+`DiscoveryCategoryHighlightComponent` reads `getProductPreviewCount()` from each `DiscoveryCategoryBean` at render time. For each category with `count > 0`, it checks a JVM-level cache (`CategoryPreviewCache`, ~5-minute TTL with ±20% jitter) before calling Discovery. On a cache miss it calls `HstDiscoveryService.browse()`, stores the result, and sets the `previewProducts` model — a `Map<String, List<ProductSummary>>` keyed by `categoryId`. The bundled `brxdis-category-highlight.ftl` renders product thumbnails inside each tile when `previewProducts` contains entries.
+
+### Using on a custom document type
+
+If you want the same inline preview on your own document type (which stores a category ID), register a new document field pointing to the extension:
+
+```yaml
+/myProductPreviewCount:
+  jcr:primaryType: frontend:plugin
+  caption: 'Product Preview'
+  field: myns:productPreviewCount
+  plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+  wicket.id: '${cluster.id}.field'
+  /cluster.options:
+    jcr:primaryType: frontend:pluginconfig
+    ui.extension: discoveryCategoryProductPreview
+```
+
+The extension reads the `categoryId` via `postMessage` from the category picker in the same document. For this to work, your document must also use `discoveryCategoryPicker` for the category ID field — it is the broadcaster.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
@@ -126,3 +200,4 @@ The plugin deliberately stores only the ID — full product data (price, stock, 
 | Picker iframe shows blank or "Failed to load" | `brxm-discovery-cms` not on classpath, or daemon module not started |
 | Search returns 0 results | Discovery credentials blank or incorrect; check logs for HTTP errors from `DiscoveryPickerResource` |
 | Field saves but value disappears on reload | Property not declared in the CND / node type definition |
+| Product preview shows thumbnails from old category after picking a new one | Category picker and preview field are not in the same document / same CMS page — `postMessage` only reaches same-origin sibling iframes |

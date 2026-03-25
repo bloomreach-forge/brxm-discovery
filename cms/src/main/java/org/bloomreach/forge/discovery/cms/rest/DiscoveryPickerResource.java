@@ -30,6 +30,7 @@ import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.Arrays;
@@ -61,6 +62,7 @@ public class DiscoveryPickerResource {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPickerResource.class);
     private static final int MAX_PAGE_SIZE = 100;
+    private static final String CATEGORY_ID_PROP = "brxdis:categoryId";
     private static final DiscoveryRequestFactory REQUEST_FACTORY = new DiscoveryRequestFactory();
 
     // CXF injects a per-request proxy into this field even though the resource is a singleton.
@@ -196,6 +198,39 @@ public class DiscoveryPickerResource {
     }
 
     /**
+     * Returns a thumbnail preview of products in a category document.
+     *
+     * <p>Reads {@code brxdis:categoryId} from the document node identified by {@code documentId},
+     * then issues a category browse with {@code rows=count} and returns the items list.
+     */
+    @GET
+    @Path("/category-products")
+    public List<PickerItemDto> categoryProducts(
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("categoryId") @DefaultValue("") String categoryId,
+            @QueryParam("count") @DefaultValue("4") int count,
+            @QueryParam("channelId") @DefaultValue("") String channelId) {
+
+        // categoryId may be supplied directly by the browser (live, pre-save value from the
+        // category picker); fall back to reading from the JCR draft only when absent.
+        String resolvedCategoryId = !categoryId.isBlank()
+                ? categoryId : resolveCategoryIdFromDocument(documentId);
+        if (resolvedCategoryId == null || resolvedCategoryId.isBlank()) {
+            return List.of();
+        }
+        int safeCount = Math.min(Math.max(count, 0), MAX_PAGE_SIZE);
+        if (safeCount == 0) {
+            return List.of();
+        }
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        CategoryQuery query = new CategoryQuery(resolvedCategoryId, 0, safeCount,
+                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
+        String json = httpGateway.apply(url);
+        return responseMapper.toSearchResponse(json, 0, safeCount).items();
+    }
+
+    /**
      * Returns browsable categories for the channel.
      *
      * <p>Uses {@code search_type=category&rows=0} against the core API so only
@@ -211,6 +246,32 @@ public class DiscoveryPickerResource {
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toCategories(json);
+    }
+
+    /**
+     * Reads {@code brxdis:categoryId} from the document identified by {@code documentId}.
+     *
+     * <p>{@code documentId} is the <em>handle</em> UUID (as returned by {@code ui.document.get().id}).
+     * The property lives on the variant child node, not the handle itself, so we iterate the
+     * handle's children and return the first {@code brxdis:categoryId} value found.
+     */
+    private String resolveCategoryIdFromDocument(String documentId) {
+        if (documentId == null || documentId.isBlank()) return null;
+        try {
+            Node handle = moduleSession.getNodeByIdentifier(documentId);
+            // Property is on the variant child, not the handle
+            NodeIterator variants = handle.getNodes();
+            while (variants.hasNext()) {
+                Node variant = variants.nextNode();
+                if (variant.hasProperty(CATEGORY_ID_PROP)) {
+                    return variant.getProperty(CATEGORY_ID_PROP).getString();
+                }
+            }
+            return null;
+        } catch (RepositoryException e) {
+            log.warn("[resolveCategoryIdFromDocument] documentId='{}': {}", documentId, e.getMessage());
+            return null;
+        }
     }
 
     private static String buildAbsoluteUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {

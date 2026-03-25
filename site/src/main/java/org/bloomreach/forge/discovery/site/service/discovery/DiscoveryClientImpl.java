@@ -3,6 +3,7 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
@@ -66,26 +67,34 @@ public class DiscoveryClientImpl implements DiscoveryClient {
 
     @Override
     public String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                       String clientIp, PixelFlags flags) {
-        return pixelTransport.buildSearchPixelPath(query, result, credentials, clientIp, flags);
+                                       String title, String clientIp, PixelFlags flags) {
+        return pixelTransport.buildSearchPixelPath(query, result, credentials, title, clientIp, flags);
     }
 
     @Override
     public String buildCategoryPixelPath(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                         String clientIp, PixelFlags flags) {
-        return pixelTransport.buildCategoryPixelPath(query, result, credentials, clientIp, flags);
+                                         String title, String clientIp, PixelFlags flags) {
+        return pixelTransport.buildCategoryPixelPath(query, result, credentials, title, clientIp, flags);
     }
 
     @Override
     public String buildWidgetPixelPath(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
-                                       String clientIp, PixelFlags flags) {
-        return pixelTransport.buildWidgetPixelPath(query, result, credentials, clientIp, flags);
+                                       String pageType, String title, String clientIp, PixelFlags flags) {
+        return pixelTransport.buildWidgetPixelPath(query, result, credentials, pageType, title, clientIp, flags);
     }
 
     @Override
-    public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl, String url,
+    public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl,
+                                                String origRefUrl, String url, String title,
                                                 DiscoveryCredentials credentials, String clientIp, PixelFlags flags) {
-        return pixelTransport.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, url, credentials, clientIp, flags);
+        return pixelTransport.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, origRefUrl, url, title,
+                credentials, clientIp, flags);
+    }
+
+    @Override
+    public String buildDeferredEventPixelPath(DeferredPixelEvent event, DiscoveryCredentials credentials,
+                                              String clientIp, PixelFlags flags) {
+        return pixelTransport.buildDeferredEventPixelPath(event, credentials, clientIp, flags);
     }
 
     @Override

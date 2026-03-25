@@ -9,12 +9,23 @@ import java.util.List;
  * Carries the widget result ID ({@code wrid}) from Pathways metadata — needed for accurate
  * server-side pixel events — alongside the product list.
  */
-public record RecommendationResult(String widgetResultId, List<ProductSummary> products) {
+public record RecommendationResult(String widgetId,
+                                   String widgetType,
+                                   String widgetResultId,
+                                   List<ProductSummary> products) {
+
+    public RecommendationResult(String widgetResultId, List<ProductSummary> products) {
+        this(null, null, widgetResultId, products);
+    }
 
     /**
      * Convenience factory for v1 responses and test helpers where {@code wrid} is unavailable.
      */
     public static RecommendationResult of(List<ProductSummary> products) {
-        return new RecommendationResult(null, products);
+        return new RecommendationResult(null, null, null, products);
+    }
+
+    public RecommendationResult withProducts(List<ProductSummary> products) {
+        return new RecommendationResult(widgetId, widgetType, widgetResultId, products);
     }
 }

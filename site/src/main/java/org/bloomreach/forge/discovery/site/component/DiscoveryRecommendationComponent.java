@@ -63,12 +63,17 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         RecommendationResult recResult = svc.recommend(
                 request, widgetId, null, contextProductId, contextPageType, limit, fields, filter, label);
         List<ProductSummary> products = recResult.products();
+        String resolvedWidgetId = recResult.widgetId() != null && !recResult.widgetId().isBlank()
+                ? recResult.widgetId() : widgetId;
 
         request.setModel("products", products);
-        request.setModel("widgetId", widgetId);
+        request.setModel("widgetId", resolvedWidgetId);
+        request.setModel("widgetType", recResult.widgetType());
+        request.setModel("widgetResultId", recResult.widgetResultId());
+        request.setModel("widgetQuery", contextProductId);
 
         log.debug("Recommendations widget '{}' dataSource='{}' label='{}' returned {} products",
-                widgetId, dataSource, label, products.size());
+                resolvedWidgetId, dataSource, label, products.size());
     }
 
     /** Widget ID: document field wins, then URL request param. */

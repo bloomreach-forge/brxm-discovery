@@ -13,4 +13,14 @@ public class DiscoveryCategoryBean extends HippoDocument {
     public String getDisplayName() {
         return getSingleProperty("brxdis:displayName");
     }
+
+    public int getProductPreviewCount() {
+        String val = getSingleProperty("brxdis:productPreviewCount");
+        if (val == null || val.isBlank()) return 0;
+        try {
+            return Math.min(4, Math.max(0, Integer.parseInt(val.trim())));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 }

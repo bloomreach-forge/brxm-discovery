@@ -15,7 +15,10 @@ final class DiscoveryRuntimeContext {
     private final QueryParamParser.RequestParamProvider paramProvider;
     private final String brUid2;
     private final String pageUrl;
+    private final String pageTitle;
+    private final String pageType;
     private final String refUrl;
+    private final String origRefUrl;
     private final String clientIp;
 
     DiscoveryRuntimeContext(DiscoveryConfig config,
@@ -24,7 +27,10 @@ final class DiscoveryRuntimeContext {
                             QueryParamParser.RequestParamProvider paramProvider,
                             String brUid2,
                             String pageUrl,
+                            String pageTitle,
+                            String pageType,
                             String refUrl,
+                            String origRefUrl,
                             String clientIp) {
         this.config = config;
         this.clientContext = clientContext;
@@ -32,7 +38,10 @@ final class DiscoveryRuntimeContext {
         this.paramProvider = paramProvider;
         this.brUid2 = brUid2;
         this.pageUrl = pageUrl;
+        this.pageTitle = pageTitle;
+        this.pageType = pageType;
         this.refUrl = refUrl;
+        this.origRefUrl = origRefUrl;
         this.clientIp = clientIp;
     }
 
@@ -68,8 +77,20 @@ final class DiscoveryRuntimeContext {
         return pageUrl;
     }
 
+    String pageTitle() {
+        return pageTitle;
+    }
+
+    String pageType() {
+        return pageType;
+    }
+
     String refUrl() {
         return refUrl;
+    }
+
+    String origRefUrl() {
+        return origRefUrl;
     }
 
     String clientIp() {

@@ -86,7 +86,16 @@
           class="org.bloomreach.forge.discovery.site.platform.DiscoveryRuntimeContextFactory"
           lazy-init="true">
         <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="org.bloomreach.forge.discovery.site.platform.DiscoveryBrUid2Service"/>
     </bean>
+
+    <bean id="org.bloomreach.forge.discovery.site.platform.DiscoveryBrUid2Service"
+          class="org.bloomreach.forge.discovery.site.platform.DiscoveryBrUid2Service"
+          lazy-init="true"/>
+
+    <bean id="org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache"
+          class="org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache"
+          lazy-init="true"/>
 
     <bean id="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
           class="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"

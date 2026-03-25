@@ -46,8 +46,9 @@
  */
 [brxdis:categoryDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
   orderable
-  - brxdis:displayName (String)
-  - brxdis:categoryId  (String)
+  - brxdis:displayName         (String)
+  - brxdis:categoryId          (String)
+  - brxdis:productPreviewCount (String)
 
 /**
  * brxdis:productDetailDocument

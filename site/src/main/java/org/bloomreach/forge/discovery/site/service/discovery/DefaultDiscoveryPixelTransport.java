@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
@@ -15,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,7 +45,7 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
 
     @Override
     public String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                       String clientIp, PixelFlags flags) {
+                                       String title, String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
         appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_PAGEVIEW)
@@ -51,7 +53,8 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
         if (query.query() != null && !query.query().isBlank()) {
             builder.queryParam("search_term", query.query());
         }
-        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.url(), clientIp);
+        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), title,
+                clientIp, false);
         appendPixelSkus(builder, result.products());
         appendPixelFlags(builder, flags);
         return builder.build(false).toUriString();
@@ -59,7 +62,7 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
 
     @Override
     public String buildCategoryPixelPath(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                         String clientIp, PixelFlags flags) {
+                                         String title, String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
         appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_PAGEVIEW)
@@ -67,7 +70,8 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
         if (query.categoryId() != null && !query.categoryId().isBlank()) {
             builder.queryParam("cat_id", query.categoryId());
         }
-        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.url(), clientIp);
+        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), title,
+                clientIp, false);
         appendPixelSkus(builder, result.products());
         appendPixelFlags(builder, flags);
         return builder.build(false).toUriString();
@@ -75,17 +79,20 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
 
     @Override
     public String buildWidgetPixelPath(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
-                                       String clientIp, PixelFlags flags) {
+                                       String pageType, String title, String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
         appendPixelCommonParams(builder, credentials);
         builder.queryParam("type", PAGE_TYPE_EVENT)
                 .queryParam("group", PAGE_TYPE_WIDGET)
-                .queryParam("etype", PAGE_TYPE_VIEW);
-        if (query.widgetId() != null && !query.widgetId().isBlank()) {
-            builder.queryParam("wid", query.widgetId());
+                .queryParam("etype", PAGE_TYPE_VIEW)
+                .queryParam("ptype", pageType != null && !pageType.isBlank() ? pageType : "content");
+        String widgetId = firstNonBlank(result.widgetId(), query.widgetId());
+        String widgetType = firstNonBlank(result.widgetType(), query.widgetType());
+        if (widgetId != null) {
+            builder.queryParam("wid", widgetId);
         }
-        if (query.widgetType() != null && !query.widgetType().isBlank()) {
-            builder.queryParam("wty", query.widgetType());
+        if (widgetType != null) {
+            builder.queryParam("wty", widgetType);
         }
         if (result.widgetResultId() != null && !result.widgetResultId().isBlank()) {
             builder.queryParam("wrid", result.widgetResultId());
@@ -93,14 +100,16 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
         if (query.contextProductId() != null && !query.contextProductId().isBlank()) {
             builder.queryParam("wq", query.contextProductId());
         }
-        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.url(), clientIp);
+        appendPixelTracking(builder, query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), title,
+                clientIp, false);
         appendPixelSkus(builder, result.products());
         appendPixelFlags(builder, flags);
         return builder.build(false).toUriString();
     }
 
     @Override
-    public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl, String url,
+    public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl,
+                                                String origRefUrl, String url, String title,
                                                 DiscoveryCredentials credentials, String clientIp, PixelFlags flags) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
         appendPixelCommonParams(builder, credentials);
@@ -110,7 +119,43 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
         if (prodName != null && !prodName.isBlank()) {
             builder.queryParam("prod_name", prodName);
         }
-        appendPixelTracking(builder, brUid2, refUrl, url, clientIp);
+        appendPixelTracking(builder, brUid2, refUrl, origRefUrl, url, title, clientIp, true);
+        appendPixelFlags(builder, flags);
+        return builder.build(false).toUriString();
+    }
+
+    @Override
+    public String buildDeferredEventPixelPath(DeferredPixelEvent event, DiscoveryCredentials credentials,
+                                              String clientIp, PixelFlags flags) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(PIXEL_PATH);
+        appendPixelCommonParams(builder, credentials);
+        builder.queryParam("type", PAGE_TYPE_EVENT)
+                .queryParam("group", event.group())
+                .queryParam("etype", event.etype())
+                .queryParam("ptype", event.ptype());
+        if (event.query() != null && !event.query().isBlank()) {
+            builder.queryParam("q", event.query());
+        }
+        if (event.autoQuery() != null && !event.autoQuery().isBlank()) {
+            builder.queryParam("aq", event.autoQuery());
+        }
+        if (event.widgetId() != null && !event.widgetId().isBlank()) {
+            builder.queryParam("wid", event.widgetId());
+        }
+        if (event.widgetType() != null && !event.widgetType().isBlank()) {
+            builder.queryParam("wty", event.widgetType());
+        }
+        if (event.widgetResultId() != null && !event.widgetResultId().isBlank()) {
+            builder.queryParam("wrid", event.widgetResultId());
+        }
+        if (event.widgetQuery() != null && !event.widgetQuery().isBlank()) {
+            builder.queryParam("wq", event.widgetQuery());
+        }
+        if (event.itemId() != null && !event.itemId().isBlank()) {
+            builder.queryParam("item_id", event.itemId());
+        }
+        appendPixelTracking(builder, event.brUid2(), event.refUrl(), event.origRefUrl(), event.url(), event.title(),
+                clientIp, false);
         appendPixelFlags(builder, flags);
         return builder.build(false).toUriString();
     }
@@ -163,7 +208,11 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
     }
 
     private static void appendPixelTracking(UriComponentsBuilder builder, String brUid2, String refUrl,
-                                            String url, String clientIp) {
+                                            String origRefUrl, String url, String title, String clientIp,
+                                            boolean keepSuggestQuery) {
+        if (title != null && !title.isBlank()) {
+            builder.queryParam("title", title);
+        }
         if (brUid2 != null && !brUid2.isBlank()) {
             String decodedBrUid2 = URLDecoder.decode(brUid2, StandardCharsets.UTF_8);
             builder.queryParam("cookie2", decodedBrUid2);
@@ -171,9 +220,11 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
         if (refUrl != null && !refUrl.isBlank()) {
             builder.queryParam("ref", refUrl);
         }
+        if (origRefUrl != null && !origRefUrl.isBlank()) {
+            builder.queryParam("orig_ref_url", origRefUrl);
+        }
         if (url != null && !url.isBlank()) {
-            int queryStart = url.indexOf('?');
-            builder.queryParam("url", queryStart >= 0 ? url.substring(0, queryStart) : url);
+            builder.queryParam("url", normalizePixelUrl(url, keepSuggestQuery));
         }
         builder.queryParam("version", "ss-v0.1")
                 .queryParam("rand", UUID.randomUUID())
@@ -181,5 +232,28 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
         if (clientIp != null && !clientIp.isBlank()) {
             builder.queryParam("client_ip", clientIp);
         }
+    }
+
+    private static String normalizePixelUrl(String url, boolean keepSuggestQuery) {
+        int queryStart = url.indexOf('?');
+        if (queryStart < 0) {
+            return url;
+        }
+        String baseUrl = url.substring(0, queryStart);
+        if (!keepSuggestQuery) {
+            return baseUrl;
+        }
+        return Arrays.stream(url.substring(queryStart + 1).split("&"))
+                .filter(part -> part.startsWith("_br_psugg_q="))
+                .findFirst()
+                .map(part -> baseUrl + "?" + part)
+                .orElse(baseUrl);
+    }
+
+    private static String firstNonBlank(String primary, String fallback) {
+        if (primary != null && !primary.isBlank()) {
+            return primary;
+        }
+        return fallback != null && !fallback.isBlank() ? fallback : null;
     }
 }

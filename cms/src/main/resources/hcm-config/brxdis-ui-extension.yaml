@@ -36,6 +36,14 @@ definitions:
       frontend:extensionPoint: 'document.field'
       frontend:config: '{}'
 
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryProductPreview:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Category Product Preview'
+      frontend:url: 'discovery-picker/category-product-preview.html'
+      frontend:initialHeightInPixels: 60
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{}'
+
 # ============================================================================
 # How to use the picker in a custom document type
 # ============================================================================

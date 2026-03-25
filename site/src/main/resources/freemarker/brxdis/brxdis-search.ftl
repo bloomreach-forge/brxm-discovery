@@ -102,6 +102,7 @@
   </#if>
 
   <form class="brxdis-sb__form" method="get" action="${resolvedResultsPage}">
+    <input type="hidden" name="brxdis_event" value="search-submit"/>
     <input id="brxdis-sb-input"
            class="brxdis-sb__input"
            type="search"
@@ -233,12 +234,18 @@
 <#-- ── Shared suggestions panel content macro ────────────────────────────── -->
 <#macro panelContent>
   <#if autosuggestResult??>
+    <#assign productSuggestQuery = autosuggestResult.originalQuery()!"">
+    <#if autosuggestResult.querySuggestions()?has_content>
+      <#assign productSuggestQuery = autosuggestResult.querySuggestions()[0]>
+    </#if>
     <#if autosuggestResult.querySuggestions()?has_content>
       <div class="brxdis-as__section">
         <p class="brxdis-as__heading">Suggestions</p>
         <ul class="brxdis-as__list">
           <#list autosuggestResult.querySuggestions() as s>
-            <li><a href="${resolvedResultsPage}?q=${s?url('UTF-8')}">${s}</a></li>
+            <li>
+              <a href="${resolvedResultsPage}?q=${s?url('UTF-8')}&brxdis_event=suggest-click&brxdis_aq=${(autosuggestResult.originalQuery()!"")?url('UTF-8')}">${s}</a>
+            </li>
           </#list>
         </ul>
       </div>
@@ -260,7 +267,7 @@
         <p class="brxdis-as__heading">Products</p>
         <div class="brxdis-as__products">
           <#list autosuggestResult.productSuggestions() as product>
-            <a class="brxdis-as__prod" href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">
+            <a class="brxdis-as__prod" href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}&_br_psugg_q=${productSuggestQuery?url('UTF-8')}">
               <div class="brxdis-as__prod-img">
                 <#if product.imageUrl()?has_content>
                   <img src="${product.imageUrl()}" alt="${product.title()!""}"/>

@@ -5,6 +5,7 @@ import org.bloomreach.forge.discovery.exception.SearchException;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHintBuilder;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
@@ -448,6 +449,38 @@ class DiscoveryClientTest {
         assertTrue(path.contains("version=ss-v0.1"), "version=ss-v0.1 required");
     }
 
+    @Test
+    void buildSearchPixelPath_includesTitleAndOrigRefUrl() {
+        var query = new SearchQuery("shoes", 0, 10, null, null, null, "https://example.com/home",
+                "https://example.com/search?q=shoes", "https://example.com/landing", null, List.of(), null, null);
+        var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+
+        String path = client.buildSearchPixelPath(query, result, credentials, "Search Results", null, PixelFlags.DISABLED);
+
+        assertTrue(path.contains("title=Search"), "title is required");
+        assertTrue(path.contains("orig_ref_url=https://example.com/landing"), "orig_ref_url should be forwarded");
+    }
+
+    @Test
+    void buildDeferredEventPixelPath_widgetClick_containsRequiredParams() {
+        DeferredPixelEvent event = DeferredPixelEvent.widgetClick("product", "Product Detail",
+                "https://example.com/product?pid=42", "https://example.com/home",
+                "https://example.com/home", "uid-val", "pid-42",
+                "widget-1", "item", "rid-1", "context-1");
+
+        String path = client.buildDeferredEventPixelPath(event, credentials, null, PixelFlags.DISABLED);
+
+        assertTrue(path.contains("type=event"), "event type required");
+        assertTrue(path.contains("group=widget"), "widget group required");
+        assertTrue(path.contains("etype=click"), "click etype required");
+        assertTrue(path.contains("ptype=product"), "page type required");
+        assertTrue(path.contains("wid=widget-1"), "wid required");
+        assertTrue(path.contains("wty=item"), "wty required");
+        assertTrue(path.contains("wrid=rid-1"), "wrid required");
+        assertTrue(path.contains("item_id=pid-42"), "item_id required");
+        assertTrue(path.contains("title=Product"), "title required");
+    }
+
     // --- Phase 2: server-side pixel params ---
 
     @Test
@@ -518,6 +551,17 @@ class DiscoveryClientTest {
         assertFalse(path.contains("user_agent="), "user_agent must not appear in path (forwarded as header)");
         assertTrue(path.contains("url=https://example.com/product"), "url base required");
         assertFalse(path.contains("url=https://example.com/product?"), "query string must be stripped");
+    }
+
+    @Test
+    void buildProductPageViewPixelPath_preservesBrSuggestQueryOnly() {
+        String path = client.buildProductPageViewPixelPath("pid-42", null, null, null, null,
+                "https://example.com/product?pid=42&_br_psugg_q=boots&page=2", "Product Detail",
+                credentials, null, PixelFlags.DISABLED);
+
+        assertTrue(path.contains("url=https://example.com/product?_br_psugg_q=boots"),
+                "url should retain _br_psugg_q for suggest attribution");
+        assertFalse(path.contains("page=2"), "non-suggest query params should be stripped");
     }
 
     @Test
@@ -856,6 +900,9 @@ class DiscoveryClientTest {
         var stagingV2Credentials = new DiscoveryCredentials("acct123", "myDomain", "secret-key", "my-auth-key", "STAGING");
         var query = new RecQuery("w-1", null, null, 8);
         var expectedResult = RecommendationResult.of(List.of());
+        when(broker.resolve(eq("discoverySearchAPI"), contains("/api/v1/merchant/widgets"), any(ExchangeHint.class)))
+                .thenReturn(resource);
+        when(responseMapper.toWidgetTypeMap(resource)).thenReturn(Map.of("w-1", "item"));
         when(broker.resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
         when(responseMapper.toRecommendationResult(resource)).thenReturn(expectedResult);
 

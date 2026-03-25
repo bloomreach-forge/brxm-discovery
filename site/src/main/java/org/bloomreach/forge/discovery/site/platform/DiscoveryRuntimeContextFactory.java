@@ -1,6 +1,5 @@
 package org.bloomreach.forge.discovery.site.platform;
 
-import jakarta.servlet.http.Cookie;
 import org.bloomreach.forge.discovery.config.DiscoveryChannelConfigReader;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
@@ -13,6 +12,7 @@ import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamPa
 import org.hippoecm.hst.configuration.hosting.Mount;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -32,16 +32,29 @@ public final class DiscoveryRuntimeContextFactory {
             Pattern.compile("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$|^[0-9a-fA-F:]+$");
 
     private final DiscoveryConfigProvider configProvider;
+    private final DiscoveryBrUid2Service brUid2Service;
     private final Function<String, String> envResolver;
 
     public DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider) {
-        this(configProvider, System::getenv);
+        this(configProvider, new DiscoveryBrUid2Service(), System::getenv);
+    }
+
+    public DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
+                                          DiscoveryBrUid2Service brUid2Service) {
+        this(configProvider, brUid2Service, System::getenv);
     }
 
     /** Seam for tests — allows injecting a custom env resolver. */
     public DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
+                                          Function<String, String> envResolver) {
+        this(configProvider, new DiscoveryBrUid2Service(), envResolver);
+    }
+
+    DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
+                                   DiscoveryBrUid2Service brUid2Service,
                                    Function<String, String> envResolver) {
         this.configProvider = configProvider;
+        this.brUid2Service = brUid2Service;
         this.envResolver = envResolver;
     }
 
@@ -57,14 +70,19 @@ public final class DiscoveryRuntimeContextFactory {
         logCredentials(config.credentials());
         validateCredentials(config.credentials());
         String pageUrl = pageUrl(request);
+        String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), pageUrl);
+        String pageType = pageType(request);
         DiscoveryRuntimeContext runtimeContext = new DiscoveryRuntimeContext(
                 config,
                 clientContext(request),
                 resolvePixelFlags(request),
                 paramProvider(request),
-                cookieValue(request, HstDiscoveryService.BR_UID_2),
+                brUid2Service.ensure(request),
                 pageUrl,
-                Objects.requireNonNullElse(request.getHeader("Referer"), pageUrl),
+                pageTitle(request, pageType),
+                pageType,
+                refUrl,
+                originalRefUrl(request, refUrl),
                 extractClientIp(request)
         );
         requestContext.setAttribute(ATTR, runtimeContext);
@@ -199,17 +217,74 @@ public final class DiscoveryRuntimeContextFactory {
         };
     }
 
-    private static String cookieValue(HstRequest request, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
+    private static String originalRefUrl(HstRequest request, String fallbackRefUrl) {
+        HstRequestContext requestContext = request.getRequestContext();
+        if (requestContext == null || requestContext.getServletRequest() == null) {
             return null;
         }
-        for (Cookie cookie : cookies) {
-            if (name.equals(cookie.getName())) {
-                return cookie.getValue();
+        String fromParam = requestContext.getServletRequest().getParameter("orig_ref_url");
+        if (fromParam != null && !fromParam.isBlank()) {
+            return fromParam;
+        }
+        String fromHeader = request.getHeader("X-Brxdis-Orig-Ref-Url");
+        if (fromHeader != null && !fromHeader.isBlank()) {
+            return fromHeader;
+        }
+        return fallbackRefUrl;
+    }
+
+    private static String pageTitle(HstRequest request, String pageType) {
+        HstRequestContext requestContext = request.getRequestContext();
+        if (requestContext != null) {
+            ResolvedSiteMapItem siteMapItem = requestContext.getResolvedSiteMapItem();
+            if (siteMapItem != null) {
+                String pageTitle = siteMapItem.getPageTitle();
+                if (pageTitle != null && !pageTitle.isBlank()) {
+                    return pageTitle;
+                }
             }
         }
-        return null;
+        String requestUri = request.getRequestURI();
+        if (requestUri == null || requestUri.isBlank() || "/".equals(requestUri)) {
+            return "homepage".equals(pageType) ? "Home" : pageType;
+        }
+        return requestUri;
+    }
+
+    private static String pageType(HstRequest request) {
+        HstRequestContext requestContext = request.getRequestContext();
+        if (requestContext != null && requestContext.getServletRequest() != null) {
+            String override = requestContext.getServletRequest().getParameter("brxdis_ptype");
+            if (override != null && !override.isBlank()) {
+                return override;
+            }
+        }
+        String headerOverride = request.getHeader("X-Brxdis-Ptype");
+        if (headerOverride != null && !headerOverride.isBlank()) {
+            return headerOverride;
+        }
+        String pid = requestContext != null && requestContext.getServletRequest() != null
+                ? requestContext.getServletRequest().getParameter("pid") : null;
+        if (pid != null && !pid.isBlank()) {
+            return "product";
+        }
+        String query = requestContext != null && requestContext.getServletRequest() != null
+                ? requestContext.getServletRequest().getParameter("q") : null;
+        if (query != null && !query.isBlank()) {
+            return "search";
+        }
+        String requestUri = request.getRequestURI();
+        if (requestUri == null || requestUri.isBlank() || "/".equals(requestUri)) {
+            return "homepage";
+        }
+        String normalized = requestUri.toLowerCase();
+        if (normalized.contains("/product")) {
+            return "product";
+        }
+        if (normalized.contains("/category")) {
+            return "category";
+        }
+        return "content";
     }
 
     private static String pageUrl(HstRequest request) {

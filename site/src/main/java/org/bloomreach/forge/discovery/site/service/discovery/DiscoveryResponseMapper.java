@@ -27,6 +27,7 @@ import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.onehippo.cms7.crisp.api.resource.Resource;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,9 +70,13 @@ public class DiscoveryResponseMapper {
             return RecommendationResult.of(List.of());
         }
         List<ProductSummary> products = dto.response().docs().stream().map(this::toProductSummary).toList();
+        String wid = dto.metadata() != null && dto.metadata().widget() != null
+                ? dto.metadata().widget().id() : null;
+        String wty = dto.metadata() != null && dto.metadata().widget() != null
+                ? dto.metadata().widget().type() : null;
         String wrid = dto.metadata() != null && dto.metadata().widget() != null
                 ? dto.metadata().widget().rid() : null;
-        return new RecommendationResult(wrid, products);
+        return new RecommendationResult(wid, wty, wrid, products);
     }
 
     public AutosuggestResult toAutosuggestResult(Resource resource) {
@@ -106,6 +111,23 @@ public class DiscoveryResponseMapper {
                 List.copyOf(querySuggestions),
                 List.copyOf(attributeSuggestions),
                 List.copyOf(productSuggestions));
+    }
+
+    public Map<String, String> toWidgetTypeMap(Resource resource) {
+        JsonNode root = (JsonNode) resource.getNodeData();
+        JsonNode widgets = root.path("response").path("widgets");
+        if (!widgets.isArray()) {
+            return Map.of();
+        }
+        Map<String, String> result = new HashMap<>();
+        for (JsonNode widget : widgets) {
+            String id = widget.path("id").asText(null);
+            String type = widget.path("type").asText(null);
+            if (id != null && !id.isBlank() && type != null && !type.isBlank()) {
+                result.put(id, type);
+            }
+        }
+        return Map.copyOf(result);
     }
 
     private ProductSummary toProductSummary(ProductDoc doc) {

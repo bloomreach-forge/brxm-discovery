@@ -69,7 +69,9 @@ org.bloomreach.forge.discovery
 │                                    #   DiscoveryProductHighlightComponentInfo,
 │                                    #   DiscoveryCategoryHighlightComponentInfo
 └── cms
-    └── JCR node types, Open UI extension, picker REST endpoints (DiscoveryPickerModule)
+    └── JCR node types, Open UI extensions, picker REST endpoints (DiscoveryPickerModule)
+        Open UI extensions: discoveryProductPicker, discoveryWidgetPicker, discoveryCategoryPicker,
+                            discoveryCategoryProductPreview (inline product count + live thumbnail preview)
 ```
 
 ## Key Conventions
@@ -83,6 +85,8 @@ org.bloomreach.forge.discovery
 ## Architecture
 - **Discovery is read-only** — external commerce system feeds products into Discovery via connectors
 - **CRISP resource spaces**: `discoverySearchAPI` (core.dxpapi.com), `discoveryPathwaysAPI` (pathways.dxpapi.com), `discoveryAutosuggestAPI` (suggest.dxpapi.com) — all three bootstrapped automatically by the plugin via `brxdis-crisp.yaml` in the CMS HCM config; no manual CRISP configuration required in the host project
+- **Picker REST endpoints**: `GET /search`, `/items`, `/categories`, `/browse`, `/widgets`, `/category-products` — all at `{cms}/ws/discovery/picker/`; `/category-products` reads `brxdis:categoryId` from the handle's variant child (not the handle itself); also accepts direct `categoryId` param to bypass JCR for live pre-save preview
+- **postMessage cross-field sync**: `picker-field.js` fires `cfg.onValueChange(value, documentId)` on pick/clear; `category-picker.html` broadcasts `{type:"brxdis:categoryChanged", documentId, categoryId}` to all same-origin sibling frames via `window.parent.frames`; `category-product-preview.html` listens and re-fetches immediately — no polling, no JCR save required
 - **Config resolution** (single global node): all channels share one `brxdis:discoveryConfig` node at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`; credentials use env→sys→JCR value; structural config uses JCR→coded default; no `discoveryConfigPath` mount parameter
 - **Global JCR config node**: fixed path `ConfigDefaults.CONFIG_NODE_PATH`; `DiscoveryConfigProvider.get(session)` resolves it; `DiscoveryConfigJcrListener` invalidates cache on node changes; `DiscoveryChannelInfo` carries pixel fields only
 - **Graceful degradation**: missing or absent JCR config node falls back to env/sys + coded defaults — no crash

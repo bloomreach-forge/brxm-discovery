@@ -81,6 +81,20 @@
           <#assign prodTitle = product.title()!"">
           <#assign prodUrl = product.url()!"">
           <#assign prodAttrs = product.attributes()!{}>
+          <#assign recommendationHref = resolvedProductPage + "?pid=" + ((product.id()!"")?url('UTF-8'))>
+          <#assign recommendationHref = recommendationHref + "&brxdis_event=widget-click">
+          <#if widgetId?has_content>
+            <#assign recommendationHref = recommendationHref + "&brxdis_wid=" + widgetId?url('UTF-8')>
+          </#if>
+          <#if widgetType?has_content>
+            <#assign recommendationHref = recommendationHref + "&brxdis_wty=" + widgetType?url('UTF-8')>
+          </#if>
+          <#if widgetResultId?has_content>
+            <#assign recommendationHref = recommendationHref + "&brxdis_wrid=" + widgetResultId?url('UTF-8')>
+          </#if>
+          <#if widgetQuery?has_content>
+            <#assign recommendationHref = recommendationHref + "&brxdis_wq=" + widgetQuery?url('UTF-8')>
+          </#if>
           <article class="brxdis-recs__card" role="listitem">
             <div class="brxdis-recs__img">
               <#if prodImageUrl?has_content>
@@ -91,7 +105,7 @@
             </div>
             <div class="brxdis-recs__body">
               <h3 class="brxdis-recs__name">
-                <a href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">${prodTitle?has_content?then(prodTitle, "Untitled")}</a>
+                <a href="${recommendationHref}">${prodTitle?has_content?then(prodTitle, "Untitled")}</a>
               </h3>
               <#if (showDescription!false) && prodAttrs["description"]??>
                 <p class="brxdis-recs__desc" style="font-size:.8rem;color:#6b7280;margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${prodAttrs["description"]}</p>
@@ -100,7 +114,7 @@
                 <p class="brxdis-recs__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
               </#if>
             </div>
-            <a class="brxdis-recs__cta" href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">View Product</a>
+            <a class="brxdis-recs__cta" href="${recommendationHref}">View Product</a>
           </article>
         </#list>
       </div>

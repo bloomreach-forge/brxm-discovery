@@ -13,6 +13,11 @@
 .brxdis-cathighlight__icon{font-size:2rem;margin-bottom:.5rem;line-height:1}
 .brxdis-cathighlight__name{font-size:.9375rem;font-weight:600;line-height:1.3}
 .brxdis-cathighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:1px dashed #e5e7eb;border-radius:8px}
+.brxdis-cat-products{display:flex;gap:.5rem;margin-top:.625rem;flex-wrap:nowrap;overflow:hidden}
+.brxdis-cat-product-thumb{display:flex;flex-direction:column;align-items:center;width:60px;flex-shrink:0}
+.brxdis-cat-product-thumb img{width:60px;height:60px;object-fit:cover;border-radius:5px;border:1px solid #e5e7eb}
+.brxdis-thumb-placeholder{width:60px;height:60px;border-radius:5px;border:1px dashed #d1d5db;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:1.25rem}
+.brxdis-thumb-title{font-size:.625rem;color:#374151;text-align:center;margin-top:.25rem;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </@hst.headContribution>
 
@@ -28,12 +33,28 @@
   <#-- @ftlvariable name="categories" type="java.util.List" -->
   <#if categories?? && categories?has_content>
     <div class="brxdis-cathighlight__grid">
+      <#-- @ftlvariable name="previewProducts" type="java.util.Map" -->
       <#list categories as cat>
         <a class="brxdis-cathighlight__tile"
            href="${resolvedCategoryPage}?category=${(cat.categoryId!"")?url('UTF-8')}"
            aria-label="${cat.displayName!"Category"}">
           <span class="brxdis-cathighlight__icon">&#128722;</span>
           <span class="brxdis-cathighlight__name">${cat.displayName!"Unnamed"}</span>
+          <#assign catProds = (previewProducts!{})[cat.categoryId!""]![]>
+          <#if catProds?has_content>
+            <div class="brxdis-cat-products">
+              <#list catProds as p>
+                <div class="brxdis-cat-product-thumb">
+                  <#if (p.imageUrl()!"") != "">
+                    <img src="${p.imageUrl()}" alt="${(p.title()!"")?html}" loading="lazy">
+                  <#else>
+                    <div class="brxdis-thumb-placeholder">&#128795;</div>
+                  </#if>
+                  <span class="brxdis-thumb-title">${(p.title()!"")?html}</span>
+                </div>
+              </#list>
+            </div>
+          </#if>
         </a>
       </#list>
     </div>

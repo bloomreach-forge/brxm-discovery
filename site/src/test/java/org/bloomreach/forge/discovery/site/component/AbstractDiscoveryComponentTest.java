@@ -38,6 +38,7 @@ class AbstractDiscoveryComponentTest {
 
     @Mock HstRequest request;
     @Mock HstRequestContext requestContext;
+    @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstContainerURL baseUrl;
     @Mock ResolvedSiteMapItem resolvedSiteMapItem;
@@ -97,6 +98,16 @@ class AbstractDiscoveryComponentTest {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
 
         assertFalse(new TestableComponent(discoveryService).isEditMode(request));
+    }
+
+    @Test
+    void doBeforeRender_setsEditModeModel() throws HstComponentException {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+
+        new TestableBaseRenderComponent().doBeforeRender(request, response);
+
+        verify(request).setModel("editMode", true);
     }
 
     // ── getPublicRequestParameterAsInt ────────────────────────────────────
@@ -358,5 +369,8 @@ class AbstractDiscoveryComponentTest {
         public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
             // no-op — exercising base lookupService implementation
         }
+    }
+
+    private static class TestableBaseRenderComponent extends AbstractDiscoveryComponent {
     }
 }

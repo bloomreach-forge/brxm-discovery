@@ -60,29 +60,31 @@
       jcr:primaryType: brxdis:categoryDocument
       jcr:mixinTypes: ['mix:referenceable']
       jcr:uuid: 0554678c-b85c-4541-a87b-cf2cf25b8813
-      brxdis:categoryId: '117016'
+      brxdis:categoryId: '116728'
       brxdis:displayName: Demo Category
+      brxdis:productPreviewCount: '3'
       hippo:availability: []
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-17T09:25:46.896Z
+      hippostdpubwf:lastModificationDate: 2026-03-20T18:24:56.013Z
       hippostdpubwf:lastModifiedBy: admin
     /cat[2]:
       jcr:primaryType: brxdis:categoryDocument
       jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
       jcr:uuid: 8b853816-0d17-4506-91ea-7b5bf0b2f5c0
-      brxdis:categoryId: '117016'
+      brxdis:categoryId: '116728'
       brxdis:displayName: Demo Category
+      brxdis:productPreviewCount: '3'
       hippo:availability: [preview]
       hippostd:retainable: false
       hippostd:state: unpublished
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-06T20:09:11.686Z
+      hippostdpubwf:lastModificationDate: 2026-03-20T18:24:55.933Z
       hippostdpubwf:lastModifiedBy: admin
     /cat[3]:
       jcr:primaryType: brxdis:categoryDocument

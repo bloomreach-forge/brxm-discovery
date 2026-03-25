@@ -17,16 +17,42 @@ import org.bloomreach.forge.discovery.search.model.SearchResult;
  */
 public interface DiscoveryPixelService {
 
+    default void fireSearchEvent(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
+                                 String clientIp, ClientContext ctx, PixelFlags flags) {
+        fireSearchEvent(query, result, credentials, null, clientIp, ctx, flags);
+    }
+
     void fireSearchEvent(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
-                         String clientIp, ClientContext ctx, PixelFlags flags);
+                         String title, String clientIp, ClientContext ctx, PixelFlags flags);
+
+    default void fireCategoryEvent(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
+                                   String clientIp, ClientContext ctx, PixelFlags flags) {
+        fireCategoryEvent(query, result, credentials, null, clientIp, ctx, flags);
+    }
 
     void fireCategoryEvent(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
-                           String clientIp, ClientContext ctx, PixelFlags flags);
+                           String title, String clientIp, ClientContext ctx, PixelFlags flags);
+
+    default void fireWidgetEvent(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
+                                 String clientIp, ClientContext ctx, PixelFlags flags) {
+        fireWidgetEvent(query, result, credentials, null, null, clientIp, ctx, flags);
+    }
 
     void fireWidgetEvent(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
-                         String clientIp, ClientContext ctx, PixelFlags flags);
+                         String pageType, String title, String clientIp, ClientContext ctx, PixelFlags flags);
 
-    void fireProductPageViewEvent(String pid, String prodName, String brUid2, String refUrl, String url,
+    default void fireProductPageViewEvent(String pid, String prodName, String brUid2, String refUrl, String url,
+                                          DiscoveryCredentials credentials, String clientIp,
+                                          ClientContext ctx, PixelFlags flags) {
+        fireProductPageViewEvent(pid, prodName, brUid2, refUrl, null, url, null,
+                credentials, clientIp, ctx, flags);
+    }
+
+    void fireProductPageViewEvent(String pid, String prodName, String brUid2, String refUrl, String origRefUrl,
+                                  String url, String title,
                                   DiscoveryCredentials credentials, String clientIp,
                                   ClientContext ctx, PixelFlags flags);
+
+    void fireDeferredEvent(DeferredPixelEvent event, DiscoveryCredentials credentials, String clientIp,
+                           ClientContext ctx, PixelFlags flags);
 }

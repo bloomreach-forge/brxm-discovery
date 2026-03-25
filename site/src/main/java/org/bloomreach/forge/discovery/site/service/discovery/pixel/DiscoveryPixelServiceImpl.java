@@ -28,42 +28,53 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
 
     @Override
     public void fireSearchEvent(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                String clientIp, ClientContext ctx, PixelFlags flags) {
+                                String title, String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
         submitQuietly(() -> {
-            String path = client.buildSearchPixelPath(query, result, credentials, clientIp, flags);
+            String path = client.buildSearchPixelPath(query, result, credentials, title, clientIp, flags);
             fireQuietly(path, ctx, flags);
         });
     }
 
     @Override
     public void fireCategoryEvent(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                  String clientIp, ClientContext ctx, PixelFlags flags) {
+                                  String title, String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
         submitQuietly(() -> {
-            String path = client.buildCategoryPixelPath(query, result, credentials, clientIp, flags);
+            String path = client.buildCategoryPixelPath(query, result, credentials, title, clientIp, flags);
             fireQuietly(path, ctx, flags);
         });
     }
 
     @Override
     public void fireWidgetEvent(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
-                                String clientIp, ClientContext ctx, PixelFlags flags) {
+                                String pageType, String title, String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
         submitQuietly(() -> {
-            String path = client.buildWidgetPixelPath(query, result, credentials, clientIp, flags);
+            String path = client.buildWidgetPixelPath(query, result, credentials, pageType, title, clientIp, flags);
             fireQuietly(path, ctx, flags);
         });
     }
 
     @Override
-    public void fireProductPageViewEvent(String pid, String prodName, String brUid2, String refUrl, String url,
-                                          DiscoveryCredentials credentials, String clientIp,
-                                          ClientContext ctx, PixelFlags flags) {
+    public void fireProductPageViewEvent(String pid, String prodName, String brUid2, String refUrl,
+                                         String origRefUrl, String url, String title,
+                                         DiscoveryCredentials credentials, String clientIp,
+                                         ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
         submitQuietly(() -> {
-            String path = client.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, url,
+            String path = client.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, origRefUrl, url, title,
                     credentials, clientIp, flags);
+            fireQuietly(path, ctx, flags);
+        });
+    }
+
+    @Override
+    public void fireDeferredEvent(DeferredPixelEvent event, DiscoveryCredentials credentials, String clientIp,
+                                  ClientContext ctx, PixelFlags flags) {
+        if (!flags.enabled()) return;
+        submitQuietly(() -> {
+            String path = client.buildDeferredEventPixelPath(event, credentials, clientIp, flags);
             fireQuietly(path, ctx, flags);
         });
     }

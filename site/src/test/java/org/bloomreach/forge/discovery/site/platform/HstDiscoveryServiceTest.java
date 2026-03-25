@@ -8,6 +8,7 @@ import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
@@ -97,6 +98,7 @@ class HstDiscoveryServiceTest {
         lenient().when(request.getServerPort()).thenReturn(443);
         lenient().when(request.getRequestURI()).thenReturn("/search");
         lenient().when(request.getQueryString()).thenReturn("q=shoes");
+        lenient().when(request.getHeader(anyString())).thenReturn(null);
         lenient().when(request.getHeader("Referer")).thenReturn(null);
         lenient().when(request.getHeader("X-Forwarded-For")).thenReturn(null);
         lenient().when(request.getHeader("User-Agent")).thenReturn(null);
@@ -315,7 +317,8 @@ class HstDiscoveryServiceTest {
 
         service.fetchProduct(request, "pid-42");
 
-        verify(pixelService).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
+                anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
     }
 
     @Test
@@ -325,7 +328,8 @@ class HstDiscoveryServiceTest {
 
         service.fetchProduct(request, "pid-99");
 
-        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any());
     }
 
     @Test
@@ -340,8 +344,33 @@ class HstDiscoveryServiceTest {
         assertTrue(first.isPresent());
         assertSame(first.get(), second.orElseThrow());
         verify(client, times(1)).fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class));
-        verify(pixelService, times(1)).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), anyString(),
-                eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService, times(1)).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
+                anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+    }
+
+    @Test
+    void fetchProduct_widgetClickInteraction_firesDeferredEvent() {
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        when(servletRequest.getParameter("brxdis_event")).thenReturn("widget-click");
+        when(servletRequest.getParameter("brxdis_wid")).thenReturn("widget-1");
+        when(servletRequest.getParameter("brxdis_wty")).thenReturn("item");
+        when(servletRequest.getParameter("brxdis_wrid")).thenReturn("rid-1");
+        when(servletRequest.getParameter("brxdis_wq")).thenReturn("context-1");
+        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(Optional.of(product));
+
+        service.fetchProduct(request, "pid-42");
+
+        ArgumentCaptor<DeferredPixelEvent> eventCaptor = ArgumentCaptor.forClass(DeferredPixelEvent.class);
+        verify(pixelService).fireDeferredEvent(eventCaptor.capture(), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
+        DeferredPixelEvent event = eventCaptor.getValue();
+        assertEquals("widget", event.group());
+        assertEquals("click", event.etype());
+        assertEquals("product", event.ptype());
+        assertEquals("widget-1", event.widgetId());
+        assertEquals("rid-1", event.widgetResultId());
+        assertEquals("pid-42", event.itemId());
     }
 
     @Test
@@ -349,7 +378,8 @@ class HstDiscoveryServiceTest {
         assertTrue(service.fetchProduct(request, " ").isEmpty());
 
         verify(client, never()).fetchProduct(anyString(), anyString(), any(), any());
-        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any());
     }
 
     // ── configFor ──────────────────────────────────────────────────────────────
@@ -434,7 +464,8 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<PixelFlags> flagsCaptor = ArgumentCaptor.forClass(PixelFlags.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), flagsCaptor.capture());
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), flagsCaptor.capture());
         assertEquals("EU", flagsCaptor.getValue().region());
     }
 
@@ -458,7 +489,26 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        verify(pixelService).fireSearchEvent(any(SearchQuery.class), eq(searchResult), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(SearchQuery.class), eq(searchResult), eq(validCredentials),
+                anyString(), anyString(), any(ClientContext.class), any(PixelFlags.class));
+    }
+
+    @Test
+    void search_submitInteraction_firesDeferredEvent() {
+        when(servletRequest.getParameter("q")).thenReturn("shoes");
+        when(servletRequest.getParameter("brxdis_event")).thenReturn("search-submit");
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
+
+        service.search(request);
+
+        ArgumentCaptor<DeferredPixelEvent> eventCaptor = ArgumentCaptor.forClass(DeferredPixelEvent.class);
+        verify(pixelService).fireDeferredEvent(eventCaptor.capture(), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
+        DeferredPixelEvent event = eventCaptor.getValue();
+        assertEquals("suggest", event.group());
+        assertEquals("submit", event.etype());
+        assertEquals("search", event.ptype());
+        assertEquals("shoes", event.query());
     }
 
     @Test
@@ -468,7 +518,8 @@ class HstDiscoveryServiceTest {
         service.search(request);   // cache miss → fires
         service.search(request);   // cache hit  → should not fire again
 
-        verify(pixelService, times(1)).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), any());
+        verify(pixelService, times(1)).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), any());
     }
 
     @Test
@@ -512,7 +563,8 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        verify(pixelService, never()).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), any());
+        verify(pixelService, never()).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), any());
     }
 
     @Test
@@ -526,7 +578,8 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<PixelFlags> flagsCaptor = ArgumentCaptor.forClass(PixelFlags.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), flagsCaptor.capture());
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), flagsCaptor.capture());
         PixelFlags flags = flagsCaptor.getValue();
         assertTrue(flags.enabled());
         assertTrue(flags.testData());
@@ -592,7 +645,8 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<String> clientIpCaptor = ArgumentCaptor.forClass(String.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), clientIpCaptor.capture(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), clientIpCaptor.capture(),
+                any(ClientContext.class), any(PixelFlags.class));
         assertEquals("203.0.113.42", clientIpCaptor.getValue(), "should use first token from X-Forwarded-For");
     }
 
@@ -605,7 +659,8 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<String> clientIpCaptor = ArgumentCaptor.forClass(String.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), clientIpCaptor.capture(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), clientIpCaptor.capture(),
+                any(ClientContext.class), any(PixelFlags.class));
         assertEquals("192.168.1.10", clientIpCaptor.getValue(), "should fall back to getRemoteAddr()");
     }
 
@@ -616,7 +671,8 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        verify(pixelService).fireSearchEvent(any(), any(), any(), eq("10.1.2.3"), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), eq("10.1.2.3"),
+                any(ClientContext.class), any(PixelFlags.class));
     }
 
     @Test

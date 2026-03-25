@@ -6,6 +6,7 @@ import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
@@ -23,8 +24,11 @@ import org.hippoecm.hst.core.request.HstRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.bloomreach.forge.discovery.request.DiscoveryRequestFactory.toV2WidgetType;
 
@@ -42,6 +46,16 @@ public class HstDiscoveryService {
 
     private static final Logger log = LoggerFactory.getLogger(HstDiscoveryService.class);
     public static final String BR_UID_2 = "_br_uid_2";
+    private static final String PROCESSED_INTERACTIONS_ATTR = HstDiscoveryService.class.getName() + ".processedInteractions";
+    private static final String EVENT_PARAM = "brxdis_event";
+    private static final String EVENT_SEARCH_SUBMIT = "search-submit";
+    private static final String EVENT_SUGGEST_CLICK = "suggest-click";
+    private static final String EVENT_WIDGET_CLICK = "widget-click";
+    private static final String AUTO_QUERY_PARAM = "brxdis_aq";
+    private static final String WIDGET_ID_PARAM = "brxdis_wid";
+    private static final String WIDGET_TYPE_PARAM = "brxdis_wty";
+    private static final String WIDGET_RESULT_ID_PARAM = "brxdis_wrid";
+    private static final String WIDGET_QUERY_PARAM = "brxdis_wq";
 
     private final DiscoveryApiClient client;
     private final DiscoveryPixelService pixelService;
@@ -86,8 +100,10 @@ public class HstDiscoveryService {
                     fresh = applyEnrichment(fresh);
                     DiscoveryRequestCache.putSearchResponse(request, label, fresh);
                     if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+                        fireDeferredSearchInteraction(request, runtimeContext, finalQuery);
                         pixelService.fireSearchEvent(finalQuery, fresh.result(), runtimeContext.credentials(),
-                                runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
+                                runtimeContext.pageTitle(), runtimeContext.clientIp(),
+                                runtimeContext.clientContext(), runtimeContext.pixelFlags());
                     }
                     return fresh;
                 });
@@ -120,7 +136,8 @@ public class HstDiscoveryService {
                     DiscoveryRequestCache.putCategoryResponse(request, label, fresh);
                     if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
                         pixelService.fireCategoryEvent(finalQuery, fresh.result(), runtimeContext.credentials(),
-                                runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
+                                runtimeContext.pageTitle(), runtimeContext.clientIp(),
+                                runtimeContext.clientContext(), runtimeContext.pixelFlags());
                     }
                     return fresh;
                 });
@@ -150,16 +167,18 @@ public class HstDiscoveryService {
         }
 
         RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, contextPageType,
-                limit, fields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(), runtimeContext.brUid2());
+                limit, fields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(),
+                runtimeContext.brUid2(), runtimeContext.origRefUrl());
         return DiscoveryRequestCache.getRecommendations(request, query)
                 .orElseGet(() -> {
                     RecommendationResult fresh = client.recommend(query, runtimeContext.credentials(), runtimeContext.clientContext());
                     List<ProductSummary> enriched = applyEnrichment(fresh.products());
-                    RecommendationResult result = new RecommendationResult(fresh.widgetResultId(), enriched);
+                    RecommendationResult result = fresh.withProducts(enriched);
                     DiscoveryRequestCache.putRecommendations(request, query, result);
                     if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
                         pixelService.fireWidgetEvent(query, result, runtimeContext.credentials(),
-                                runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
+                                runtimeContext.pageType(), runtimeContext.pageTitle(), runtimeContext.clientIp(),
+                                runtimeContext.clientContext(), runtimeContext.pixelFlags());
                     }
                     return result;
                 });
@@ -183,8 +202,10 @@ public class HstDiscoveryService {
 
         ProductSummary product = result.get();
         if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+            fireDeferredProductInteraction(request, runtimeContext, product);
             pixelService.fireProductPageViewEvent(pid, product.title(), runtimeContext.brUid2(),
-                    runtimeContext.refUrl(), runtimeContext.pageUrl(), runtimeContext.credentials(),
+                    runtimeContext.refUrl(), runtimeContext.origRefUrl(), runtimeContext.pageUrl(),
+                    runtimeContext.pageTitle(), runtimeContext.credentials(),
                     runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         if (enrichmentProvider != null) {
@@ -239,6 +260,89 @@ public class HstDiscoveryService {
             return products;
         }
         return enrichmentProvider.enrich(products);
+    }
+
+    private void fireDeferredSearchInteraction(HstRequest request, DiscoveryRuntimeContext runtimeContext,
+                                               SearchQuery query) {
+        String event = publicRequestParameter(request, EVENT_PARAM);
+        if (event == null || event.isBlank()) {
+            return;
+        }
+        if (EVENT_SEARCH_SUBMIT.equals(event)) {
+            if (markInteractionProcessed(request, EVENT_SEARCH_SUBMIT + ":" + query.query())) {
+                pixelService.fireDeferredEvent(DeferredPixelEvent.searchSubmit(
+                                "search", runtimeContext.pageTitle(), runtimeContext.pageUrl(),
+                                runtimeContext.refUrl(), runtimeContext.origRefUrl(),
+                                runtimeContext.brUid2(), query.query()),
+                        runtimeContext.credentials(), runtimeContext.clientIp(),
+                        runtimeContext.clientContext(), runtimeContext.pixelFlags());
+            }
+            return;
+        }
+        if (EVENT_SUGGEST_CLICK.equals(event)) {
+            String autoQuery = publicRequestParameter(request, AUTO_QUERY_PARAM);
+            if (autoQuery == null || autoQuery.isBlank()) {
+                return;
+            }
+            String eventKey = EVENT_SUGGEST_CLICK + ":" + autoQuery + ":" + query.query();
+            if (markInteractionProcessed(request, eventKey)) {
+                pixelService.fireDeferredEvent(DeferredPixelEvent.suggestClick(
+                                "search", runtimeContext.pageTitle(), runtimeContext.pageUrl(),
+                                runtimeContext.refUrl(), runtimeContext.origRefUrl(),
+                                runtimeContext.brUid2(), autoQuery, query.query()),
+                        runtimeContext.credentials(), runtimeContext.clientIp(),
+                        runtimeContext.clientContext(), runtimeContext.pixelFlags());
+            }
+        }
+    }
+
+    private void fireDeferredProductInteraction(HstRequest request, DiscoveryRuntimeContext runtimeContext,
+                                                ProductSummary product) {
+        String event = publicRequestParameter(request, EVENT_PARAM);
+        if (!EVENT_WIDGET_CLICK.equals(event)) {
+            return;
+        }
+        String widgetId = publicRequestParameter(request, WIDGET_ID_PARAM);
+        String widgetType = publicRequestParameter(request, WIDGET_TYPE_PARAM);
+        String widgetResultId = publicRequestParameter(request, WIDGET_RESULT_ID_PARAM);
+        if (widgetId == null || widgetId.isBlank() || widgetType == null || widgetType.isBlank()
+                || widgetResultId == null || widgetResultId.isBlank()) {
+            return;
+        }
+        String widgetQuery = publicRequestParameter(request, WIDGET_QUERY_PARAM);
+        String itemId = product != null ? product.id() : null;
+        String eventKey = EVENT_WIDGET_CLICK + ":" + widgetId + ":" + widgetResultId + ":" + itemId;
+        if (!markInteractionProcessed(request, eventKey)) {
+            return;
+        }
+        pixelService.fireDeferredEvent(DeferredPixelEvent.widgetClick(
+                        "product", runtimeContext.pageTitle(), runtimeContext.pageUrl(),
+                        runtimeContext.refUrl(), runtimeContext.origRefUrl(),
+                        runtimeContext.brUid2(), itemId, widgetId, widgetType, widgetResultId, widgetQuery),
+                runtimeContext.credentials(), runtimeContext.clientIp(),
+                runtimeContext.clientContext(), runtimeContext.pixelFlags());
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean markInteractionProcessed(HstRequest request, String key) {
+        Object attr = request.getRequestContext().getAttribute(PROCESSED_INTERACTIONS_ATTR);
+        Set<String> processed;
+        if (attr instanceof Set<?>) {
+            processed = (Set<String>) attr;
+        } else {
+            processed = ConcurrentHashMap.newKeySet();
+            request.getRequestContext().setAttribute(PROCESSED_INTERACTIONS_ATTR, processed);
+        }
+        return processed.add(key);
+    }
+
+    private static String publicRequestParameter(HstRequest request, String name) {
+        HstRequestContext requestContext = request.getRequestContext();
+        if (requestContext == null) {
+            return null;
+        }
+        HttpServletRequest servletRequest = requestContext.getServletRequest();
+        return servletRequest != null ? servletRequest.getParameter(name) : null;
     }
 
     static String resolvePixelRegion(DiscoveryChannelInfo channelInfo) {
