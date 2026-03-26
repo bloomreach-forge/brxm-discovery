@@ -41,7 +41,7 @@ jobs:
       next-development-version: ${{ inputs.next-development-version }}
       branch: ${{ needs.setup.outputs.test-branch }}
       dry-run: true
-      run-demo-build: true
+      run-demo-build: false
       demo-pom-path: demo/pom.xml
       forge-readme-path: README.md
     secrets: inherit
