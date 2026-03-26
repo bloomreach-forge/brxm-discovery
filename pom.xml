@@ -10,7 +10,7 @@
 
     <groupId>org.bloomreach.forge.discovery</groupId>
     <artifactId>brxm-discovery</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>pom</packaging>
     <name>brXM Discovery Plugin</name>
     <description>Bloomreach Discovery integration for brXM</description>

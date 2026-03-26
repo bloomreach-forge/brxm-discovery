@@ -1,6 +1,6 @@
 id: brxm-discovery
 name: brXM Discovery Plugin
-version: 0.0.1-SNAPSHOT
+version: 0.0.1
 description: Bloomreach Discovery integration for brXM
 repository:
   url: https://github.com/bloomreach-forge/brxm-discovery
