@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
@@ -41,7 +42,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     @Override
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
-        request.setModel("editMode", isEditMode(request));
+        request.setModel(DiscoveryModelKeys.EDIT_MODE, isEditMode(request));
     }
 
     protected <T> T lookupService(Class<T> type) {
@@ -209,8 +210,8 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
             labelConnected = backfilled || isBandConfiguredOnPage(request, label);
         }
         warnIfMissingDataSource(request, !labelConnected, label);
-        request.setModel("label", label);
-        request.setModel("labelConnected", labelConnected);
+        request.setModel(DiscoveryModelKeys.LABEL, label);
+        request.setModel(DiscoveryModelKeys.LABEL_CONNECTED, labelConnected);
         return new DataSourceResult(result, labelConnected);
     }
 

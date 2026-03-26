@@ -7,7 +7,7 @@
 - **v1 API** (`discoverySearchAPI`) — used when `authKey` is not configured
 - **v2 Pathways API** (`discoveryPathwaysAPI`) — used automatically when `authKey` is configured
 
-Version selection is automatic — no configuration flag needed. Configure `authKey` (via `BRXDIS_AUTH_KEY` env var or JCR) to enable v2.
+Version selection is automatic — no configuration flag needed. Configure `authKey` through `BRXDIS_AUTH_KEY`, `-Dbrxdis.authKey`, `brxdis:authKey` in the global config node, or a channel-level `discoveryAuthKeyEnvVar` override to enable v2.
 
 ---
 

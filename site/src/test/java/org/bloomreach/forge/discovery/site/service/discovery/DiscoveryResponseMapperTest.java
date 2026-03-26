@@ -772,6 +772,63 @@ class DiscoveryResponseMapperTest {
         assertNull(campaign.imageUrl());
     }
 
+    // ── toBrowseResponse / category_map ─────────────────────────────────────
+
+    @Test
+    void toBrowseResponse_withCategoryMap_extractsCategoryName() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 5, "docs": []},
+                  "category_map": {
+                    "116732": "Dog Food",
+                    "99999":  "Other Cat"
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toBrowseResponse(resource, 0, 10, "116732");
+
+        assertEquals("Dog Food", response.metadata().categoryName());
+    }
+
+    @Test
+    void toBrowseResponse_categoryIdNotInMap_returnsNullCategoryName() throws Exception {
+        stubResource("""
+                {
+                  "response": {"numFound": 3, "docs": []},
+                  "category_map": {
+                    "other-cat": "Other Category"
+                  }
+                }
+                """);
+
+        SearchResponse response = mapper.toBrowseResponse(resource, 0, 10, "dog-food");
+
+        assertNull(response.metadata().categoryName());
+    }
+
+    @Test
+    void toBrowseResponse_noCategoryMap_returnsNullCategoryName() throws Exception {
+        stubResource("""
+                {"response": {"numFound": 0, "docs": []}}
+                """);
+
+        SearchResponse response = mapper.toBrowseResponse(resource, 0, 10, "116732");
+
+        assertNull(response.metadata().categoryName());
+    }
+
+    @Test
+    void toSearchResponse_categoryNameAlwaysNull() throws Exception {
+        stubResource("""
+                {"response": {"numFound": 0, "docs": []}, "category_map": {"x": "X"}}
+                """);
+
+        SearchResponse response = mapper.toSearchResponse(resource, 0, 10);
+
+        assertNull(response.metadata().categoryName());
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void stubResource(String json) throws Exception {

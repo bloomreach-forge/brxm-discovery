@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductHighlightComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
@@ -53,7 +54,7 @@ public class DiscoveryProductHighlightComponent extends AbstractDiscoveryCompone
                     "No products configured. Select Product Detail Documents in component properties.");
         }
 
-        request.setModel("products", products);
+        request.setModel(DiscoveryModelKeys.PRODUCTS, products);
         request.setModel("productBeans", productBeans);
         log.debug("ProductHighlight returned {} of {} products", products.stream().filter(Objects::nonNull).count(), MAX_SLOTS);
     }

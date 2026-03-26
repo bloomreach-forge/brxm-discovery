@@ -1,0 +1,63 @@
+# brXM Discovery Plugin
+# Config for forge-addon.yaml auto-generation
+
+category: search
+pluginTier: forge-addon
+
+compatibility:
+  brxm:
+    min: "16.7.0"
+
+repository:
+  branch: main
+
+artifacts:
+  - artifactId: brxm-discovery-cms
+    target: cms-dependencies
+    scope: compile
+    description: "CMS module with Discovery picker UI, REST endpoints, HCM bootstrap, and CRISP repository definitions"
+  - artifactId: brxm-discovery-site
+    target: site/components
+    scope: compile
+    description: "Site components compile-time dependency for Discovery HST components, channel info types, and custom project code that references addon APIs"
+  - artifactId: brxm-discovery-site
+    target: site/webapp
+    scope: compile
+    description: "Site webapp runtime dependency that loads the addon assembly, Spring beans, CRISP resolvers, bundled templates, and transitive HCM site bootstrap"
+
+installation:
+  target:
+    - cms
+    - site
+  prerequisites:
+    - "Bloomreach Discovery account ID, domain key, and API key"
+    - "Bloomreach Discovery auth key only when using Pathways/v2 recommendations"
+  configuration:
+    file: "site/webapp/src/main/webapp/WEB-INF/hst-config.properties"
+    properties:
+      - name: crisp.broker.registerService
+        description: "Required site-webapp property that registers the CRISP ResourceServiceBroker"
+        required: true
+        example: "true"
+      - name: discoveryAccountId
+        description: "Optional channel-level account ID in hst:channelinfo; otherwise use BRXDIS_ACCOUNT_ID, -Dbrxdis.accountId, or brxdis:accountId in the global config node"
+        required: false
+        example: "6413"
+      - name: discoveryDomainKey
+        description: "Optional channel-level domain key in hst:channelinfo; otherwise use BRXDIS_DOMAIN_KEY, -Dbrxdis.domainKey, or brxdis:domainKey in the global config node"
+        required: false
+        example: "pacifichome"
+      - name: discoveryApiKeyEnvVar
+        description: "Optional channel-level env-var name in hst:channelinfo for the Discovery API key; otherwise use BRXDIS_API_KEY, -Dbrxdis.apiKey, or brxdis:apiKey in the global config node"
+        required: false
+        example: "BRXDIS_API_KEY"
+      - name: discoveryAuthKeyEnvVar
+        description: "Optional channel-level env-var name in hst:channelinfo for the Pathways/v2 auth key; otherwise use BRXDIS_AUTH_KEY, -Dbrxdis.authKey, or brxdis:authKey in the global config node"
+        required: false
+        example: "BRXDIS_AUTH_KEY"
+      - name: BRXDIS_ENVIRONMENT
+        description: "Optional global environment selector for default Discovery endpoints"
+        required: false
+        default: "PRODUCTION"
+        example: "STAGING"
+  verification: "The CMS picker endpoint responds, the site resolves discoverySearchAPI/discoveryPathwaysAPI/discoveryAutosuggestAPI, and Discovery components render with the configured credentials"

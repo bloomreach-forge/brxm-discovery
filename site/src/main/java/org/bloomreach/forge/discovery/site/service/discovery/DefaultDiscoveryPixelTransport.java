@@ -162,16 +162,26 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
 
     @Override
     public void firePixelEvent(String pixelPath, ClientContext ctx, PixelFlags flags) {
-        log.debug("Discovery pixel event: {}", pixelPath);
+        log.debug("Discovery pixel event: {}", redactedPath(pixelPath));
         try {
             executor.resolve(pixelResourceSpace(flags), pixelPath, ctx);
         } catch (ResourceException e) {
             if (e.getMessage() != null && e.getMessage().startsWith("JSON processing error")) {
-                log.debug("Discovery pixel event fired (non-JSON response ignored) — path={}", pixelPath);
+                log.debug("Discovery pixel event fired (non-JSON response treated as success)");
             } else {
-                log.warn("Discovery pixel event failed — path={}: {}", pixelPath, e.getMessage());
+                log.warn("Discovery pixel event failed — path={}: {}", redactedPath(pixelPath), e.getMessage());
             }
         }
+    }
+
+    private static String redactedPath(String path) {
+        return UriComponentsBuilder.fromUriString(path)
+                .replaceQueryParam("cookie2",      "[redacted]")
+                .replaceQueryParam("ref",          "[redacted]")
+                .replaceQueryParam("orig_ref_url", "[redacted]")
+                .replaceQueryParam("url",          "[redacted]")
+                .replaceQueryParam("client_ip",    "[redacted]")
+                .build(false).toUriString();
     }
 
     private static void appendPixelFlags(UriComponentsBuilder builder, PixelFlags flags) {

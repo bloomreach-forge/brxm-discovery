@@ -150,7 +150,7 @@ class DiscoveryClientTest {
         var expectedResult = new SearchResult(List.of(), 0L, 0, 10, Map.of());
         var expectedResponse = new SearchResponse(expectedResult, SearchMetadata.empty());
         when(broker.resolve(eq("discoverySearchAPI"), anyString(), any(ExchangeHint.class))).thenReturn(resource);
-        when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
+        when(responseMapper.toBrowseResponse(resource, 0, 10, "shoes-cat")).thenReturn(expectedResponse);
 
         SearchResponse response = client.category(query, credentials, ClientContext.EMPTY);
 
@@ -164,7 +164,7 @@ class DiscoveryClientTest {
         var expectedResponse = new SearchResponse(new SearchResult(List.of(), 0L, 0, 10, Map.of()), SearchMetadata.empty());
         when(broker.resolve(eq("discoverySearchAPI"), contains("request_id="), any(ExchangeHint.class)))
                 .thenReturn(resource);
-        when(responseMapper.toSearchResponse(resource, 0, 10)).thenReturn(expectedResponse);
+        when(responseMapper.toBrowseResponse(resource, 0, 10, "shoes-cat")).thenReturn(expectedResponse);
 
         assertNotNull(client.category(query, credentials, ClientContext.EMPTY));
     }
@@ -184,7 +184,7 @@ class DiscoveryClientTest {
                 List.of("price"));
         var expectedResponse = new SearchResponse(new SearchResult(List.of(), 0L, 0, 12, Map.of()), SearchMetadata.empty());
         when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class))).thenReturn(resource);
-        when(responseMapper.toSearchResponse(resource, 0, 12)).thenReturn(expectedResponse);
+        when(responseMapper.toBrowseResponse(resource, 0, 12, "sale")).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         client.category(query, credentials, ClientContext.EMPTY);
@@ -228,7 +228,7 @@ class DiscoveryClientTest {
         var query = new CategoryQuery("sale", 0, 12, null, null, null, null, null, List.of(), "SouthAmerica", null);
         var expectedResponse = new SearchResponse(new SearchResult(List.of(), 0L, 0, 12, Map.of()), SearchMetadata.empty());
         when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class))).thenReturn(resource);
-        when(responseMapper.toSearchResponse(resource, 0, 12)).thenReturn(expectedResponse);
+        when(responseMapper.toBrowseResponse(resource, 0, 12, "sale")).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         client.category(query, credentials, ClientContext.EMPTY);
@@ -258,7 +258,7 @@ class DiscoveryClientTest {
         var query = new CategoryQuery("sale", 0, 12, null, null, null, null, null, List.of(), null, "out_of_stock:false");
         var expectedResponse = new SearchResponse(new SearchResult(List.of(), 0L, 0, 12, Map.of()), SearchMetadata.empty());
         when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class))).thenReturn(resource);
-        when(responseMapper.toSearchResponse(resource, 0, 12)).thenReturn(expectedResponse);
+        when(responseMapper.toBrowseResponse(resource, 0, 12, "sale")).thenReturn(expectedResponse);
 
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         client.category(query, credentials, ClientContext.EMPTY);

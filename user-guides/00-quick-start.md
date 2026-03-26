@@ -29,8 +29,9 @@ Then wire each artifact into the correct runtime:
 |---|---|
 | `brxm-discovery-cms` | CMS dependencies / CMS webapp |
 | `brxm-discovery-site` | Site webapp |
+| `brxm-discovery-site` | Site/components if that module exists and compiles custom code against addon APIs |
 
-`brxm-discovery-site` already brings the plugin's HCM site bootstrap transitively. A separate site components JAR only needs the addon if you compile custom Java against its APIs.
+`brxm-discovery-site` already brings the plugin's HCM site bootstrap transitively. For production installs, keep it on the site webapp so the addon assembly and beans load at runtime. If your project has a separate `site/components` module, add the same artifact there as well when you compile custom Java against addon APIs, component types, or `DiscoveryChannelInfo`.
 
 Bloomreach Maven repositories (add to `pom.xml` or `settings.xml` if not already present):
 
@@ -73,7 +74,7 @@ mvn -P cargo.run cargo:run \
   -Dbrxdis.apiKey=YOUR_API_KEY
 ```
 
-For production, use environment variables (`BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`) or the global Discovery config node — see [06-credential-injection.md](06-credential-injection.md) for deployment patterns.
+For production, use environment variables (`BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`) or the global Discovery config node. If different channels need different account/domain values or env-var names for secrets, use the channel-level `DiscoveryChannelInfo` fields in `hst:channelinfo` — see [06-credential-injection.md](06-credential-injection.md) for deployment patterns.
 
 ---
 

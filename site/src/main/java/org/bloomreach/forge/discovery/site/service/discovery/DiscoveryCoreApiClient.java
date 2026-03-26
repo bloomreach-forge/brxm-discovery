@@ -76,7 +76,7 @@ final class DiscoveryCoreApiClient {
         log.debug("Discovery category browse [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
             Resource resource = executor.resolve(SEARCH_RESOURCE_SPACE, path, ctx);
-            SearchResponse response = responseMapper.toSearchResponse(resource, query.page(), query.pageSize());
+            SearchResponse response = responseMapper.toBrowseResponse(resource, query.page(), query.pageSize(), query.categoryId());
             log.debug("Discovery category returned {} results [request_id={}]",
                     response.result().total(), requestLog.requestId());
             return response;

@@ -102,6 +102,30 @@ class DiscoveryCategoryComponentTest {
         verifyNoInteractions(discoveryService);
     }
 
+    // ── displayName from API response (category_map) ────────────────────────
+
+    @Test
+    void browseResponseWithCategoryName_setsDisplayNameOnModel() {
+        var metaWithName = new SearchMetadata(Map.of(), null, null, null, null, null, "Dog Food");
+        var responseWithName = new SearchResponse(categoryResult, metaWithName);
+        when(discoveryService.browse(eq(request), eq("116732"), any(SearchRequestOptions.class)))
+                .thenReturn(responseWithName);
+
+        componentWith("116732", 12, "").doBeforeRender(request, response);
+
+        verify(request).setModel("displayName", "Dog Food");
+    }
+
+    @Test
+    void browseResponseWithNullCategoryName_setsNullDisplayNameOnModel() {
+        when(discoveryService.browse(eq(request), eq("dog-food"), any(SearchRequestOptions.class)))
+                .thenReturn(categoryResponse);  // SearchMetadata.empty() → categoryName == null
+
+        componentWith("dog-food", 12, "").doBeforeRender(request, response);
+
+        verify(request).setModel("displayName", (String) null);
+    }
+
     // ── exception propagation ───────────────────────────────────────────────
 
     @Test
@@ -154,4 +178,5 @@ class DiscoveryCategoryComponentTest {
             return CAT_ID_PARAM.equals(name) ? categoryId : null;
         }
     }
+
 }

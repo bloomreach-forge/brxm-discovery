@@ -32,8 +32,9 @@ In your project's dependency management (or directly in the relevant `pom.xml` f
 The addon is designed around the two brXM runtimes:
 - CMS runtime: add `brxm-discovery-cms`
 - site webapp: add `brxm-discovery-site`
+- site/components: also add `brxm-discovery-site` when that module exists and compiles custom code against addon APIs or extends `DiscoveryChannelInfo`
 
-There is not a single universal addon artifact, because brXM loads CMS and site code in separate runtimes. The practical minimum is one addon dependency per runtime.
+There is not a single universal addon artifact, because brXM loads CMS and site code in separate runtimes. The production-safe baseline is one addon dependency per runtime, plus the same site artifact in `site/components` for split-site projects so compile-time and runtime classpaths stay aligned.
 
 You do not need to add `brxm-discovery-hcm-site` or the CRISP addon artifacts separately. They are pulled in by the addon entry points.
 
@@ -67,7 +68,21 @@ Add `brxm-discovery-site` to your site `webapp` WAR:
 </dependency>
 ```
 
-If your project has a separate site components JAR, it does not need this dependency unless you compile custom Java code directly against the addon APIs.
+This dependency is the runtime entry point. It loads the addon assembly, Spring beans, CRISP resolvers, bundled templates, and the transitive `brxm-discovery-hcm-site` bootstrap.
+
+### Site/components module
+
+If your project has a separate `site/components` JAR, add `brxm-discovery-site` there as well whenever that module compiles custom Java against addon APIs, HST component classes, or `DiscoveryChannelInfo`.
+
+This is the safest production-ready pattern for split site projects because it keeps compile-time and runtime classpaths aligned.
+
+```xml
+<!-- In your site/components module -->
+<dependency>
+  <groupId>org.bloomreach.forge.discovery</groupId>
+  <artifactId>brxm-discovery-site</artifactId>
+</dependency>
+```
 
 This JAR provides its core site wiring through the addon assembly loaded from `META-INF/hst-assembly/addon/module.xml` and `META-INF/hst-assembly/addon/brxm-discovery-site.xml`:
 
@@ -131,7 +146,7 @@ You still need to:
    `HippoServiceRegistry`, making it accessible to the plugin's service beans at request time.
    Without this setting, all Discovery API calls will throw `ConfigurationException` with a clear message.
    The plugin also registers `DiscoveryConfigProvider` into `HippoServiceRegistry` on the site side so the CRISP addon-module resolvers can reuse shared Discovery config without direct Spring refs across addon modules.
-2. Set credentials via env vars / system properties, or via the global JCR config node (see [06-credential-injection.md](06-credential-injection.md))
+2. Set credentials via env vars / system properties, via the global JCR config node, or via optional channel-level overrides in `hst:channelinfo` (see [06-credential-injection.md](06-credential-injection.md))
 3. Wire HST components into your HST page configuration (see [00-quick-start.md](00-quick-start.md))
 
 > **Troubleshooting — templates not found:** If your site's HST configuration chain does not inherit from `hst:default` (e.g. a project using a deep custom inheritance hierarchy that bypasses `hst:default`), templates will not be resolved automatically. In that case, add the missing `brxdis-*` entries to your own site's `hst:templates` YAML pointing at `classpath:/freemarker/brxdis/brxdis-*.ftl`.
@@ -169,7 +184,7 @@ cd /path/to/your-project
 mvn clean install
 ```
 
-If your project compiles custom Java against addon APIs, keep `brxm-discovery-site` in the relevant `site/components` module as well. The runtime entry point is still the site webapp.
+If your project has a separate `site/components` module, keep `brxm-discovery-site` there as well so custom code and typed channel info interfaces compile against the same addon version as the site runtime.
 
 ---
 

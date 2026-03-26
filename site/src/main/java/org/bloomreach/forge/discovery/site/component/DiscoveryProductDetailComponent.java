@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetailComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
@@ -49,8 +50,8 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         }
 
         // Expose resolved pid and label for template unconditionally (before any early returns)
-        request.setModel("pid", pid != null ? pid : "");
-        request.setModel("label", label);
+        request.setModel(DiscoveryModelKeys.PID, pid != null ? pid : "");
+        request.setModel(DiscoveryModelKeys.LABEL, label);
 
         if (pid == null || pid.isBlank()) {
             // Mark label present so downstream components know PDP ran (just no PID resolved)
@@ -61,7 +62,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
                     "or ensure the page content bean has a '" + info.getProductPidProperty() + "' property, " +
                     "or pass '?pid=' in the URL.");
             }
-            request.setModel("product", null);
+            request.setModel(DiscoveryModelKeys.PRODUCT, null);
             return;
         }
 
@@ -69,7 +70,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
 
         Optional<ProductSummary> found = svc.fetchProduct(request, pid);
         ProductSummary product = found.orElse(null);
-        request.setModel("product", product);
+        request.setModel(DiscoveryModelKeys.PRODUCT, product);
 
         DiscoveryRequestCache.markProductDetailBandPresent(request, label);
         if (product != null) {

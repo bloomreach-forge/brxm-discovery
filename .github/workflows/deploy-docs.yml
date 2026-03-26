@@ -1,0 +1,33 @@
+name: Deploy Docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or branch to build docs from"
+        required: true
+        default: "main"
+
+jobs:
+  docs:
+    permissions:
+      contents: write
+    uses: bloomreach-forge/ci-workflows/.github/workflows/build-gh-pages.yml@v1.0.4
+    with:
+      ref: >-
+        ${{ github.event_name == 'workflow_dispatch'
+            && inputs.ref
+            || github.event.release.tag_name }}
+      docs-dir: docs/.
+      site-profile: github.pages
+    secrets:
+      BR_MAVEN_USERNAME: ${{ secrets.BR_MAVEN_USERNAME }}
+      BR_MAVEN_PASSWORD: ${{ secrets.BR_MAVEN_PASSWORD }}
+
+  configure-pages:
+    needs: docs
+    permissions:
+      pages: write
+    uses: bloomreach-forge/ci-workflows/.github/workflows/configure-gh-pages.yml@v1.0.4

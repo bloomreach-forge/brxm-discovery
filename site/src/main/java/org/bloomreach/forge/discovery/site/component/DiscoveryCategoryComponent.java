@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
@@ -50,8 +51,8 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
                         "No category configured. Attach a Category Document to this component " +
                         "or pass a '?category=' URL parameter.");
             }
-            request.setModel("categoryId", "");
-            request.setModel("categoryResult", emptyResult());
+            request.setModel(DiscoveryModelKeys.CATEGORY_ID, "");
+            request.setModel(DiscoveryModelKeys.CATEGORY_RESULT, emptyResult());
             return;
         }
 
@@ -61,11 +62,12 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
                 info.getPageSize(), info.getDefaultSort(), null,
                 label, statsFields, info.getSegment(), info.getExclusionFilter()));
 
-        request.setModel("categoryId", categoryId);
-        request.setModel("categoryResult", browseResponse.result());
-        request.setModel("stats", browseResponse.metadata().stats());
-        request.setModel("label", label);
-        request.setModel("campaign", browseResponse.metadata().campaign());
+        request.setModel(DiscoveryModelKeys.CATEGORY_ID, categoryId);
+        request.setModel(DiscoveryModelKeys.DISPLAY_NAME, browseResponse.metadata().categoryName());
+        request.setModel(DiscoveryModelKeys.CATEGORY_RESULT, browseResponse.result());
+        request.setModel(DiscoveryModelKeys.STATS, browseResponse.metadata().stats());
+        request.setModel(DiscoveryModelKeys.LABEL, label);
+        request.setModel(DiscoveryModelKeys.CAMPAIGN, browseResponse.metadata().campaign());
 
         log.debug("Category '{}' returned {} results (page {})",
                 categoryId, browseResponse.result().total(), browseResponse.result().page());

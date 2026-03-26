@@ -23,8 +23,13 @@ This repository keeps Discovery search, category, recommendations, autosuggest, 
 
 ## Quick start
 
-1. Add `brxm-discovery-cms` to the CMS runtime and `brxm-discovery-site` to the site webapp. Those are the two addon entry points.
-   brXM still requires one entry point per runtime; the addon no longer requires extra CRISP or `hcm-site` dependencies on top of that.
+1. Add `brxm-discovery-cms` to the CMS runtime and `brxm-discovery-site` to the site runtime.
+   In projects with a separate `site/components` module, add `brxm-discovery-site` there as well so custom code can compile against the addon APIs and `DiscoveryChannelInfo`.
+   For production installs, the safest pattern is:
+   - `brxm-discovery-cms` in `cms-dependencies`
+   - `brxm-discovery-site` in `site/webapp`
+   - `brxm-discovery-site` in `site/components` when that module exists
+   The addon still pulls its bundled HCM site bootstrap transitively; no extra `hcm-site` or CRISP dependencies are required on top of these entry points.
 2. Enable the site CRISP broker in `hst-config.properties`:
 
 ```properties
@@ -43,7 +48,7 @@ Their active base URIs come from shared Discovery config. `environment=STAGING` 
 
 ## Config summary
 
-Credentials resolve in this order:
+Global credentials resolve in this order:
 
 `env var -> system property -> JCR`
 
@@ -62,6 +67,15 @@ Structural settings live on the same global node:
 - `brxdis:autosuggestBaseUri`
 - `brxdis:defaultPageSize`
 - `brxdis:defaultSort`
+
+Optional per-channel overrides are also supported through `hst:channelinfo`:
+
+- `discoveryAccountId`
+- `discoveryDomainKey`
+- `discoveryApiKeyEnvVar`
+- `discoveryAuthKeyEnvVar`
+
+This is the pattern used in the real `petbase-backend` integration when a project needs channel-specific values while still keeping secrets in environment variables.
 
 ## Build
 
@@ -92,9 +106,10 @@ mvn clean install
 
 ## User guides
 
-For most projects, installation is:
+For release-ready installs, the conservative pattern is:
 - one dependency in the CMS runtime: `brxm-discovery-cms`
 - one dependency in the site webapp: `brxm-discovery-site`
+- the same site dependency in `site/components` when that module exists, so custom code and typed channel info compile against the same addon version
 - one site property: `crisp.broker.registerService=true`
 
 - [Quick Start](user-guides/00-quick-start.md)

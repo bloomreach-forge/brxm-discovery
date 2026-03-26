@@ -30,6 +30,7 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
     public void fireSearchEvent(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
                                 String title, String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
+        log.debug("Dispatching search pixel event [uid='{}', results={}]", query.brUid2(), result.total());
         submitQuietly(() -> {
             String path = client.buildSearchPixelPath(query, result, credentials, title, clientIp, flags);
             fireQuietly(path, ctx, flags);
@@ -40,6 +41,8 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
     public void fireCategoryEvent(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
                                   String title, String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
+        log.debug("Dispatching category pixel event [uid='{}', cat='{}', results={}]",
+                query.brUid2(), query.categoryId(), result.total());
         submitQuietly(() -> {
             String path = client.buildCategoryPixelPath(query, result, credentials, title, clientIp, flags);
             fireQuietly(path, ctx, flags);
@@ -50,6 +53,9 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
     public void fireWidgetEvent(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
                                 String pageType, String title, String clientIp, ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
+        String widgetId = result.widgetId() != null && !result.widgetId().isBlank()
+                ? result.widgetId() : query.widgetId();
+        log.debug("Dispatching widget pixel event [uid='{}', wid='{}']", query.brUid2(), widgetId);
         submitQuietly(() -> {
             String path = client.buildWidgetPixelPath(query, result, credentials, pageType, title, clientIp, flags);
             fireQuietly(path, ctx, flags);
@@ -62,6 +68,7 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
                                          DiscoveryCredentials credentials, String clientIp,
                                          ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
+        log.debug("Dispatching product page-view pixel event [uid='{}', pid='{}']", brUid2, pid);
         submitQuietly(() -> {
             String path = client.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, origRefUrl, url, title,
                     credentials, clientIp, flags);
@@ -73,6 +80,8 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
     public void fireDeferredEvent(DeferredPixelEvent event, DiscoveryCredentials credentials, String clientIp,
                                   ClientContext ctx, PixelFlags flags) {
         if (!flags.enabled()) return;
+        log.debug("Dispatching deferred pixel event [uid='{}', group='{}', etype='{}']",
+                event.brUid2(), event.group(), event.etype());
         submitQuietly(() -> {
             String path = client.buildDeferredEventPixelPath(event, credentials, clientIp, flags);
             fireQuietly(path, ctx, flags);
@@ -99,7 +108,7 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
         try {
             client.firePixelEvent(path, ctx, flags);
         } catch (Exception e) {
-            log.warn("Discovery pixel event failed — path={}: {}", path, e.getMessage());
+            log.warn("Discovery pixel event failed: {}", e.getMessage());
         }
     }
 }

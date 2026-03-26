@@ -51,6 +51,23 @@ public class DiscoveryResponseMapper {
                 redirectUrl, redirectQuery, campaign));
     }
 
+    public SearchResponse toBrowseResponse(Resource resource, int page, int pageSize, String categoryId) {
+        SearchApiResponse dto = parse(resource, SearchApiResponse.class);
+        SearchResult result = toSearchResult(dto, page, pageSize);
+        Map<String, FieldStats> stats = toStats(dto.stats());
+        String redirectUrl = dto.keywordRedirect() != null ? dto.keywordRedirect().redirectedUrl() : null;
+        String redirectQuery = dto.keywordRedirect() != null ? dto.keywordRedirect().redirectedQuery() : null;
+        Campaign campaign = toCampaign(dto.campaign());
+        String categoryName = extractCategoryName(dto.categoryMap(), categoryId);
+        return new SearchResponse(result, new SearchMetadata(stats, dto.didYouMean(), dto.autoCorrectQuery(),
+                redirectUrl, redirectQuery, campaign, categoryName));
+    }
+
+    private static String extractCategoryName(Map<String, String> categoryMap, String categoryId) {
+        if (categoryMap == null || categoryId == null) return null;
+        return categoryMap.get(categoryId);
+    }
+
     public SearchResult toSearchResult(Resource resource, int page, int pageSize) {
         return toSearchResult(parse(resource, SearchApiResponse.class), page, pageSize);
     }

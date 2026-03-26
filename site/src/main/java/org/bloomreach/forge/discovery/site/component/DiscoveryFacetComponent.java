@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryDataSourceComponentInfo;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstComponentException;
@@ -24,6 +25,6 @@ public class DiscoveryFacetComponent extends AbstractDiscoveryComponent {
 
         var ds = resolveDataSource(request, label);
         Map<?, ?> facets = ds.result().map(SearchResult::facets).orElse(Map.of());
-        request.setModel("facets", facets);
+        request.setModel(DiscoveryModelKeys.FACETS, facets);
     }
 }

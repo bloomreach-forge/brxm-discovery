@@ -1,6 +1,11 @@
 # Discovery Configuration
 
-Configuration lives in a single `brxdis:discoveryConfig` JCR node at a fixed global path. All channels share this node. Credentials resolve with `env -> sys -> JCR` precedence. Structural settings resolve from JCR when present and otherwise fall back to environment-aware defaults.
+Configuration has two layers:
+
+- a global `brxdis:discoveryConfig` JCR node for shared defaults and structural settings
+- optional per-channel overrides through `hst:channelinfo`
+
+Global credentials resolve with `env -> sys -> JCR` precedence. Channel-level overrides are applied on top of that base config for `accountId`, `domainKey`, and env-var names for `apiKey` / `authKey`. Structural settings still resolve from the global JCR node when present and otherwise fall back to environment-aware defaults.
 
 ---
 
@@ -28,6 +33,19 @@ Resolved per-request in this order:
 
 `authKey` is only required for v2 Pathways recommendations; when absent the plugin uses the v1 API automatically.
 
+### Channel-level overrides — `hst:channelinfo`
+
+Optional per-channel overrides are resolved after the global config:
+
+| Channel property | Purpose |
+|---|---|
+| `discoveryAccountId` | Override account ID for this channel |
+| `discoveryDomainKey` | Override domain key for this channel |
+| `discoveryApiKeyEnvVar` | Name of the env var to read the API key from for this channel |
+| `discoveryAuthKeyEnvVar` | Name of the env var to read the Pathways auth key from for this channel |
+
+This lets one deployment share the addon while keeping channel-specific values in Channel Manager and secrets in environment variables.
+
 ### Other credentials
 
 | JCR property | Env var | System property | Description |
@@ -54,7 +72,7 @@ Structural fields are edited in the CMS on the `brxdis:discoveryConfig` node. If
 
 ## Global config node path
 
-All channels read from a single fixed JCR node:
+All channels can read shared defaults from a single fixed JCR node:
 
 ```
 /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
@@ -83,12 +101,26 @@ Leave `brxdis:apiKey` / `brxdis:authKey` blank and inject the actual secrets via
 
 ---
 
+## Channel config example
+
+If your project uses `DiscoveryChannelInfo` or a composite interface that extends it, you can set channel-specific overrides in `hst:channelinfo`:
+
+```yaml
+/hst:hst/hst:configurations/<your-site>/hst:workspace/hst:channel/hst:channelinfo:
+  jcr:primaryType: hst:channelinfo
+  discoveryAccountId: '6413'
+  discoveryDomainKey: pacifichome
+  discoveryApiKeyEnvVar: BRXDIS_API_KEY
+  discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
+```
+
 ## Credential injection
 
 The recommended production setup:
 
 - Set `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` as env vars or sys props — or in the JCR global node as fallback.
 - Set `BRXDIS_API_KEY` and `BRXDIS_AUTH_KEY` as env vars (never store secrets in JCR).
+- If channels need different account/domain values or different secret env-var names, set `discoveryAccountId`, `discoveryDomainKey`, `discoveryApiKeyEnvVar`, and `discoveryAuthKeyEnvVar` on `hst:channelinfo`.
 - Leave the JCR node fields blank for secrets — env var resolution takes precedence automatically.
 
 See [06-credential-injection.md](06-credential-injection.md) for deployment-specific patterns.

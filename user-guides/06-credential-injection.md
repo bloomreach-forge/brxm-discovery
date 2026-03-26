@@ -8,7 +8,7 @@ The plugin uses one global config node:
 /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
 ```
 
-There is no per-channel Discovery credential model.
+The plugin also supports optional per-channel overrides through `hst:channelinfo` when your channel info interface extends `org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo`.
 
 ## Resolution precedence
 
@@ -27,6 +27,33 @@ env var -> system property -> JCR
 | Environment | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `brxdis:environment` | No |
 
 `authKey` enables v2 Pathways recommendations. When it is absent, recommendations fall back to v1 automatically.
+
+## Optional per-channel overrides
+
+After the global config is resolved, the site layer can apply per-channel overrides from `hst:channelinfo`:
+
+| Channel property | Meaning |
+|---|---|
+| `discoveryAccountId` | Channel-specific account ID |
+| `discoveryDomainKey` | Channel-specific domain key |
+| `discoveryApiKeyEnvVar` | Env-var name to read the API key from for this channel |
+| `discoveryAuthKeyEnvVar` | Env-var name to read the auth key from for this channel |
+
+That means:
+
+- account ID and domain key can be overridden directly per channel
+- API key and auth key remain secret values in environment variables, while the channel stores only the env-var names
+
+Example:
+
+```yaml
+/hst:hst/hst:configurations/<your-site>/hst:workspace/hst:channel/hst:channelinfo:
+  jcr:primaryType: hst:channelinfo
+  discoveryAccountId: '6413'
+  discoveryDomainKey: pacifichome
+  discoveryApiKeyEnvVar: BRXDIS_API_KEY
+  discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
+```
 
 ## Structural settings
 
@@ -80,6 +107,12 @@ mvn -P cargo.run cargo:run \
   -Dbrxdis.apiKey=YOUR_API_KEY \
   -Dbrxdis.authKey=YOUR_AUTH_KEY
 ```
+
+If your project uses multiple channels, a production-friendly pattern is:
+
+- keep shared defaults and structural settings in the global config node
+- keep secrets in env vars
+- use `hst:channelinfo` only for channel-specific account/domain overrides and env-var names
 
 ## JCR config example
 

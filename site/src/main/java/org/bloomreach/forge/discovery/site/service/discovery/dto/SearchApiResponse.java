@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SearchApiResponse(
@@ -13,5 +14,6 @@ public record SearchApiResponse(
         @JsonProperty("did_you_mean") List<String> didYouMean,
         @JsonProperty("autoCorrectQuery") String autoCorrectQuery,
         @JsonProperty("keywordRedirect") KeywordRedirectDto keywordRedirect,
-        @JsonProperty("campaign") CampaignDto campaign
+        @JsonProperty("campaign") CampaignDto campaign,
+        @JsonProperty("category_map") Map<String, String> categoryMap
 ) {}

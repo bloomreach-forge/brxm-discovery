@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryHighlightComponentInfo;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
@@ -8,6 +9,7 @@ import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryHighlight;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -35,23 +37,24 @@ class DiscoveryCategoryHighlightComponentTest {
         new TestableCategoryHighlightComponent(new DiscoveryCategoryBean[0]).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
-                ArgumentCaptor.forClass(List.class);
-        verify(request).setModel(eq("categories"), captor.capture());
+        ArgumentCaptor<List<CategoryHighlight>> captor = ArgumentCaptor.forClass(List.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.CATEGORIES), captor.capture());
         assertTrue(captor.getValue().isEmpty());
     }
 
     @Test
     void onePath_resolvesOneBean() {
         DiscoveryCategoryBean bean = mock(DiscoveryCategoryBean.class);
+        when(bean.getCategoryId()).thenReturn("cat1");
+        when(bean.getDisplayName()).thenReturn("Category One");
+        when(bean.getProductPreviewCount()).thenReturn(3);
         new TestableCategoryHighlightComponent(bean).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
-                ArgumentCaptor.forClass(List.class);
-        verify(request).setModel(eq("categories"), captor.capture());
+        ArgumentCaptor<List<CategoryHighlight>> captor = ArgumentCaptor.forClass(List.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.CATEGORIES), captor.capture());
         assertEquals(1, captor.getValue().size());
-        assertSame(bean, captor.getValue().get(0));
+        assertEquals(new CategoryHighlight("cat1", "Category One", 3), captor.getValue().get(0));
     }
 
     @Test
@@ -61,9 +64,8 @@ class DiscoveryCategoryHighlightComponentTest {
         new TestableCategoryHighlightComponent(b1, b2).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
-                ArgumentCaptor.forClass(List.class);
-        verify(request).setModel(eq("categories"), captor.capture());
+        ArgumentCaptor<List<CategoryHighlight>> captor = ArgumentCaptor.forClass(List.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.CATEGORIES), captor.capture());
         assertEquals(2, captor.getValue().size());
     }
 
@@ -74,9 +76,8 @@ class DiscoveryCategoryHighlightComponentTest {
         comp.doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DiscoveryCategoryBean>> captor =
-                ArgumentCaptor.forClass(List.class);
-        verify(request).setModel(eq("categories"), captor.capture());
+        ArgumentCaptor<List<CategoryHighlight>> captor = ArgumentCaptor.forClass(List.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.CATEGORIES), captor.capture());
         assertEquals(1, captor.getValue().size());
     }
 
@@ -95,7 +96,7 @@ class DiscoveryCategoryHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, List<ProductSummary>>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(request).setModel(eq("previewProducts"), captor.capture());
+        verify(request).setModel(eq(DiscoveryModelKeys.PREVIEW_PRODUCTS), captor.capture());
         assertTrue(captor.getValue().isEmpty());
     }
 
@@ -126,7 +127,7 @@ class DiscoveryCategoryHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, List<ProductSummary>>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(request).setModel(eq("previewProducts"), captor.capture());
+        verify(request).setModel(eq(DiscoveryModelKeys.PREVIEW_PRODUCTS), captor.capture());
         Map<String, List<ProductSummary>> map = captor.getValue();
         assertEquals(2, map.size());
         assertTrue(map.containsKey("cat1"));
@@ -154,7 +155,7 @@ class DiscoveryCategoryHighlightComponentTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, List<ProductSummary>>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(request).setModel(eq("previewProducts"), captor.capture());
+        verify(request).setModel(eq(DiscoveryModelKeys.PREVIEW_PRODUCTS), captor.capture());
         assertEquals(List.of(cached), captor.getValue().get("cat1"));
     }
 

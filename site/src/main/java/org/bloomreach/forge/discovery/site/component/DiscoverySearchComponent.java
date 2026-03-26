@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
@@ -39,18 +40,18 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
         boolean suggestOnlyMode = "1".equals(getPublicRequestParameter(request, "brxdis_suggest"));
 
         // Config models — always set so FTL can render form/input correctly regardless of query
-        request.setModel("label", label);
-        request.setModel("suggestionsEnabled", info.isSuggestionsEnabled());
-        request.setModel("resultsPage", info.getResultsPage());
-        request.setModel("minChars", info.getMinChars());
-        request.setModel("debounceMs", info.getDebounceMs());
-        request.setModel("placeholder", info.getPlaceholder());
-        request.setModel("query", query);
-        request.setModel("suggestOnlyMode", suggestOnlyMode);
+        request.setModel(DiscoveryModelKeys.LABEL, label);
+        request.setModel(DiscoveryModelKeys.SUGGESTIONS_ENABLED, info.isSuggestionsEnabled());
+        request.setModel(DiscoveryModelKeys.RESULTS_PAGE, info.getResultsPage());
+        request.setModel(DiscoveryModelKeys.MIN_CHARS, info.getMinChars());
+        request.setModel(DiscoveryModelKeys.DEBOUNCE_MS, info.getDebounceMs());
+        request.setModel(DiscoveryModelKeys.PLACEHOLDER, info.getPlaceholder());
+        request.setModel(DiscoveryModelKeys.QUERY, query);
+        request.setModel(DiscoveryModelKeys.SUGGEST_ONLY_MODE, suggestOnlyMode);
 
         if (query.isBlank()) {
-            request.setModel("searchResult", null);
-            request.setModel("autosuggestResult", null);
+            request.setModel(DiscoveryModelKeys.SEARCH_RESULT, null);
+            request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, null);
             return;
         }
 
@@ -62,13 +63,13 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
             SearchResponse searchResponse = svc.search(request, new SearchRequestOptions(
                     info.getPageSize(), info.getDefaultSort(), blankToNull(catalogName),
                     label, statsFields, info.getSegment(), info.getExclusionFilter()));
-            request.setModel("searchResult", searchResponse.result());
-            request.setModel("stats", searchResponse.metadata().stats());
-            request.setModel("didYouMean", searchResponse.metadata().didYouMean());
-            request.setModel("autoCorrectQuery", searchResponse.metadata().autoCorrectQuery());
-            request.setModel("redirectUrl", searchResponse.metadata().redirectUrl());
-            request.setModel("redirectQuery", searchResponse.metadata().redirectQuery());
-            request.setModel("campaign", searchResponse.metadata().campaign());
+            request.setModel(DiscoveryModelKeys.SEARCH_RESULT, searchResponse.result());
+            request.setModel(DiscoveryModelKeys.STATS, searchResponse.metadata().stats());
+            request.setModel(DiscoveryModelKeys.DID_YOU_MEAN, searchResponse.metadata().didYouMean());
+            request.setModel(DiscoveryModelKeys.AUTO_CORRECT_QUERY, searchResponse.metadata().autoCorrectQuery());
+            request.setModel(DiscoveryModelKeys.REDIRECT_URL, searchResponse.metadata().redirectUrl());
+            request.setModel(DiscoveryModelKeys.REDIRECT_QUERY, searchResponse.metadata().redirectQuery());
+            request.setModel(DiscoveryModelKeys.CAMPAIGN, searchResponse.metadata().campaign());
 
             String redirectUrl = searchResponse.metadata().redirectUrl();
             if (info.isAutoRedirect() && redirectUrl != null && !redirectUrl.isBlank()) {
@@ -85,9 +86,9 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
 
         if (info.isSuggestionsEnabled()) {
             AutosuggestResult suggestions = svc.autosuggest(request, query, info.getSuggestionsLimit());
-            request.setModel("autosuggestResult", suggestions);
+            request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, suggestions);
         } else {
-            request.setModel("autosuggestResult", null);
+            request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, null);
         }
     }
 

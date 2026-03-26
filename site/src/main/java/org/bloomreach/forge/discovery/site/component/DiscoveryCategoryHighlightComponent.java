@@ -3,6 +3,8 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
+import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryHighlight;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryHighlightComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
@@ -32,25 +34,29 @@ public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryCompon
         super.doBeforeRender(request, response);
         DiscoveryCategoryHighlightComponentInfo info = getComponentParametersInfo(request);
 
-        List<DiscoveryCategoryBean> categories = new ArrayList<>(MAX_SLOTS);
+        List<DiscoveryCategoryBean> categoryBeans = new ArrayList<>(MAX_SLOTS);
         for (String path : new String[]{
                 info.getDocument1(), info.getDocument2(),
                 info.getDocument3(), info.getDocument4()}) {
             if (path != null && !path.isBlank()) {
                 DiscoveryCategoryBean bean = getHippoBeanForPath(request, path, DiscoveryCategoryBean.class);
                 if (bean != null) {
-                    categories.add(bean);
+                    categoryBeans.add(bean);
                 }
             }
         }
 
-        if (categories.isEmpty() && isEditMode(request)) {
+        if (categoryBeans.isEmpty() && isEditMode(request)) {
             request.setAttribute("brxdis_warning",
                     "No categories configured. Select Category Documents in component properties.");
         }
 
-        request.setModel("categories", categories);
-        request.setModel("previewProducts", fetchPreviewProducts(request, categories));
+        List<CategoryHighlight> categories = categoryBeans.stream()
+                .map(b -> new CategoryHighlight(b.getCategoryId(), b.getDisplayName(), b.getProductPreviewCount()))
+                .toList();
+
+        request.setModel(DiscoveryModelKeys.CATEGORIES, categories);
+        request.setModel(DiscoveryModelKeys.PREVIEW_PRODUCTS, fetchPreviewProducts(request, categoryBeans));
     }
 
     protected CategoryPreviewCache getCategoryPreviewCache() {

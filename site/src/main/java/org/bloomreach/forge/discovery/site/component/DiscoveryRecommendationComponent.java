@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryRecommendationBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryRecommendationComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
@@ -39,15 +40,15 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
 
         DiscoveryRecommendationBean document = getHippoBeanForPath(request, info.getDocument(), DiscoveryRecommendationBean.class);
         request.setModel("document", document);
-        request.setModel("showPrice", info.isShowPrice());
-        request.setModel("showDescription", info.isShowDescription());
-        request.setModel("dataSource", dataSource);
-        request.setModel("label", label);
+        request.setModel(DiscoveryModelKeys.SHOW_PRICE, info.isShowPrice());
+        request.setModel(DiscoveryModelKeys.SHOW_DESCRIPTION, info.isShowDescription());
+        request.setModel(DiscoveryModelKeys.DATA_SOURCE, dataSource);
+        request.setModel(DiscoveryModelKeys.LABEL, label);
 
         String widgetId = resolveWidgetId(document, request);
         if (widgetId == null || widgetId.isBlank()) {
-            request.setModel("products", List.of());
-            request.setModel("widgetId", "");
+            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+            request.setModel(DiscoveryModelKeys.WIDGET_ID, "");
             return;
         }
 
@@ -66,11 +67,11 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         String resolvedWidgetId = recResult.widgetId() != null && !recResult.widgetId().isBlank()
                 ? recResult.widgetId() : widgetId;
 
-        request.setModel("products", products);
-        request.setModel("widgetId", resolvedWidgetId);
-        request.setModel("widgetType", recResult.widgetType());
-        request.setModel("widgetResultId", recResult.widgetResultId());
-        request.setModel("widgetQuery", contextProductId);
+        request.setModel(DiscoveryModelKeys.PRODUCTS, products);
+        request.setModel(DiscoveryModelKeys.WIDGET_ID, resolvedWidgetId);
+        request.setModel(DiscoveryModelKeys.WIDGET_TYPE, recResult.widgetType());
+        request.setModel(DiscoveryModelKeys.WIDGET_RESULT_ID, recResult.widgetResultId());
+        request.setModel(DiscoveryModelKeys.WIDGET_QUERY, contextProductId);
 
         log.debug("Recommendations widget '{}' dataSource='{}' label='{}' returned {} products",
                 resolvedWidgetId, dataSource, label, products.size());
@@ -110,8 +111,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
                     "No product detail label '" + label + "' found. Add a Product Detail component " +
                     "with label='" + label + "' to this page.");
             }
-            request.setModel("products", List.of());
-            request.setModel("widgetId", widgetId);
+            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+            request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
             return Optional.empty();
         }
         Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, label);
@@ -121,8 +122,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
                     "Product detail label '" + label + "' is present but no product ID was resolved. " +
                     "Ensure the Product Detail component has a valid product configured.");
             }
-            request.setModel("products", List.of());
-            request.setModel("widgetId", widgetId);
+            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+            request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
             return Optional.empty();
         }
         return Optional.of(cached.get().id());

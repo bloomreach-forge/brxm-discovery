@@ -9,16 +9,24 @@ public record SearchMetadata(
         String autoCorrectQuery,
         String redirectUrl,
         String redirectQuery,
-        Campaign campaign
+        Campaign campaign,
+        String categoryName
 ) {
 
-    /** Backwards-compatible 5-arg constructor (no campaign). */
+    /** Backwards-compatible 6-arg constructor (no categoryName). */
+    public SearchMetadata(Map<String, FieldStats> stats, List<String> didYouMean,
+                          String autoCorrectQuery, String redirectUrl, String redirectQuery,
+                          Campaign campaign) {
+        this(stats, didYouMean, autoCorrectQuery, redirectUrl, redirectQuery, campaign, null);
+    }
+
+    /** Backwards-compatible 5-arg constructor (no campaign, no categoryName). */
     public SearchMetadata(Map<String, FieldStats> stats, List<String> didYouMean,
                           String autoCorrectQuery, String redirectUrl, String redirectQuery) {
-        this(stats, didYouMean, autoCorrectQuery, redirectUrl, redirectQuery, null);
+        this(stats, didYouMean, autoCorrectQuery, redirectUrl, redirectQuery, null, null);
     }
 
     public static SearchMetadata empty() {
-        return new SearchMetadata(Map.of(), null, null, null, null, null);
+        return new SearchMetadata(Map.of(), null, null, null, null, null, null);
     }
 }
