@@ -7,13 +7,31 @@ import org.hippoecm.hst.core.parameters.FieldGroupList;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 /**
- * Channel Manager parameters for controlling Discovery credentials, pixel tracking, and region at mount level.
+ * Channel Manager parameters for Discovery credential overrides and pixel tracking.
  */
 @FieldGroupList({
-    @FieldGroup(value = {"discoveryPixelsEnabled", "discoveryPixelTestData", "discoveryPixelDebug", "discoveryPixelRegion"}, titleKey = "Pixel Tracking"),
-    @FieldGroup(value = {"discoveryAccountId", "discoveryDomainKey", "discoveryApiKeyEnvVar", "discoveryAuthKeyEnvVar"}, titleKey = "Discovery Credentials")
+    @FieldGroup(
+        value = {"discoveryAccountId", "discoveryDomainKey", "discoveryApiKeyEnvVar", "discoveryAuthKeyEnvVar"},
+        titleKey = "Credentials"
+    ),
+    @FieldGroup(
+        value = {"discoveryPixelsEnabled", "discoveryPixelTestData", "discoveryPixelDebug", "discoveryPixelRegion"},
+        titleKey = "Pixel Tracking"
+    )
 })
 public interface DiscoveryChannelInfo extends ChannelInfo {
+
+    @Parameter(name = "discoveryAccountId", displayName = "Account ID override", defaultValue = "")
+    String getDiscoveryAccountId();
+
+    @Parameter(name = "discoveryDomainKey", displayName = "Domain Key override", defaultValue = "")
+    String getDiscoveryDomainKey();
+
+    @Parameter(name = "discoveryApiKeyEnvVar", displayName = "API Key env-var name", defaultValue = "")
+    String getDiscoveryApiKeyEnvVar();
+
+    @Parameter(name = "discoveryAuthKeyEnvVar", displayName = "Auth Key env-var name (v2/Pathways)", defaultValue = "")
+    String getDiscoveryAuthKeyEnvVar();
 
     @Parameter(name = "discoveryPixelsEnabled", displayName = "Send pixel events", defaultValue = "true")
     boolean getDiscoveryPixelsEnabled();
@@ -27,16 +45,4 @@ public interface DiscoveryChannelInfo extends ChannelInfo {
     @Parameter(name = "discoveryPixelRegion", displayName = "Pixel region", defaultValue = "US")
     @DropDownList({"US", "EU"})
     String getPixelRegion();
-
-    @Parameter(name = "discoveryAccountId", displayName = "Account ID", defaultValue = "")
-    String getAccountId();
-
-    @Parameter(name = "discoveryDomainKey", displayName = "Domain key", defaultValue = "")
-    String getDomainKey();
-
-    @Parameter(name = "discoveryApiKeyEnvVar", displayName = "API key env variable", defaultValue = "")
-    String getApiKeyEnvVar();
-
-    @Parameter(name = "discoveryAuthKeyEnvVar", displayName = "Auth key env variable", defaultValue = "")
-    String getAuthKeyEnvVar();
 }

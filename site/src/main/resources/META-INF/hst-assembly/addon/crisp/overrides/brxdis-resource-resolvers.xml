@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Discovery API CRISP resource resolver bean definitions.
+
+  Purpose: ensures the CRISP ResourceServiceBroker in the site webapp initialises
+  without requiring JCR access (necessary in Cargo/dev where per-webapp classloaders
+  prevent sharing the CMS-side broker via HippoServiceRegistry).
+
+  Repository-backed resolver nodes are platform-scoped for shared-broker/CMS use.
+  These beans cover delivery-tier resolution inside the site webapp and read the
+  active Discovery base URIs from the shared config provider at request time.
+
+  Bean IDs must match the resource-space names used in DiscoveryClientImpl.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+
+  <!--
+    Site-local fallback resolvers.
+    The broker's resolver provider can look these up by bean id on demand, so keep them lazy.
+    Using CRISP's abstract parent bean preserves the shared HTTP client setup; cache is disabled
+    explicitly because Discovery request paths carry request-specific query params and do not reuse entries.
+    Search/pathways/autosuggest now use one generic resource space each and derive the active base URI
+    from the resolved Discovery settings instead of duplicating production and staging beans.
+  -->
+
+  <bean id="discoverySearchAPI"
+        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
+        class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
+        lazy-init="true">
+    <property name="cacheEnabled" value="false"/>
+    <property name="api" value="search"/>
+  </bean>
+
+  <bean id="discoveryPathwaysAPI"
+        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
+        class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
+        lazy-init="true">
+    <property name="cacheEnabled" value="false"/>
+    <property name="api" value="pathways"/>
+  </bean>
+
+  <bean id="discoveryAutosuggestAPI"
+        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
+        class="org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver"
+        lazy-init="true">
+    <property name="cacheEnabled" value="false"/>
+    <property name="api" value="autosuggest"/>
+  </bean>
+
+  <bean id="discoveryPixelAPI"
+        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
+        lazy-init="true">
+    <property name="cacheEnabled" value="false"/>
+    <property name="baseUri" value="https://p.brsrvr.com"/>
+  </bean>
+
+  <bean id="discoveryPixelAPIEU"
+        parent="abstractCrispSimpleJacksonRestTemplateResourceResolver"
+        class="org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver"
+        lazy-init="true">
+    <property name="cacheEnabled" value="false"/>
+    <property name="baseUri" value="https://p-eu.brsrvr.com"/>
+  </bean>
+
+</beans>

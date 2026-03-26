@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Demo Project</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Location">
+      <p>The demo project lives in the repository at <code>demo/</code> as a standalone Maven build.</p>
+    </section>
+
+    <section name="Build and run">
+      <div class="brush: bash">
+        <source><![CDATA[
+cd demo
+mvn clean install
+mvn -P cargo.run cargo:run
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="What it demonstrates">
+      <ul>
+        <li>Separate CMS and site runtimes with the plugin wired into both.</li>
+        <li>Search pages, category browse, recommendations, and autosuggest.</li>
+        <li>Bundled templates, picker integrations, and local Cargo-based startup.</li>
+      </ul>
+    </section>
+
+  </body>
+</document>

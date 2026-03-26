@@ -1,16 +1,21 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.bloomreach.forge.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.configuration.components.HstComponentConfiguration;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
+import org.hippoecm.hst.core.container.ComponentManager;
+import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.container.HstContainerURL;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
+import org.hippoecm.hst.site.HstServices;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -33,11 +38,17 @@ class AbstractDiscoveryComponentTest {
 
     @Mock HstRequest request;
     @Mock HstRequestContext requestContext;
+    @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstContainerURL baseUrl;
     @Mock ResolvedSiteMapItem resolvedSiteMapItem;
     @Mock HstComponentConfiguration pageConfig;
     @Mock HstComponentConfiguration childConfig;
+
+    @AfterEach
+    void tearDown() {
+        HstServices.setComponentManager(null);
+    }
 
     // ── parseIntOrDefault ─────────────────────────────────────────────────
 
@@ -89,14 +100,14 @@ class AbstractDiscoveryComponentTest {
         assertFalse(new TestableComponent(discoveryService).isEditMode(request));
     }
 
-    // ── setModelAndAttribute ──────────────────────────────────────────────
-
     @Test
-    void setModelAndAttribute_setsBoth() {
-        new TestableComponent(discoveryService).setModelAndAttribute(request, "foo", "bar");
+    void doBeforeRender_setsEditModeModel() throws HstComponentException {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        verify(request).setModel("foo", "bar");
-        verify(request).setAttribute("foo", "bar");
+        new TestableBaseRenderComponent().doBeforeRender(request, response);
+
+        verify(request).setModel("editMode", true);
     }
 
     // ── getPublicRequestParameterAsInt ────────────────────────────────────
@@ -118,11 +129,8 @@ class AbstractDiscoveryComponentTest {
     // ── isBandConfiguredOnPage ────────────────────────────────────────────
 
     @Test
-    void isBandConfiguredOnPage_ppr_matchingComponent_returnsTrue() {
+    void isBandConfiguredOnPage_matchingComponent_returnsTrue() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
@@ -134,11 +142,8 @@ class AbstractDiscoveryComponentTest {
     }
 
     @Test
-    void isBandConfiguredOnPage_ppr_wrongBand_returnsFalse() {
+    void isBandConfiguredOnPage_wrongBand_returnsFalse() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
@@ -150,11 +155,8 @@ class AbstractDiscoveryComponentTest {
     }
 
     @Test
-    void isBandConfiguredOnPage_ppr_noMatchingClass_returnsFalse() {
+    void isBandConfiguredOnPage_noMatchingClass_returnsFalse() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
         when(pageConfig.flattened()).thenReturn(Stream.of(childConfig));
@@ -164,14 +166,18 @@ class AbstractDiscoveryComponentTest {
     }
 
     @Test
-    void isBandConfiguredOnPage_notPpr_returnsFalse() {
-        when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn(null); // full-page load
+    void isBandConfiguredOnPage_nullContext_returnsFalse() {
+        when(request.getRequestContext()).thenReturn(null);
 
         assertFalse(new TestableComponent(discoveryService).isBandConfiguredOnPage(request, "default", DiscoverySearchComponent.class));
-        verify(requestContext, never()).getResolvedSiteMapItem();
+    }
+
+    @Test
+    void isBandConfiguredOnPage_noResolvedSiteMapItem_returnsFalse() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(null);
+
+        assertFalse(new TestableComponent(discoveryService).isBandConfiguredOnPage(request, "default", DiscoverySearchComponent.class));
     }
 
     // ── isIsolatedComponentRender ─────────────────────────────────────────
@@ -214,6 +220,39 @@ class AbstractDiscoveryComponentTest {
         assertSame(discoveryService, component.getDiscoveryService());
     }
 
+    @Test
+    void getDiscoveryService_usesTypedLookupWhenBeanNameLookupWouldMiss() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class)).thenReturn(discoveryService);
+        HstServices.setComponentManager(componentManager);
+
+        assertSame(discoveryService, new TestableLookupComponent().getDiscoveryService());
+    }
+
+    @Test
+    void getDiscoveryService_fallsBackToBeanNameLookupWhenTypedLookupFails() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class))
+                .thenThrow(new ComponentsException("typed lookup failed"));
+        when(componentManager.getComponent(HstDiscoveryService.class.getName())).thenReturn(discoveryService);
+        HstServices.setComponentManager(componentManager);
+
+        assertSame(discoveryService, new TestableLookupComponent().getDiscoveryService());
+    }
+
+    @Test
+    void getDiscoveryService_fallsBackToAddonModuleLookupWhenRootContextMisses() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class))
+                .thenThrow(new ComponentsException("typed lookup failed"));
+        when(componentManager.getComponent(HstDiscoveryService.class.getName())).thenReturn(null);
+        when(componentManager.getComponent(HstDiscoveryService.class, "org.bloomreach.forge.discovery.site"))
+                .thenReturn(discoveryService);
+        HstServices.setComponentManager(componentManager);
+
+        assertSame(discoveryService, new TestableLookupComponent().getDiscoveryService());
+    }
+
     // ── backfillSearchResponse ────────────────────────────────────────────
 
     /**
@@ -223,11 +262,7 @@ class AbstractDiscoveryComponentTest {
      */
     @Test
     void backfillSearchResponse_catConfigPresentButBlankCategoryId_fallsThroughToSearch() {
-        // PPR mode
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("ns");
         when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
         when(resolvedSiteMapItem.getHstComponentConfiguration()).thenReturn(pageConfig);
 
@@ -254,8 +289,7 @@ class AbstractDiscoveryComponentTest {
 
         SearchResult result = new SearchResult(List.of(), 1L, 0, 12, Map.of());
         SearchResponse mockResponse = new SearchResponse(result, SearchMetadata.empty());
-        when(discoveryService.search(eq(request), eq(12), isNull(), isNull(), eq("default"),
-                eq(List.of()), isNull(), isNull()))
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(mockResponse);
 
         // "category" URL param blank → no cat id; "q" param present → search executes
@@ -264,7 +298,7 @@ class AbstractDiscoveryComponentTest {
         var response = component.backfillSearchResponse(request, "default");
 
         assertTrue(response.isPresent(), "Expected search fallback result when cat categoryId is blank");
-        verify(discoveryService, never()).browse(any(), any(), anyInt(), any(), any(), any(), any(), any());
+        verify(discoveryService, never()).browse(any(), any(), any(SearchRequestOptions.class));
     }
 
     // ── testable subclass ─────────────────────────────────────────────────
@@ -327,5 +361,16 @@ class AbstractDiscoveryComponentTest {
         public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
             // no-op — only testing base-class helpers
         }
+    }
+
+    private static class TestableLookupComponent extends AbstractDiscoveryComponent {
+
+        @Override
+        public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
+            // no-op — exercising base lookupService implementation
+        }
+    }
+
+    private static class TestableBaseRenderComponent extends AbstractDiscoveryComponent {
     }
 }

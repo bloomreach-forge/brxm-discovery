@@ -4,10 +4,10 @@
 
 `DiscoveryRecommendationComponent` calls the Discovery Recommendations API via CRISP and exposes a `products` list for your template. It supports both:
 
-- **v1 API** (`discoverySearchAPI` resource space, `core.dxpapi.com`) — used when `authKey` is not configured
-- **v2 Pathways API** (`discoveryPathwaysAPI` resource space, `pathways.dxpapi.com`) — used automatically when `authKey` is configured
+- **v1 API** (`discoverySearchAPI`) — used when `authKey` is not configured
+- **v2 Pathways API** (`discoveryPathwaysAPI`) — used automatically when `authKey` is configured
 
-Version selection is automatic — no configuration flag needed. Configure `authKey` (via `BRXDIS_AUTH_KEY` env var or JCR) to enable v2.
+Version selection is automatic — no configuration flag needed. Configure `authKey` through `BRXDIS_AUTH_KEY`, `-Dbrxdis.authKey`, `brxdis:authKey` in the global config node, or a channel-level `discoveryAuthKeyEnvVar` override to enable v2.
 
 ---
 
@@ -26,17 +26,7 @@ definitions:
         hst:template: brxdis-recommendations
 ```
 
-```yaml
-# templates.yaml
-definitions:
-  config:
-    /hst:hst/hst:configurations/<your-site>/hst:templates:
-      /brxdis-recommendations:
-        jcr:primaryType: hst:template
-        hst:renderpath: webfile:/freemarker/brxdis/brxdis-recommendations.ftl
-```
-
-The plugin ships `brxdis-recommendations.ftl` as a ready-to-use horizontal-scroll carousel with scoped CSS injected via `<@hst.headContribution>`. Point `hst:template` at it directly and skip writing a custom template.
+The bundled `brxdis-recommendations` template is auto-registered under `hst:default`, so no manual `templates.yaml` entry is required unless you want to override it. The plugin ships it as a ready-to-use horizontal-scroll carousel with scoped CSS injected via `<@hst.headContribution>`.
 
 ---
 
@@ -150,7 +140,7 @@ The plugin provides `brxdis-recommendations.ftl` as the recommended starting poi
 
 ## v2 Pathways API
 
-When `authKey` is configured, the component automatically calls the v2 Pathways API at `pathways.dxpapi.com`:
+When `authKey` is configured, the component automatically calls the v2 Pathways API:
 
 - URL pattern: `/api/v2/widgets/{widgetType}/{widgetId}?account_id=...&domain_key=...&rows=...`
 - Auth: `auth-key` header added per-request from `config.authKey()`

@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.2.3)"
+        required: true
+      next-development-version:
+        description: "Next SNAPSHOT (e.g. 1.2.4-SNAPSHOT)"
+        required: true
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    uses: bloomreach-forge/ci-workflows/.github/workflows/release.yml@v1.0.4
+    with:
+      version: ${{ inputs.version }}
+      next-development-version: ${{ inputs.next-development-version }}
+      branch: main
+      develop-branch: main
+      run-demo-build: true
+      demo-pom-path: demo/pom.xml
+      forge-readme-path: README.md
+    secrets: inherit

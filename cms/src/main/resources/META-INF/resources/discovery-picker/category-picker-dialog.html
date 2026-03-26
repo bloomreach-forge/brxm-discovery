@@ -6,29 +6,369 @@
   <title>Select Category</title>
   <link rel="stylesheet" href="picker-dialog.css"/>
   <style>
-    html, body { width: 100%; height: 100%; min-width: 500px; min-height: 420px; }
+    html, body { width: 100%; height: 100%; min-width: 860px; min-height: 520px; }
+
+    /* ── Split layout ───────────────────────────────────────────────────── */
+    .picker-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Category panel (left) ──────────────────────────────────────────── */
+    .cat-panel {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cat-panel-header {
+      padding: 9px 14px 8px;
+      border-bottom: 1px solid var(--border-soft);
+      flex-shrink: 0;
+    }
+    .cat-panel-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--text-faint);
+      margin-bottom: 7px;
+    }
+    .cat-filter {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cat-filter::placeholder { color: var(--text-faint); }
+    .cat-filter:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-ring);
+    }
+
+    .cat-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0 8px;
+    }
+
+    /* ── Category row ───────────────────────────────────────────────────── */
+    .cat-row {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 14px 8px 16px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background .1s, border-color .1s;
+      animation: rowIn 0.2s ease-out both;
+    }
+    .cat-row:hover { background: var(--row-hover); }
+    .cat-row.active {
+      border-left-color: var(--accent);
+      background: var(--accent-subtle);
+    }
+    .cat-row-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+    .cat-row.active .cat-row-name { color: var(--accent); }
+    .cat-row-id {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+      font-variant-ligatures: none;
+    }
+    .cat-row.active .cat-row-id { color: var(--text-muted); }
+
+    /* Stagger category rows */
+    .cat-row:nth-child(1)  { animation-delay:   0ms; }
+    .cat-row:nth-child(2)  { animation-delay:  18ms; }
+    .cat-row:nth-child(3)  { animation-delay:  36ms; }
+    .cat-row:nth-child(4)  { animation-delay:  54ms; }
+    .cat-row:nth-child(5)  { animation-delay:  72ms; }
+    .cat-row:nth-child(6)  { animation-delay:  90ms; }
+    .cat-row:nth-child(7)  { animation-delay: 108ms; }
+    .cat-row:nth-child(8)  { animation-delay: 126ms; }
+    .cat-row:nth-child(9)  { animation-delay: 144ms; }
+    .cat-row:nth-child(10) { animation-delay: 162ms; }
+    .cat-row:nth-child(n+11) { animation-delay: 180ms; }
+
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateX(-4px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .cat-empty {
+      padding: 24px 14px;
+      font-size: 12px;
+      color: var(--text-faint);
+      text-align: center;
+    }
+
+    /* ── Preview panel (right) ──────────────────────────────────────────── */
+    .preview-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+      min-height: 38px;
+    }
+    .preview-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .preview-count {
+      font-size: 11px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .preview-spinner-wrap {
+      margin-left: auto;
+    }
+
+    .preview-scroll {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* ── Product preview grid ───────────────────────────────────────────── */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 12px;
+    }
+
+    /* Product card (preview — informational only, not selectable) */
+    .preview-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: cardIn 0.28s ease-out both;
+    }
+
+    /* Card stagger */
+    .preview-card:nth-child(1) { animation-delay:   0ms; }
+    .preview-card:nth-child(2) { animation-delay:  35ms; }
+    .preview-card:nth-child(3) { animation-delay:  70ms; }
+    .preview-card:nth-child(4) { animation-delay: 105ms; }
+    .preview-card:nth-child(5) { animation-delay: 140ms; }
+    .preview-card:nth-child(6) { animation-delay: 175ms; }
+    .preview-card:nth-child(7) { animation-delay: 210ms; }
+    .preview-card:nth-child(8) { animation-delay: 245ms; }
+    .preview-card:nth-child(9) { animation-delay: 280ms; }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(7px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .preview-card .card-image-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background-color: var(--surface-lift);
+      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+      background-size: 14px 14px;
+    }
+    .preview-card .card-image-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .preview-card .card-image-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 24px;
+      background: linear-gradient(to bottom, transparent, var(--surface));
+      pointer-events: none;
+    }
+    .preview-card .card-body {
+      padding: 6px 9px 8px;
+    }
+    .preview-card .card-title {
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--text-muted);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .preview-card .card-price {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 3px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Empty state ────────────────────────────────────────────────────── */
+    .preview-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 10px;
+      padding: 24px;
+      color: var(--text-faint);
+      background-image: radial-gradient(circle, var(--border-soft) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    .preview-empty-icon {
+      font-size: 28px;
+      line-height: 1;
+      opacity: 0.35;
+    }
+    .preview-empty-text {
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    #footer {
+      justify-content: space-between;
+    }
+    .footer-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .footer-id {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-faint);
+      background: var(--surface-lift);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 2px 7px;
+      white-space: nowrap;
+      font-variant-ligatures: none;
+      flex-shrink: 0;
+    }
+    .footer-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .footer-placeholder {
+      font-size: 12px;
+      color: var(--text-faint);
+      font-style: italic;
+    }
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
 
 <div id="toolbar" class="toolbar">
-  <input id="search-input" class="search-input" type="search" placeholder="Search categories&hellip;" autocomplete="off"/>
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+       style="color:var(--text-faint);flex-shrink:0">
+    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+    <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+  </svg>
+  <input id="cat-filter" class="search-input" type="search" placeholder="Filter categories&hellip;" autocomplete="off"/>
   <span id="result-count" class="result-count"></span>
 </div>
 
-<div id="table-scroll" class="table-scroll">
-  <table id="category-table" class="picker-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>ID</th>
-      </tr>
-    </thead>
-    <tbody id="category-body"></tbody>
-  </table>
+<div class="picker-body">
+
+  <!-- Left: category list -->
+  <div class="cat-panel">
+    <div class="cat-panel-header">
+      <div class="cat-panel-label">Categories</div>
+    </div>
+    <div id="cat-list" class="cat-list"></div>
+  </div>
+
+  <!-- Right: product preview -->
+  <div class="preview-panel">
+    <div id="preview-header" class="preview-header">
+      <span id="preview-title" class="preview-title" style="color:var(--text-faint);font-weight:400">
+        Select a category
+      </span>
+    </div>
+    <div id="preview-scroll" class="preview-scroll">
+      <div id="preview-content">
+        <!-- empty state shown initially -->
+        <div class="preview-empty">
+          <div class="preview-empty-icon">&#x25A6;</div>
+          <div class="preview-empty-text">
+            Click a category on the left<br/>to preview its products
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<div id="footer"></div>
+<div id="footer" class="footer">
+  <div class="footer-info">
+    <span id="footer-id"   class="footer-id"          style="display:none"></span>
+    <span id="footer-name" class="footer-name"         style="display:none"></span>
+    <span id="footer-ph"   class="footer-placeholder">No category selected</span>
+  </div>
+  <div class="footer-actions">
+    <button id="cancel-btn" class="btn">Cancel</button>
+    <button id="select-btn" class="btn btn-primary" disabled>Select &#x2192;</button>
+  </div>
+</div>
 
 <script src="ui-extension.min.js"></script>
 <script src="picker-utils.js"></script>
@@ -39,17 +379,27 @@
   (function () {
     "use strict";
 
-    var ui            = null;
-    var configPath    = "";
-    var currentValue  = "";
-    var categoriesAll = [];
+    var PREVIEW_SIZE   = 9;   /* max products shown in preview */
+    var ui             = null;
+    var documentId     = "";
+    var currentValue   = "";  /* previously-saved category ID */
+    var channelId      = "";
+    var categoriesAll  = [];
+    var activeCat      = null; /* { id, name } or null */
 
-    var searchInput  = document.getElementById("search-input");
-    var resultCount  = document.getElementById("result-count");
-    var categoryBody = document.getElementById("category-body");
-    var footer       = document.getElementById("footer");
+    var catFilter   = document.getElementById("cat-filter");
+    var catList     = document.getElementById("cat-list");
+    var resultCount = document.getElementById("result-count");
+    var previewTitle  = document.getElementById("preview-title");
+    var previewContent= document.getElementById("preview-content");
+    var previewHeader = document.getElementById("preview-header");
+    var footerId    = document.getElementById("footer-id");
+    var footerName  = document.getElementById("footer-name");
+    var footerPh    = document.getElementById("footer-ph");
+    var cancelBtn   = document.getElementById("cancel-btn");
+    var selectBtn   = document.getElementById("select-btn");
 
-    /* ---- Bootstrap ---------------------------------------------------- */
+    /* ── Bootstrap ─────────────────────────────────────────────────────── */
     UiExtension.register().then(function (registeredUi) {
       ui = registeredUi;
       return ui.dialog.options();
@@ -57,20 +407,62 @@
     .then(function (opts) {
       var data = {};
       try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
-      configPath   = data.configPath   || "";
+      documentId   = data.documentId   || "";
       currentValue = data.currentValue || "";
+      channelId    = data.channelId    || "";
       loadCategories();
-      searchInput.focus();
+      catFilter.focus();
     })
     .catch(function (err) {
-      setStatusEl(footer, "error", "Failed to initialise: " + (err && err.message || err));
+      showPreviewError("Failed to initialise: " + (err && err.message || err));
     });
 
-    /* ---- Filter — client-side ----------------------------------------- */
-    searchInput.addEventListener("input", function () {
-      applyFilter(searchInput.value);
+    /* ── Events ────────────────────────────────────────────────────────── */
+    catFilter.addEventListener("input", function () {
+      applyFilter(catFilter.value);
     });
 
+    cancelBtn.addEventListener("click", function () {
+      ui.dialog.close(null);
+    });
+
+    selectBtn.addEventListener("click", function () {
+      if (activeCat) ui.dialog.close(activeCat.id);
+    });
+
+    /* ── Load categories ───────────────────────────────────────────────── */
+    function loadCategories() {
+      if (!documentId) {
+        showPreviewError("No documentId available — cannot resolve Discovery config.");
+        return;
+      }
+      var url = buildApiUrl(ui, "/discovery/picker/categories", {
+        channelId:  channelId,
+        documentId: documentId
+      });
+      fetch(url, { credentials: "include" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (cats) {
+          categoriesAll = cats || [];
+          renderCatList(categoriesAll);
+          resultCount.textContent = categoriesAll.length + " categor" +
+            (categoriesAll.length === 1 ? "y" : "ies");
+
+          /* Auto-select current value if it exists */
+          if (currentValue) {
+            var match = categoriesAll.filter(function (c) { return c.id === currentValue; })[0];
+            if (match) selectCat(match, true);
+          }
+        })
+        .catch(function (err) {
+          showPreviewError("Failed to load categories: " + err.message);
+        });
+    }
+
+    /* ── Client-side filter ────────────────────────────────────────────── */
     function applyFilter(q) {
       var lower = q.toLowerCase();
       var filtered = lower
@@ -79,71 +471,204 @@
                    (c.id   || "").toLowerCase().indexOf(lower) >= 0;
           })
         : categoriesAll;
-      renderTable(filtered);
+      renderCatList(filtered);
       resultCount.textContent = lower
         ? filtered.length + " of " + categoriesAll.length
         : categoriesAll.length + " categor" + (categoriesAll.length === 1 ? "y" : "ies");
     }
 
-    /* ---- Load (single fetch — all categories at once) ----------------- */
-    function loadCategories() {
-      if (!configPath) {
-        setStatusEl(footer, "error", "No configPath configured on the uiExtension node.");
+    /* ── Render category list ──────────────────────────────────────────── */
+    function renderCatList(cats) {
+      catList.replaceChildren();
+      if (!cats.length) {
+        var empty = document.createElement("div");
+        empty.className   = "cat-empty";
+        empty.textContent = "No categories found.";
+        catList.appendChild(empty);
         return;
       }
-      setStatusEl(footer, "", "Loading\u2026", true);
+      cats.forEach(function (cat) {
+        var row = document.createElement("div");
+        row.className = "cat-row" +
+          (activeCat && activeCat.id === cat.id ? " active" : "");
 
-      var url = buildApiUrl(ui, "/discovery/picker/categories", { configPath: configPath });
+        var name = document.createElement("div");
+        name.className   = "cat-row-name";
+        name.textContent = cat.name || cat.id;
+        name.title       = cat.name || cat.id;
+
+        var id = document.createElement("div");
+        id.className   = "cat-row-id";
+        id.textContent = cat.id;
+
+        row.appendChild(name);
+        row.appendChild(id);
+        row.addEventListener("click", function () { selectCat(cat, false); });
+        catList.appendChild(row);
+      });
+    }
+
+    /* ── Select a category ─────────────────────────────────────────────── */
+    function selectCat(cat, silent) {
+      activeCat = cat;
+
+      /* Update active state in list */
+      catList.querySelectorAll(".cat-row").forEach(function (el) {
+        var rowId = el.querySelector(".cat-row-id");
+        el.classList.toggle("active", rowId && rowId.textContent === cat.id);
+      });
+
+      /* Update footer */
+      footerId.textContent   = cat.id;
+      footerName.textContent = cat.name || cat.id;
+      footerId.style.display   = "";
+      footerName.style.display = "";
+      footerPh.style.display   = "none";
+      selectBtn.disabled       = false;
+
+      if (!silent) loadPreview(cat);
+    }
+
+    /* ── Load product preview ──────────────────────────────────────────── */
+    function loadPreview(cat) {
+      /* Header */
+      previewTitle.textContent  = cat.name || cat.id;
+      previewTitle.style.color  = "";
+      previewTitle.style.fontWeight = "";
+
+      /* Show spinner in header */
+      var spinnerWrap = previewHeader.querySelector(".preview-spinner-wrap");
+      if (!spinnerWrap) {
+        spinnerWrap = document.createElement("span");
+        spinnerWrap.className = "preview-spinner-wrap";
+        previewHeader.appendChild(spinnerWrap);
+      }
+      spinnerWrap.replaceChildren();
+      var sp = document.createElement("span");
+      sp.className = "spinner";
+      spinnerWrap.appendChild(sp);
+
+      /* Clear preview */
+      previewContent.replaceChildren();
+
+      if (!documentId) {
+        showPreviewError("No documentId — cannot load products.");
+        return;
+      }
+
+      var url = buildApiUrl(ui, "/discovery/picker/browse", {
+        channelId:  channelId,
+        documentId: documentId,
+        catId:      cat.id,
+        page:       0,
+        pageSize:   PREVIEW_SIZE
+      });
+
       fetch(url, { credentials: "include" })
         .then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
           return res.json();
         })
-        .then(function (categories) {
-          categoriesAll = categories || [];
-          renderTable(categoriesAll);
-          resultCount.textContent = categoriesAll.length + " categor" + (categoriesAll.length === 1 ? "y" : "ies");
-          setStatusEl(footer, "", "Click a row to select.");
+        .then(function (data) {
+          var items = data.items || [];
+          var total = data.total || 0;
+
+          /* Update header count */
+          var countEl = previewHeader.querySelector(".preview-count");
+          if (!countEl) {
+            countEl = document.createElement("span");
+            countEl.className = "preview-count";
+            previewHeader.insertBefore(countEl, spinnerWrap);
+          }
+          countEl.textContent = total.toLocaleString() + " product" + (total !== 1 ? "s" : "");
+
+          spinnerWrap.replaceChildren(); /* hide spinner */
+
+          if (!items.length) {
+            showPreviewEmpty("No products found in this category.");
+            return;
+          }
+          renderPreviewGrid(items);
         })
         .catch(function (err) {
-          setStatusEl(footer, "error", "Failed to load categories: " + err.message);
+          spinnerWrap.replaceChildren();
+          showPreviewError("Could not load products: " + err.message);
         });
     }
 
-    /* ---- Render -------------------------------------------------------- */
-    function renderTable(categories) {
-      categoryBody.replaceChildren();
-      if (!categories.length) {
-        var tr = document.createElement("tr");
-        var td = document.createElement("td");
-        td.colSpan   = 2;
-        td.className = "empty-cell";
-        td.textContent = "No categories found.";
-        tr.appendChild(td);
-        categoryBody.appendChild(tr);
-        return;
-      }
-      categories.forEach(function (cat) {
-        var tr = document.createElement("tr");
-        tr.className = "picker-row" + (cat.id === currentValue ? " selected" : "");
+    /* ── Render preview grid ───────────────────────────────────────────── */
+    function renderPreviewGrid(items) {
+      previewContent.replaceChildren();
+      var grid = document.createElement("div");
+      grid.className = "preview-grid";
 
-        var tdName = document.createElement("td");
-        tdName.className   = "td-name";
-        tdName.textContent = cat.name || cat.id || "";
+      items.forEach(function (item) {
+        var card = document.createElement("div");
+        card.className = "preview-card";
 
-        var tdId = document.createElement("td");
-        tdId.className   = "td-id";
-        tdId.textContent = cat.id || "";
+        var imgWrap = document.createElement("div");
+        imgWrap.className = "card-image-wrap";
 
-        tr.appendChild(tdName);
-        tr.appendChild(tdId);
+        var img = document.createElement("img");
+        img.src     = item.imageUrl || "";
+        img.alt     = "";
+        img.loading = "lazy";
+        img.onerror = function () { this.style.display = "none"; };
+        imgWrap.appendChild(img);
+        card.appendChild(imgWrap);
 
-        tr.addEventListener("click", function () {
-          ui.dialog.close(cat.id);
-        });
+        var body  = document.createElement("div");
+        body.className = "card-body";
 
-        categoryBody.appendChild(tr);
+        var title = document.createElement("div");
+        title.className   = "card-title";
+        title.textContent = item.title || item.id || "(no title)";
+        body.appendChild(title);
+
+        if (item.price) {
+          var price = document.createElement("div");
+          price.className   = "card-price";
+          price.textContent = item.price;
+          body.appendChild(price);
+        }
+
+        card.appendChild(body);
+        grid.appendChild(card);
       });
+
+      previewContent.appendChild(grid);
+    }
+
+    /* ── Helper: empty / error states ──────────────────────────────────── */
+    function showPreviewEmpty(msg) {
+      previewContent.replaceChildren();
+      var wrap = document.createElement("div");
+      wrap.className = "preview-empty";
+
+      var icon = document.createElement("div");
+      icon.className   = "preview-empty-icon";
+      icon.textContent = "\u2205"; /* ∅ */
+
+      var text = document.createElement("div");
+      text.className   = "preview-empty-text";
+      text.textContent = msg;
+
+      wrap.appendChild(icon);
+      wrap.appendChild(text);
+      previewContent.appendChild(wrap);
+    }
+
+    function showPreviewError(msg) {
+      previewContent.replaceChildren();
+      var wrap = document.createElement("div");
+      wrap.className = "preview-empty";
+      wrap.style.color = "var(--error)";
+
+      var text = document.createElement("div");
+      text.className   = "preview-empty-text";
+      text.textContent = msg;
+      wrap.appendChild(text);
+      previewContent.appendChild(wrap);
     }
   }());
 </script>

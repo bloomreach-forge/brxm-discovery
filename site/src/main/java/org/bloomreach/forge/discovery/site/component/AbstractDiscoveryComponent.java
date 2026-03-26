@@ -1,18 +1,18 @@
 package org.bloomreach.forge.discovery.site.component;
 
-import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
-import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.config.ConfigDefaults;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.component.support.bean.BaseHstComponent;
-import org.hippoecm.hst.configuration.components.HstComponentConfiguration;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
+import org.hippoecm.hst.core.container.ComponentManager;
+import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.hippoecm.hst.site.HstServices;
 import org.slf4j.Logger;
@@ -29,6 +29,10 @@ import java.util.Optional;
 public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractDiscoveryComponent.class);
+    private static final String DISCOVERY_ADDON_MODULE = "org.bloomreach.forge.discovery.site";
+
+    private final DataSourceResolver dataSourceResolver =
+            new DataSourceResolver(this::getDiscoveryService, this::getPublicRequestParameter);
 
     /**
      * Sets {@code editMode} on the FTL model once, before every component renders.
@@ -38,11 +42,47 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     @Override
     public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
-        setModelAndAttribute(request, "editMode", isEditMode(request));
+        request.setModel(DiscoveryModelKeys.EDIT_MODE, isEditMode(request));
     }
 
     protected <T> T lookupService(Class<T> type) {
-        return type.cast(HstServices.getComponentManager().getComponent(type.getName()));
+        if (!HstServices.isAvailable() || HstServices.getComponentManager() == null) {
+            throw new ConfigurationException("HST component manager is not available while resolving service: " + type.getName());
+        }
+
+        ComponentManager componentManager = HstServices.getComponentManager();
+        T component = null;
+        try {
+            component = componentManager.getComponent(type);
+        } catch (ComponentsException e) {
+            log.debug("Typed HST lookup failed for {}. Falling back to bean-name lookup.", type.getName(), e);
+        }
+        if (component == null) {
+            component = type.cast(componentManager.getComponent(type.getName()));
+        }
+        if (component == null) {
+            component = lookupAddonModuleService(componentManager, type);
+        }
+        if (component == null) {
+            throw new ConfigurationException("Required HST service is not available: " + type.getName());
+        }
+        return component;
+    }
+
+    private <T> T lookupAddonModuleService(ComponentManager componentManager, Class<T> type) {
+        try {
+            return componentManager.getComponent(type, DISCOVERY_ADDON_MODULE);
+        } catch (ComponentsException e) {
+            log.debug("Addon-module typed HST lookup failed for {} in {}. Falling back to bean-name lookup.",
+                    type.getName(), DISCOVERY_ADDON_MODULE, e);
+        }
+        try {
+            return type.cast(componentManager.getComponent(type.getName(), DISCOVERY_ADDON_MODULE));
+        } catch (RuntimeException e) {
+            log.debug("Addon-module bean-name HST lookup failed for {} in {}.",
+                    type.getName(), DISCOVERY_ADDON_MODULE, e);
+            return null;
+        }
     }
 
     /**
@@ -96,10 +136,9 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     /**
-     * On a PPR (isolated component re-render), walks the page's HST component
-     * configuration tree to check whether a data component with the matching
-     * band is actually configured on this page. Returns false on all non-PPR
-     * requests (live delivery and full-page preview) — no performance impact.
+     * Walks the page's HST component configuration tree to check whether a
+     * data component with the matching band is actually configured on this page.
+     * Uses the in-memory config model — no JCR reads.
      */
     protected boolean isBandConfiguredOnPage(HstRequest request, String label) {
         return isBandConfiguredOnPage(request, label, DiscoverySearchComponent.class)
@@ -107,117 +146,35 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     protected boolean isBandConfiguredOnPage(HstRequest request, String label, Class<?> dataComponentClass) {
-        return findDataComponentConfig(request, label, dataComponentClass) != null;
+        return dataSourceResolver.findDataComponentConfig(request, label, dataComponentClass) != null;
     }
 
     /**
-     * In PPR (isolated component re-render) mode, the data-fetching component (Search/Category)
-     * does not execute, leaving the request cache empty. This method locates the producer's
-     * component config from the page tree, re-runs the API call with its stored parameters,
-     * and returns the result so the view component can display live data in the editor.
+     * When the request cache is empty (consumer ran before producer, or PPR mode),
+     * locates the producer's component config from the page tree, re-runs the API call
+     * with its stored parameters, and populates the cache so subsequent components
+     * get a cache hit.
      *
-     * <p>Returns {@link Optional#empty()} when not in PPR mode, when no matching producer is
-     * found, or when the fetch fails (exception is logged as WARN).
+     * <p>Returns {@link Optional#empty()} when no matching producer is found on the page
+     * or when the fetch fails (exception is logged as WARN).
      */
     protected Optional<SearchResponse> backfillSearchResponse(HstRequest request, String label) {
-        Optional<SearchResponse> category = backfillCategoryResponse(request, label);
-        if (category.isPresent()) return category;
-        return backfillSearchBrowseResponse(request, label);
-    }
-
-    private Optional<SearchResponse> backfillCategoryResponse(HstRequest request, String label) {
-        HstComponentConfiguration catConfig = findDataComponentConfig(request, label, DiscoveryCategoryComponent.class);
-        if (catConfig == null) return Optional.empty();
-        String docPath = catConfig.getParameter("document");
-        DiscoveryCategoryBean doc = getHippoBeanForPath(request, docPath, DiscoveryCategoryBean.class);
-        String categoryId = doc != null && doc.getCategoryId() != null && !doc.getCategoryId().isBlank()
-                ? doc.getCategoryId()
-                : getPublicRequestParameter(request, DiscoveryCategoryComponent.CAT_ID_PARAM);
-        if (categoryId == null || categoryId.isBlank()) return Optional.empty();
-        int pageSize = parseIntOrDefault(catConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
-        String sort = catConfig.getParameter("defaultSort");
-        List<String> statsFields = parseStatsFields(catConfig.getParameter("statsFields"));
-        String segment = catConfig.getParameter("segment");
-        String efq = catConfig.getParameter("exclusionFilter");
-        try {
-            return Optional.of(getDiscoveryService()
-                    .browse(request, categoryId, pageSize, sort, label, statsFields, segment, efq));
-        } catch (Exception e) {
-            log.warn("PPR backfill for category label '{}' failed: {}", label, e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    private Optional<SearchResponse> backfillSearchBrowseResponse(HstRequest request, String label) {
-        HstComponentConfiguration searchConfig = findDataComponentConfig(request, label, DiscoverySearchComponent.class);
-        if (searchConfig == null) return Optional.empty();
-        String query = getPublicRequestParameter(request, "q");
-        if (query == null || query.isBlank()) return Optional.empty();
-        int pageSize = parseIntOrDefault(searchConfig.getParameter("pageSize"), ConfigDefaults.DEFAULT_PAGE_SIZE);
-        String sort = searchConfig.getParameter("defaultSort");
-        String catalogName = searchConfig.getParameter("catalogName");
-        List<String> statsFields = parseStatsFields(searchConfig.getParameter("statsFields"));
-        String segment = searchConfig.getParameter("segment");
-        String efq = searchConfig.getParameter("exclusionFilter");
-        try {
-            return Optional.of(getDiscoveryService().search(request, pageSize, sort,
-                    blankToNull(catalogName), label, statsFields, segment, efq));
-        } catch (Exception e) {
-            log.warn("PPR backfill for search label '{}' failed: {}", label, e.getMessage());
-            return Optional.empty();
-        }
+        return dataSourceResolver.backfillSearchResponse(request, label);
     }
 
     /**
-     * In PPR mode, the PDP component did not run, so the request cache has no product PID.
-     * This method locates the {@link DiscoveryProductDetailComponent} config from the page tree,
-     * extracts the PID via the same two-stage resolution the component itself uses:
+     * When the PDP component has not yet run (consumer-before-producer or PPR mode),
+     * locates the {@link DiscoveryProductDetailComponent} config from the page tree
+     * and extracts the PID via two-stage resolution:
      * <ol>
      *   <li>Document picker path → bean → {@code productId} field</li>
      *   <li>URL param name stored in component config (default: {@code "pid"})</li>
      * </ol>
-     * Returns {@link Optional#empty()} when not in PPR mode, when no matching producer is found,
+     * Returns {@link Optional#empty()} when no matching producer is found on the page
      * or when no PID can be resolved.
      */
     protected Optional<String> backfillProductDetailPid(HstRequest request, String label) {
-        HstComponentConfiguration pdpConfig =
-                findDataComponentConfig(request, label, DiscoveryProductDetailComponent.class);
-        if (pdpConfig == null) return Optional.empty();
-
-        // Stage 1: document picker path → bean → productId field
-        String docPath = pdpConfig.getParameter("document");
-        DiscoveryProductDetailBean doc =
-                getHippoBeanForPath(request, docPath, DiscoveryProductDetailBean.class);
-        if (doc != null) {
-            String pid = doc.getProductId();
-            if (pid != null && !pid.isBlank()) return Optional.of(pid);
-        }
-
-        // Stage 2: URL param name stored in component config (default: "pid")
-        String urlParam = pdpConfig.getParameter("productUrlParam");
-        if (urlParam == null || urlParam.isBlank()) urlParam = "pid";
-        String pid = getPublicRequestParameter(request, urlParam);
-        return (pid != null && !pid.isBlank()) ? Optional.of(pid) : Optional.empty();
-    }
-
-    private HstComponentConfiguration findDataComponentConfig(HstRequest request, String label, Class<?> dataClass) {
-        if (!isIsolatedComponentRender(request)) return null;
-        HstRequestContext ctx = request.getRequestContext();
-        if (ctx == null) return null;
-        var siteMapItem = ctx.getResolvedSiteMapItem();
-        if (siteMapItem == null) return null;
-        var pageConfig = siteMapItem.getHstComponentConfiguration();
-        if (pageConfig == null) return null;
-        String targetClassName = dataClass.getName();
-        return pageConfig.flattened()
-                .filter(c -> targetClassName.equals(c.getComponentClassName()))
-                .filter(c -> label.equals(effectiveLabel(c.getParameter("label"))))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static String effectiveLabel(String param) {
-        return (param == null || param.isBlank()) ? "default" : param;
+        return dataSourceResolver.backfillProductDetailPid(request, label);
     }
 
     protected static List<String> parseStatsFields(String value) {
@@ -233,15 +190,15 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     /**
      * Shared data-source resolution used by view components (ProductGrid, Facets).
-     * Probes the request cache for search and category results, runs a PPR backfill
-     * when in isolated-component-render mode, and sets {@code label} / {@code labelConnected}
+     * Probes the request cache for search and category results, backfills from the
+     * page's component tree on cache miss, and sets {@code label} / {@code labelConnected}
      * on the model. Also emits a CMS-preview warning when no data source is wired.
      */
     protected DataSourceResult resolveDataSource(HstRequest request, String label) {
         Optional<SearchResponse> cached = DiscoveryRequestCache.getSearchResponse(request, label)
                 .or(() -> DiscoveryRequestCache.getCategoryResponse(request, label));
         boolean backfilled = false;
-        if (cached.isEmpty() && isIsolatedComponentRender(request)) {
+        if (cached.isEmpty()) {
             cached = backfillSearchResponse(request, label);
             backfilled = cached.isPresent();
         }
@@ -253,8 +210,8 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
             labelConnected = backfilled || isBandConfiguredOnPage(request, label);
         }
         warnIfMissingDataSource(request, !labelConnected, label);
-        setModelAndAttribute(request, "label", label);
-        setModelAndAttribute(request, "labelConnected", labelConnected);
+        request.setModel(DiscoveryModelKeys.LABEL, label);
+        request.setModel(DiscoveryModelKeys.LABEL_CONNECTED, labelConnected);
         return new DataSourceResult(result, labelConnected);
     }
 
@@ -279,16 +236,6 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         if (ctx == null || !ctx.isChannelManagerPreviewRequest()) return false;
         var baseUrl = ctx.getBaseURL();
         return baseUrl != null && baseUrl.getComponentRenderingWindowReferenceNamespace() != null;
-    }
-
-    /**
-     * Sets a value on both the Page Model API ({@code setModel}) and the FTL attribute map
-     * ({@code setAttribute}) in one call. Every Discovery component needs both; this
-     * eliminates the mechanical two-line pattern.
-     */
-    protected void setModelAndAttribute(HstRequest request, String key, Object value) {
-        request.setModel(key, value);
-        request.setAttribute(key, value);
     }
 
     /**

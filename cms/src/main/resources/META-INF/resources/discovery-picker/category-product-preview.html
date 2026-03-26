@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discovery Category Product Preview</title>
+  <link rel="stylesheet" href="picker-field.css"/>
+  <style>
+    body { margin: 0; padding: 8px 0 0; }
+    #field-row { display: flex; align-items: center; gap: 8px; }
+    label { color: var(--text-faint); font-size: 12px; flex-shrink: 0; }
+    select {
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 4px 8px; font-family: var(--font); font-size: 12px;
+      color: var(--text); background: var(--surface); cursor: pointer;
+    }
+    select:disabled { background: var(--bg); color: var(--text-faint); cursor: default; }
+
+    #thumb-grid { display: flex; gap: 8px; margin-top: 10px; flex-wrap: nowrap; overflow: hidden; }
+
+    /* ── Product card — matches category-picker-dialog preview-card ── */
+    .preview-card {
+      flex: 0 0 90px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: cardIn 0.28s ease-out both;
+    }
+    .preview-card:nth-child(2) { animation-delay: 40ms; }
+    .preview-card:nth-child(3) { animation-delay: 80ms; }
+    .preview-card:nth-child(4) { animation-delay: 120ms; }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-image-wrap {
+      position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+      background-size: 10px 10px;
+    }
+    .card-image-wrap img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; display: block;
+    }
+    .card-image-wrap::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px;
+      background: linear-gradient(to bottom, transparent, var(--surface));
+      pointer-events: none;
+    }
+    .card-body { padding: 4px 6px 6px; }
+    .card-title {
+      font-size: 10px; font-weight: 500; line-height: 1.3; color: var(--text-muted);
+      overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .card-price {
+      font-size: 10px; font-weight: 700; color: var(--accent);
+      margin-top: 2px; font-variant-numeric: tabular-nums;
+    }
+
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-left: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="field-row">
+  <label for="count-select">Show:</label>
+  <select id="count-select">
+    <option value="0">None</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+  </select>
+  <span id="loading" style="display:none"><span class="spinner"></span></span>
+</div>
+<div id="thumb-grid" style="display:none"></div>
+
+<script src="ui-extension.min.js"></script>
+<script src="picker-utils.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var HEIGHT_BASE  = 60;
+  var HEIGHT_THUMB = 140;
+
+  var ui              = null;
+  var documentId      = "";
+  var liveCategoryId  = null; // set by postMessage from the category picker; null = read from JCR
+  var fetchTimer      = null;
+
+  var countSelect = document.getElementById("count-select");
+  var thumbGrid   = document.getElementById("thumb-grid");
+  var loadingEl   = document.getElementById("loading");
+
+  // When the category picker in the same document picks a new category it broadcasts
+  // this message. We capture the live value so we can pass it directly to the endpoint,
+  // bypassing the JCR read (which only reflects the saved state).
+  window.addEventListener("message", function (evt) {
+    if (evt.origin !== window.location.origin) return;
+    var d = evt.data;
+    if (!d || d.type !== "brxdis:categoryChanged" || d.documentId !== documentId) return;
+    liveCategoryId = d.categoryId || null;
+    scheduleFetch();
+  });
+
+  UiExtension.register().then(function (registeredUi) {
+    ui = registeredUi;
+
+    ui.document.field.getValue().then(function (val) {
+      setCount(parseInt(val, 10) || 0);
+    });
+
+    ui.document.get().then(function (doc) {
+      documentId = doc.id || "";
+      setEditable(doc.mode === "edit");
+      scheduleFetch();
+    });
+
+    ui.document.observe(function (doc) {
+      documentId = doc.id || "";
+      setEditable(doc.mode === "edit");
+    });
+
+    ui.document.field.setHeight(HEIGHT_BASE);
+  }).catch(function () {
+    // CMS not available — silently degrade
+  });
+
+  countSelect.addEventListener("change", function () {
+    var n = parseInt(countSelect.value, 10) || 0;
+    if (ui) ui.document.field.setValue(String(n));
+    scheduleFetch();
+  });
+
+  function scheduleFetch() {
+    clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(fetchPreview, 0);
+  }
+
+  function fetchPreview() {
+    var count = parseInt(countSelect.value, 10) || 0;
+    if (count === 0 || !documentId) {
+      hideGrid();
+      return;
+    }
+    loadingEl.style.display = "";
+    var params = { documentId: documentId, count: count };
+    // If the category picker has pushed a live value (not yet saved to JCR), pass it
+    // directly so the endpoint skips the stale JCR read.
+    if (liveCategoryId) params.categoryId = liveCategoryId;
+    var url = buildApiUrl(ui, "/discovery/picker/category-products", params);
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (items) {
+        loadingEl.style.display = "none";
+        renderGrid(items);
+      })
+      .catch(function () {
+        loadingEl.style.display = "none";
+        hideGrid();
+      });
+  }
+
+  function renderGrid(items) {
+    thumbGrid.replaceChildren();
+    if (!items || items.length === 0) {
+      hideGrid();
+      return;
+    }
+    items.forEach(function (item) {
+      var card = document.createElement("div");
+      card.className = "preview-card";
+
+      var imgWrap = document.createElement("div");
+      imgWrap.className = "card-image-wrap";
+      var img = document.createElement("img");
+      img.src     = item.imageUrl || "";
+      img.alt     = "";
+      img.loading = "lazy";
+      img.onerror = function () { this.style.display = "none"; };
+      imgWrap.appendChild(img);
+      card.appendChild(imgWrap);
+
+      var body = document.createElement("div");
+      body.className = "card-body";
+
+      var title = document.createElement("div");
+      title.className   = "card-title";
+      title.textContent = item.title || item.id || "";
+      body.appendChild(title);
+
+      if (item.price) {
+        var price = document.createElement("div");
+        price.className   = "card-price";
+        price.textContent = item.price;
+        body.appendChild(price);
+      }
+
+      card.appendChild(body);
+      thumbGrid.appendChild(card);
+    });
+    thumbGrid.style.display = "flex";
+    if (ui) ui.document.field.setHeight(HEIGHT_BASE + HEIGHT_THUMB);
+  }
+
+  function hideGrid() {
+    thumbGrid.replaceChildren();
+    thumbGrid.style.display = "none";
+    if (ui) ui.document.field.setHeight(HEIGHT_BASE);
+  }
+
+  function setCount(n) {
+    var safe = Math.min(4, Math.max(0, n));
+    countSelect.value = String(safe);
+  }
+
+  function setEditable(isEdit) {
+    countSelect.disabled = !isEdit;
+  }
+}());
+</script>
+</body>
+</html>

@@ -7,19 +7,35 @@
     <parent>
         <groupId>org.bloomreach.forge.discovery</groupId>
         <artifactId>brxm-discovery</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>brxm-discovery-site</artifactId>
 
     <name>brXM Discovery Plugin - Site</name>
-    <description>Site module for Bloomreach Discovery integration</description>
+    <description>Site webapp entry point for Bloomreach Discovery integration</description>
 
     <dependencies>
+        <!-- Bundles the plugin's HCM site bootstrap transitively for consumers. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>brxm-discovery-hcm-site</artifactId>
+        </dependency>
+
+        <!-- Shared: config, exceptions, search model -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>brxm-discovery-shared</artifactId>
+        </dependency>
+
         <!-- CRISP -->
         <dependency>
             <groupId>org.onehippo.cms7</groupId>
             <artifactId>hippo-addon-crisp-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-addon-crisp-hst</artifactId>
         </dependency>
 
         <!-- HST -->
@@ -41,6 +57,16 @@
             <groupId>org.onehippo.cms7</groupId>
             <artifactId>hippo-repository-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-cms7-commons</artifactId>
+            <version>${hippo.release.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.onehippo.cms7</groupId>
+            <artifactId>hippo-services</artifactId>
+        </dependency>
 
         <!-- JCR -->
         <dependency>
@@ -58,32 +84,12 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <!-- Hippo Services (HippoServiceRegistry — needed for CRISP broker lookup) -->
-        <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-services</artifactId>
-        </dependency>
-
-        <!-- Spring Beans (InitializingBean/DisposableBean for JCR listener lifecycle) -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Spring Web (UriComponentsBuilder for query-param assembly in DiscoveryClientImpl) -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
             <version>${spring.version}</version>
             <scope>provided</scope>
-        </dependency>
-
-        <!-- Guava -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
         </dependency>
 
         <!-- Logging -->
@@ -96,6 +102,7 @@
         <dependency>
             <groupId>org.onehippo.cms7</groupId>
             <artifactId>hippo-addon-crisp-mock</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- Test -->

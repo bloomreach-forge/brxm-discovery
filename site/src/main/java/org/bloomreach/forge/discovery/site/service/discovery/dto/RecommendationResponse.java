@@ -12,5 +12,9 @@ public record RecommendationResponse(
     public record WidgetMetadata(@JsonProperty("widget") WidgetInfo widget) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record WidgetInfo(@JsonProperty("rid") String rid) {}
+    public record WidgetInfo(
+            @JsonProperty("id") String id,
+            @JsonProperty("type") String type,
+            @JsonProperty("rid") String rid
+    ) {}
 }

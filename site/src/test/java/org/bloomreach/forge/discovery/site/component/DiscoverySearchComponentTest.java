@@ -2,10 +2,11 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -15,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -66,7 +66,6 @@ class DiscoverySearchComponentTest {
         verifyNoInteractions(discoveryService);
         verify(request).setModel("query", "");
         verify(request).setModel("searchResult", null);
-        verify(request).setAttribute("query", "");
     }
 
     @Test
@@ -88,79 +87,75 @@ class DiscoverySearchComponentTest {
 
     @Test
     void withQuery_delegatesToServiceWithComponentPageSize() {
-        when(discoveryService.search(request, 24, "price asc", null, "default", List.of(), "", "")).thenReturn(searchResponse);
+        when(discoveryService.search(eq(request), argThat(o -> o.pageSize() == 24 && "price asc".equals(o.sort()))))
+                .thenReturn(searchResponse);
 
         componentWith("shoes", 24, "price asc").doBeforeRender(request, response);
 
-        verify(discoveryService).search(request, 24, "price asc", null, "default", List.of(), "", "");
+        verify(discoveryService).search(eq(request), argThat(o -> o.pageSize() == 24 && "price asc".equals(o.sort())));
     }
 
     @Test
     void withQuery_delegatesToServiceWithZeroPageSizeWhenNotSet() {
-        when(discoveryService.search(eq(request), eq(0), eq(""), isNull(), eq("default"), eq(List.of()), eq(""), eq("")))
+        when(discoveryService.search(eq(request), argThat(o -> o.pageSize() == 0 && "".equals(o.sort()))))
                 .thenReturn(searchResponse);
 
         componentWith("boots", 0, "").doBeforeRender(request, response);
 
-        verify(discoveryService).search(request, 0, "", null, "default", List.of(), "", "");
+        verify(discoveryService).search(eq(request), argThat(o -> o.pageSize() == 0 && "".equals(o.sort())));
     }
 
     // ── models published ───────────────────────────────────────────────────
 
     @Test
     void withQuery_setsQueryModel() {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(searchResponse);
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class))).thenReturn(searchResponse);
 
         componentWith("boots", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("query", "boots");
-        verify(request).setAttribute("query", "boots");
     }
 
     @Test
     void withQuery_setsSearchResultModel() {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(searchResponse);
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class))).thenReturn(searchResponse);
 
         componentWith("boots", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("searchResult", searchResult);
-        verify(request).setAttribute("searchResult", searchResult);
     }
 
     // ── query trimming ─────────────────────────────────────────────────────
 
     @Test
     void query_leadingTrailingWhitespace_trimmedBeforeUse() {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(searchResponse);
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class))).thenReturn(searchResponse);
 
         componentWith("  shoes  ", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("query", "shoes");
-        verify(request).setAttribute("query", "shoes");
     }
 
     // ── label model ────────────────────────────────────────────────────────
 
     @Test
     void withQuery_setsLabelModel_defaultLabel() {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), eq("default"), any(), any(), any()))
+        when(discoveryService.search(eq(request), argThat(o -> "default".equals(o.label()))))
                 .thenReturn(searchResponse);
 
         componentWith("boots", 12, "", "default").doBeforeRender(request, response);
 
         verify(request).setModel("label", "default");
-        verify(request).setAttribute("label", "default");
     }
 
     @Test
     void withQuery_setsLabelModel_namedLabel() {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), eq("search-bar"), any(), any(), any()))
+        when(discoveryService.search(eq(request), argThat(o -> "search-bar".equals(o.label()))))
                 .thenReturn(searchResponse);
 
         componentWith("boots", 12, "", "search-bar").doBeforeRender(request, response);
 
         verify(request).setModel("label", "search-bar");
-        verify(request).setAttribute("label", "search-bar");
     }
 
     // ── bar config models always set ──────────────────────────────────────
@@ -183,7 +178,7 @@ class DiscoverySearchComponentTest {
     @Test
     void suggestionsEnabled_withQuery_callsAutosuggestAndSetsResult() {
         var autosuggestResult = new AutosuggestResult("boots", List.of("boots"), List.of(), List.of());
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(searchResponse);
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class))).thenReturn(searchResponse);
         when(discoveryService.autosuggest(request, "boots", 5)).thenReturn(autosuggestResult);
 
         componentWithSuggestions("boots", true, 5, "", null)
@@ -197,7 +192,7 @@ class DiscoverySearchComponentTest {
 
     @Test
     void suggestionsDisabled_noAutosuggestCall() {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(searchResponse);
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class))).thenReturn(searchResponse);
 
         componentWithSuggestions("boots", false, 5, "", null)
                 .doBeforeRender(request, response);
@@ -213,7 +208,7 @@ class DiscoverySearchComponentTest {
         componentWithSuggestions("", true, 5, "", null)
                 .doBeforeRender(request, response);
 
-        verify(discoveryService, never()).search(any(), anyInt(), any(), any(), any(), any(), any(), any());
+        verify(discoveryService, never()).search(any(), any(SearchRequestOptions.class));
         verify(discoveryService, never()).autosuggest(any(), any(), anyInt());
         verify(request).setModel("autosuggestResult", null);
     }
@@ -228,7 +223,7 @@ class DiscoverySearchComponentTest {
         componentWithSuggestions("hat", true, 5, "", "1")
                 .doBeforeRender(request, response);
 
-        verify(discoveryService, never()).search(any(), anyInt(), any(), any(), any(), any(), any(), any());
+        verify(discoveryService, never()).search(any(), any(SearchRequestOptions.class));
         verify(discoveryService).autosuggest(request, "hat", 5);
         verify(request).setModel("suggestOnlyMode", true);
     }
@@ -247,13 +242,12 @@ class DiscoverySearchComponentTest {
     void autoRedirect_false_withRedirectUrl_setsModelAttributesOnly() throws Exception {
         var redirectMeta = new SearchMetadata(Map.of(), null, null, "https://example.com/sale", "sale shoes");
         var redirectResponse = new SearchResponse(searchResult, redirectMeta);
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any()))
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(redirectResponse);
 
         componentWith("shoes", 12, "", "default").doBeforeRender(request, response);
 
         verify(request).setModel("redirectUrl", "https://example.com/sale");
-        verify(request).setAttribute("redirectUrl", "https://example.com/sale");
         verify(request).setModel("redirectQuery", "sale shoes");
         verify(response, never()).sendRedirect(any());
     }
@@ -262,7 +256,7 @@ class DiscoverySearchComponentTest {
     void autoRedirect_true_withRedirectUrl_callsSendRedirect() throws Exception {
         var redirectMeta = new SearchMetadata(Map.of(), null, null, "https://example.com/sale", "sale shoes");
         var redirectResponse = new SearchResponse(searchResult, redirectMeta);
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any()))
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(redirectResponse);
 
         new TestableSearchComponent(discoveryService, "shoes", 12, "", "default",
@@ -274,7 +268,7 @@ class DiscoverySearchComponentTest {
 
     @Test
     void autoRedirect_true_noRedirectUrl_proceedsNormally() throws Exception {
-        when(discoveryService.search(eq(request), anyInt(), any(), any(), any(), any(), any(), any()))
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(searchResponse);
 
         new TestableSearchComponent(discoveryService, "shoes", 12, "", "default",

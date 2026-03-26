@@ -1,7 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Intentionally empty — beans are in META-INF/hst-assembly/overrides/brxm-discovery-site.xml
-     which loads into the main HST Spring context, accessible via getComponentManager().getComponent(). -->
+<!--
+  brXM Discovery Plugin — Site assembly
+  ======================================
+  Loaded through META-INF/hst-assembly/addon/module.xml so addon consumers do not need
+  dependency-jar override scanning for the core Discovery service beans.
+-->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-                           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd"/>
+                           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+
+    <!-- Internal helpers -->
+
+    <bean id="brxmdis.configReader"
+          class="org.bloomreach.forge.discovery.config.DiscoveryConfigReader"/>
+
+    <bean id="brxmdis.responseMapper"
+          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryResponseMapper">
+        <constructor-arg>
+            <bean class="com.fasterxml.jackson.databind.ObjectMapper"/>
+        </constructor-arg>
+    </bean>
+
+    <bean id="brxmdis.resourceServiceBrokerFactory"
+          class="org.bloomreach.forge.discovery.site.service.discovery.CrispResourceServiceBrokerFactory"
+          lazy-init="true"/>
+
+    <bean id="brxmdis.resourceServiceBroker"
+          factory-bean="brxmdis.resourceServiceBrokerFactory"
+          factory-method="getObject"
+          lazy-init="true"/>
+
+    <bean id="brxmdis.discoveryClient"
+          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.resourceServiceBroker"/>
+        <constructor-arg ref="brxmdis.responseMapper"/>
+    </bean>
+
+    <!-- Public services — bean IDs match Class.getName() for getComponent() lookups -->
+
+    <bean id="org.bloomreach.forge.discovery.config.DiscoveryConfigResolver"
+          class="org.bloomreach.forge.discovery.config.DiscoveryConfigResolver">
+        <constructor-arg ref="brxmdis.configReader"/>
+    </bean>
+
+    <bean id="brxmdis.configProvider"
+          class="org.bloomreach.forge.discovery.config.CachingDiscoveryConfigProvider">
+        <constructor-arg ref="org.bloomreach.forge.discovery.config.DiscoveryConfigResolver"/>
+    </bean>
+
+    <bean id="brxmdis.configProviderServiceRegistration"
+          class="org.bloomreach.forge.discovery.site.platform.DiscoveryConfigProviderServiceRegistration"
+          init-method="register"
+          destroy-method="unregister">
+        <constructor-arg ref="brxmdis.configProvider"/>
+    </bean>
+
+    <bean id="brxmdis.configJcrListener"
+          class="org.bloomreach.forge.discovery.config.DiscoveryConfigJcrListener"
+          init-method="start"
+          destroy-method="close">
+        <constructor-arg ref="brxmdis.configProvider"/>
+    </bean>
+
+    <bean id="brxmdis.pixelExecutor"
+          class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="2"/>
+        <property name="maxPoolSize" value="4"/>
+        <property name="queueCapacity" value="256"/>
+        <property name="threadNamePrefix" value="brxdis-pixel-"/>
+        <property name="rejectedExecutionHandler">
+            <bean class="java.util.concurrent.ThreadPoolExecutor$DiscardOldestPolicy"/>
+        </property>
+    </bean>
+
+    <bean id="brxmdis.pixelService"
+          class="org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelServiceImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.discoveryClient"/>
+        <constructor-arg ref="brxmdis.pixelExecutor"/>
+    </bean>
+
+    <bean id="brxmdis.runtimeContextFactory"
+          class="org.bloomreach.forge.discovery.site.platform.DiscoveryRuntimeContextFactory"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="org.bloomreach.forge.discovery.site.platform.DiscoveryBrUid2Service"/>
+    </bean>
+
+    <bean id="org.bloomreach.forge.discovery.site.platform.DiscoveryBrUid2Service"
+          class="org.bloomreach.forge.discovery.site.platform.DiscoveryBrUid2Service"
+          lazy-init="true"/>
+
+    <bean id="org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache"
+          class="org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache"
+          lazy-init="true"/>
+
+    <bean id="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
+          class="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.discoveryClient"/>
+        <constructor-arg ref="brxmdis.runtimeContextFactory"/>
+        <constructor-arg ref="brxmdis.pixelService"/>
+        <constructor-arg><null/></constructor-arg>
+    </bean>
+
+</beans>

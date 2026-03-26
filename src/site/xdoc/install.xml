@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Installation</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Prerequisites">
+      <table>
+        <tr><th>Requirement</th><th>Version / Notes</th></tr>
+        <tr><td>brXM</td><td>16.7.0</td></tr>
+        <tr><td>Java</td><td>17</td></tr>
+        <tr><td>Maven</td><td>3.8+</td></tr>
+      </table>
+    </section>
+
+    <section name="Maven Repository">
+      <p>Add the Bloomreach public and Forge repositories if your project does not already inherit them.</p>
+      <div class="brush: xml">
+        <source><![CDATA[
+<repositories>
+  <repository>
+    <id>bloomreach-maven2</id>
+    <name>Bloomreach Maven 2 Repository</name>
+    <url>https://maven.bloomreach.com/repository/maven2/</url>
+  </repository>
+  <repository>
+    <id>bloomreach-maven2-forge</id>
+    <name>Bloomreach Maven 2 Forge Repository</name>
+    <url>https://maven.bloomreach.com/repository/maven2-forge/</url>
+  </repository>
+</repositories>
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Dependency Management">
+      <p>Declare the CMS and site artifacts once in the root <code>dependencyManagement</code> section.</p>
+      <div class="brush: xml">
+        <source><![CDATA[
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.bloomreach.forge.discovery</groupId>
+      <artifactId>brxm-discovery-cms</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bloomreach.forge.discovery</groupId>
+      <artifactId>brxm-discovery-site</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="CMS Runtime">
+      <p>Add <code>brxm-discovery-cms</code> to the CMS runtime module that feeds your <code>cms.war</code>.</p>
+      <div class="brush: xml">
+        <source><![CDATA[
+<dependency>
+  <groupId>org.bloomreach.forge.discovery</groupId>
+  <artifactId>brxm-discovery-cms</artifactId>
+</dependency>
+        ]]></source>
+      </div>
+      <p>This artifact provides the picker runtime, node types, and bootstrap content.</p>
+      <table>
+        <tr><th>Capability</th><th>What it provides</th></tr>
+        <tr><td>Picker UI</td><td><code>discoveryProductPicker</code>, <code>discoveryWidgetPicker</code>, and <code>discoveryCategoryPicker</code>.</td></tr>
+        <tr><td>CND / namespace</td><td><code>brxdis</code> namespace and the <code>brxdis:discoveryConfig</code> node type.</td></tr>
+        <tr><td>HCM bootstrap</td><td>Discovery daemon module, editor extensions, and default content definitions.</td></tr>
+        <tr><td>CRISP spaces</td><td>Generic Discovery resource spaces for search, pathways, and autosuggest.</td></tr>
+      </table>
+    </section>
+
+    <section name="Site Webapp">
+      <p>Add <code>brxm-discovery-site</code> to the site webapp WAR. This is the site runtime entry point.</p>
+      <div class="brush: xml">
+        <source><![CDATA[
+<dependency>
+  <groupId>org.bloomreach.forge.discovery</groupId>
+  <artifactId>brxm-discovery-site</artifactId>
+</dependency>
+        ]]></source>
+      </div>
+      <table>
+        <tr><th>Bean / Service</th><th>Role</th></tr>
+        <tr><td><code>HstDiscoveryService</code></td><td>HST-facing facade for config lookup, caching, and API access.</td></tr>
+        <tr><td><code>DiscoveryClientImpl</code></td><td>CRISP-backed request builder for search, browse, autosuggest, and recommendations.</td></tr>
+        <tr><td><code>CachingDiscoveryConfigProvider</code></td><td>JVM-lifetime config cache invalidated by JCR observation.</td></tr>
+        <tr><td><code>DiscoveryPixelServiceImpl</code></td><td>Fire-and-forget tracking pixel delivery.</td></tr>
+      </table>
+    </section>
+
+    <section name="Site/Components module">
+      <p>
+        If your project has a separate <code>site/components</code> module, add
+        <code>brxm-discovery-site</code> there as well so custom Java compiles against the same addon
+        APIs, component classes, and <code>DiscoveryChannelInfo</code> interface as the runtime.
+      </p>
+      <div class="brush: xml">
+        <source><![CDATA[
+<dependency>
+  <groupId>org.bloomreach.forge.discovery</groupId>
+  <artifactId>brxm-discovery-site</artifactId>
+</dependency>
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="What bootstraps automatically">
+      <table>
+        <tr><th>What</th><th>JCR path</th></tr>
+        <tr><td><code>brxdis</code> namespace and CND</td><td><code>/hippo:namespaces/brxdis</code></td></tr>
+        <tr><td><code>brxdis:discoveryConfig</code> editor type</td><td><code>/hippo:namespaces/brxdis/discoveryConfig</code></td></tr>
+        <tr><td>Picker daemon module</td><td><code>/hippo:configuration/hippo:modules/brxm-discovery</code></td></tr>
+        <tr><td>Open UI picker extension</td><td><code>/hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductPicker</code></td></tr>
+        <tr><td>CRISP resource spaces</td><td><code>/hippo:configuration/hippo:modules/crispregistry/...</code></td></tr>
+        <tr><td>Bundled plugin templates</td><td><code>/hst:hst/hst:configurations/hst:default/hst:templates/brxdis-*</code></td></tr>
+      </table>
+    </section>
+
+    <section name="Post-install checklist">
+      <ol>
+        <li>Set <code>crisp.broker.registerService=true</code> in the site webapp <code>hst-config.properties</code>.</li>
+        <li>Provide Discovery credentials through env vars, system properties, or the global config node.</li>
+        <li>Wire the Discovery HST components into your sitemap and page composition.</li>
+      </ol>
+    </section>
+
+    <section name="Verify">
+      <p>After startup, check for the expected log lines and a live picker endpoint.</p>
+      <div class="brush: text">
+        <source><![CDATA[
+brxm-discovery: registered picker endpoint at /discovery/picker
+brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
+        ]]></source>
+      </div>
+      <p>Then open <code>http://localhost:8080/cms/ws/discovery/picker/search</code>. A JSON response confirms the CMS endpoint is active.</p>
+    </section>
+
+    <section name="Troubleshooting">
+      <table>
+        <tr><th>Symptom</th><th>Typical fix</th></tr>
+        <tr>
+          <td><code>Required HST service is not available: org.bloomreach.forge.discovery.site.platform.HstDiscoveryService</code></td>
+          <td>Reinstall the addon snapshot locally, rebuild the host project, and redeploy the site webapp.</td>
+        </tr>
+        <tr>
+          <td><code>No resource space for 'discoverySearchAPI'</code></td>
+          <td>Rebuild and redeploy the site webapp so the current CRISP resolver assembly is loaded.</td>
+        </tr>
+      </table>
+      <p>Typical local snapshot refresh:</p>
+      <div class="brush: bash">
+        <source><![CDATA[
+cd /path/to/brxm-discovery
+mvn -DskipTests install
+
+cd /path/to/your-project
+mvn clean install
+        ]]></source>
+      </div>
+    </section>
+
+  </body>
+</document>

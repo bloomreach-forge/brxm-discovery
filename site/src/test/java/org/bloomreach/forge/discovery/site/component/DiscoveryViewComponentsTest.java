@@ -1,13 +1,13 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryDataSourceComponentInfo;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.Facet;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.FacetValue;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.PaginationModel;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.Facet;
+import org.bloomreach.forge.discovery.search.model.FacetValue;
+import org.bloomreach.forge.discovery.search.model.PaginationModel;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.container.HstContainerURL;
@@ -54,7 +54,7 @@ class DiscoveryViewComponentsTest {
                 new ProductSummary("p1", "Shoe", "http://shoe", "http://img", BigDecimal.TEN, "USD", Map.of())
         );
         Map<String, Facet> facets = Map.of(
-                "brand", new Facet("brand", "text", List.of(new FacetValue("Nike", 10, null, null, null, null)))
+                "brand", new Facet("brand", "text", List.of(new FacetValue("Nike", 10, null, null, null, null, null, null)))
         );
         searchResult = new SearchResult(products, 42L, 1, 12, facets);
         categoryResult = new SearchResult(products, 100L, 0, 24, facets);
@@ -72,7 +72,6 @@ class DiscoveryViewComponentsTest {
         grid.doBeforeRender(request, response);
 
         verify(request).setModel("products", searchResult.products());
-        verify(request).setAttribute("products", searchResult.products());
 
         ArgumentCaptor<PaginationModel> captor = ArgumentCaptor.forClass(PaginationModel.class);
         verify(request).setModel(eq("pagination"), captor.capture());
@@ -186,8 +185,8 @@ class DiscoveryViewComponentsTest {
 
     @Test
     void productGrid_editMode_bandAbsent_noWarning() {
-        // Isolated component re-render (PPR): isBandConfiguredOnPage override returns true
-        // (data component found in page tree) → no false "band not connected" warning.
+        // Data component found in page tree → isBandConfiguredOnPage returns true
+        // → no false "band not connected" warning.
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
         TestableProductGridComponent component = new TestableProductGridComponent();
@@ -278,7 +277,6 @@ class DiscoveryViewComponentsTest {
         new TestableProductGridComponent("default").doBeforeRender(request, response);
 
         verify(request).setModel("label", "default");
-        verify(request).setAttribute("label", "default");
     }
 
     @Test
@@ -298,37 +296,44 @@ class DiscoveryViewComponentsTest {
         new TestableFacetComponent("default").doBeforeRender(request, response);
 
         verify(request).setModel("label", "default");
-        verify(request).setAttribute("label", "default");
     }
 
-    // --- PPR backfill ---
+    // --- Backfill (consumer-before-producer / PPR) ---
 
     @Test
-    void productGrid_pprMode_backfillsFromProducer_showsProducts() {
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("some-ns");
-
+    void productGrid_cacheMiss_backfillsFromProducer_showsProducts() {
         TestableProductGridComponent grid = new TestableProductGridComponent();
         grid.setBackfillResponse(searchResponse);
         grid.doBeforeRender(request, response);
 
         verify(request).setModel("products", searchResult.products());
+        verify(request).setModel("labelConnected", true);
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
     }
 
     @Test
-    void facet_pprMode_backfillsFromProducer_showsFacets() {
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        when(requestContext.getBaseURL()).thenReturn(baseUrl);
-        when(baseUrl.getComponentRenderingWindowReferenceNamespace()).thenReturn("some-ns");
-
+    void facet_cacheMiss_backfillsFromProducer_showsFacets() {
         TestableFacetComponent facet = new TestableFacetComponent();
         facet.setBackfillResponse(searchResponse);
         facet.doBeforeRender(request, response);
 
         verify(request).setModel("facets", searchResult.facets());
+        verify(request).setModel("labelConnected", true);
         verify(request, never()).setAttribute(eq("brxdis_warning"), anyString());
+    }
+
+    @Test
+    void productGrid_producerAlreadyRan_noBackfill() {
+        // Producer ran first → cache hit. Backfill should NOT be invoked.
+        when(requestContext.getAttribute(SEARCH_ATTR)).thenReturn(searchResponse);
+        lenient().when(requestContext.getAttribute(SEARCH_BAND_MARKER)).thenReturn(Boolean.TRUE);
+
+        TestableProductGridComponent grid = new TestableProductGridComponent();
+        grid.setBackfillResponse(null); // would fail if called
+        grid.doBeforeRender(request, response);
+
+        verify(request).setModel("products", searchResult.products());
+        verify(request).setModel("labelConnected", true);
     }
 
     // --- Testable subclasses that override getComponentParametersInfo ---

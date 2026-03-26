@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Recommendations</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="DiscoveryRecommendationComponent">
+      <table>
+        <tr><th>Param</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>document</code></td><td>none</td><td>Widget picker document. Overrides request <code>widgetId</code>.</td></tr>
+        <tr><td><code>contextProductId</code></td><td><code>""</code></td><td>Static PID fallback for product-context widgets.</td></tr>
+        <tr><td><code>limit</code></td><td><code>8</code></td><td>Maximum number of products to return.</td></tr>
+        <tr><td><code>dataSource</code></td><td><code>standalone</code></td><td><code>standalone</code> or <code>productDetailBand</code>.</td></tr>
+        <tr><td><code>band</code></td><td><code>default</code></td><td>Product-detail band name when band mode is used.</td></tr>
+      </table>
+    </section>
+
+    <section name="v1 vs v2 Pathways">
+      <p>
+        API version selection is automatic. When <code>authKey</code> is absent the component calls the
+        v1 recommendations flow through <code>discoverySearchAPI</code>. When <code>authKey</code> is
+        present it switches to the v2 Pathways API through <code>discoveryPathwaysAPI</code>.
+      </p>
+    </section>
+
+    <section name="PDP band mode">
+      <p>
+        In <code>dataSource=productDetailBand</code> mode, the recommendations component reads the current
+        product PID from a sibling <code>DiscoveryProductDetailComponent</code> using the matching
+        <code>band</code> value. This is the intended pattern for PDP "similar items" carousels.
+      </p>
+    </section>
+
+    <section name="Dynamic widget resolution">
+      <p>
+        If no widget ID is provided through the document picker or request, the component can resolve an
+        enabled widget dynamically through <code>DiscoveryWidgetService</code>. Those lookups are cached
+        in-process for roughly five minutes.
+      </p>
+    </section>
+
+    <section name="Models">
+      <table>
+        <tr><th>Model</th><th>Description</th></tr>
+        <tr><td><code>products</code></td><td>Recommended products returned by Discovery.</td></tr>
+        <tr><td><code>widgetId</code></td><td>The resolved widget identifier used for the request.</td></tr>
+        <tr><td><code>widgetInfo</code></td><td>Metadata describing the resolved widget when available.</td></tr>
+      </table>
+    </section>
+
+    <section name="Page Model API">
+      <div class="brush: json">
+        <source><![CDATA[
+{
+  "page": {
+    "recommendations": {
+      "models": {
+        "widgetId": "similar-items",
+        "products": [
+          { "id": "SKU-123", "title": "Running Shoe", "price": 99.99 }
+        ]
+      }
+    }
+  }
+}
+        ]]></source>
+      </div>
+    </section>
+
+  </body>
+</document>

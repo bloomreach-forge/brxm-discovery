@@ -87,7 +87,7 @@ Then build the brXM docker image:
     mvn -Pdocker.build
 
 This maven profile will create a docker image and add it to the local docker registry. The new image will be tagged
-as org.bloomreach.forge.discovery/demo:1.0.0-SNAPSHOT
+as org.bloomreach.forge.discovery/demo:0.0.1-SNAPSHOT
 
 To run the image with in-memory h2 database:
 

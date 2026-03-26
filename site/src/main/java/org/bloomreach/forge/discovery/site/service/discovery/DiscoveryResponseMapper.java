@@ -3,7 +3,7 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.bloomreach.forge.discovery.site.exception.SearchException;
+import org.bloomreach.forge.discovery.exception.SearchException;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.AutosuggestResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.CampaignDto;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.FacetCounts;
@@ -15,18 +15,19 @@ import org.bloomreach.forge.discovery.site.service.discovery.dto.RecommendationR
 import org.bloomreach.forge.discovery.site.service.discovery.dto.SearchApiResponse;
 import org.bloomreach.forge.discovery.site.service.discovery.dto.StatsDto;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.Campaign;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.Facet;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.FacetValue;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.FieldStats;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.Campaign;
+import org.bloomreach.forge.discovery.search.model.Facet;
+import org.bloomreach.forge.discovery.search.model.FacetValue;
+import org.bloomreach.forge.discovery.search.model.FieldStats;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.onehippo.cms7.crisp.api.resource.Resource;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,23 @@ public class DiscoveryResponseMapper {
                 redirectUrl, redirectQuery, campaign));
     }
 
+    public SearchResponse toBrowseResponse(Resource resource, int page, int pageSize, String categoryId) {
+        SearchApiResponse dto = parse(resource, SearchApiResponse.class);
+        SearchResult result = toSearchResult(dto, page, pageSize);
+        Map<String, FieldStats> stats = toStats(dto.stats());
+        String redirectUrl = dto.keywordRedirect() != null ? dto.keywordRedirect().redirectedUrl() : null;
+        String redirectQuery = dto.keywordRedirect() != null ? dto.keywordRedirect().redirectedQuery() : null;
+        Campaign campaign = toCampaign(dto.campaign());
+        String categoryName = extractCategoryName(dto.categoryMap(), categoryId);
+        return new SearchResponse(result, new SearchMetadata(stats, dto.didYouMean(), dto.autoCorrectQuery(),
+                redirectUrl, redirectQuery, campaign, categoryName));
+    }
+
+    private static String extractCategoryName(Map<String, String> categoryMap, String categoryId) {
+        if (categoryMap == null || categoryId == null) return null;
+        return categoryMap.get(categoryId);
+    }
+
     public SearchResult toSearchResult(Resource resource, int page, int pageSize) {
         return toSearchResult(parse(resource, SearchApiResponse.class), page, pageSize);
     }
@@ -69,9 +87,13 @@ public class DiscoveryResponseMapper {
             return RecommendationResult.of(List.of());
         }
         List<ProductSummary> products = dto.response().docs().stream().map(this::toProductSummary).toList();
+        String wid = dto.metadata() != null && dto.metadata().widget() != null
+                ? dto.metadata().widget().id() : null;
+        String wty = dto.metadata() != null && dto.metadata().widget() != null
+                ? dto.metadata().widget().type() : null;
         String wrid = dto.metadata() != null && dto.metadata().widget() != null
                 ? dto.metadata().widget().rid() : null;
-        return new RecommendationResult(wrid, products);
+        return new RecommendationResult(wid, wty, wrid, products);
     }
 
     public AutosuggestResult toAutosuggestResult(Resource resource) {
@@ -106,6 +128,23 @@ public class DiscoveryResponseMapper {
                 List.copyOf(querySuggestions),
                 List.copyOf(attributeSuggestions),
                 List.copyOf(productSuggestions));
+    }
+
+    public Map<String, String> toWidgetTypeMap(Resource resource) {
+        JsonNode root = (JsonNode) resource.getNodeData();
+        JsonNode widgets = root.path("response").path("widgets");
+        if (!widgets.isArray()) {
+            return Map.of();
+        }
+        Map<String, String> result = new HashMap<>();
+        for (JsonNode widget : widgets) {
+            String id = widget.path("id").asText(null);
+            String type = widget.path("type").asText(null);
+            if (id != null && !id.isBlank() && type != null && !type.isBlank()) {
+                result.put(id, type);
+            }
+        }
+        return Map.copyOf(result);
     }
 
     private ProductSummary toProductSummary(ProductDoc doc) {
@@ -147,7 +186,7 @@ public class DiscoveryResponseMapper {
 
     private FacetValue toFacetValue(FacetValueDto dto) {
         String name = dto.catName() != null ? dto.catName() : dto.name();
-        return new FacetValue(name, dto.count(), dto.catId(), dto.crumb(), dto.treePath(), dto.parent());
+        return new FacetValue(name, dto.count(), dto.catId(), dto.crumb(), dto.treePath(), dto.parent(), dto.start(), dto.end());
     }
 
     private Map<String, FieldStats> toStats(StatsDto statsDto) {

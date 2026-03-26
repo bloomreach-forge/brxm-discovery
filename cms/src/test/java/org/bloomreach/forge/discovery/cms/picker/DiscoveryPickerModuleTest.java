@@ -1,16 +1,20 @@
 package org.bloomreach.forge.discovery.cms.picker;
 
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.onehippo.cms7.services.HippoServiceRegistry;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -23,14 +27,34 @@ class DiscoveryPickerModuleTest {
 
     @Mock Session session;
     @Mock Node pixelNode;
+    @Mock DiscoveryConfigProvider configProvider;
 
     @AfterEach
-    void clearSysProp() {
+    void clearState() {
         System.clearProperty("brxdis.pixelBaseUri");
+        HippoServiceRegistry.unregister(configProvider, DiscoveryConfigProvider.class);
     }
 
     @Test
-    void initialize_withEnvVar_updatesPixelCrispNode() throws RepositoryException {
+    void registerConfigProvider_exposesProviderViaHippoServiceRegistry() {
+        DiscoveryPickerModule module = new DiscoveryPickerModule(key -> null);
+        module.registerConfigProvider(configProvider);
+
+        assertNotNull(HippoServiceRegistry.getService(DiscoveryConfigProvider.class));
+    }
+
+    @Test
+    void unregisterConfigProvider_removesProviderFromHippoServiceRegistry() {
+        DiscoveryPickerModule module = new DiscoveryPickerModule(key -> null);
+        module.registerConfigProvider(configProvider);
+
+        module.unregisterConfigProvider(configProvider);
+
+        assertNull(HippoServiceRegistry.getService(DiscoveryConfigProvider.class));
+    }
+
+    @Test
+    void applyPixelBaseUriOverride_withEnvVar_updatesPixelCrispNode() throws RepositoryException {
         when(session.nodeExists(PIXEL_NODE_PATH)).thenReturn(true);
         when(session.getNode(PIXEL_NODE_PATH)).thenReturn(pixelNode);
 
@@ -39,11 +63,11 @@ class DiscoveryPickerModuleTest {
         module.applyPixelBaseUriOverride(session);
 
         verify(pixelNode).setProperty(eq("crisp:propvalues"), eq(new String[]{"https://p-eu.brsrvr.com"}));
-        verify(session).save();
+        verify(session, never()).save();
     }
 
     @Test
-    void initialize_withSysProp_updatesPixelCrispNode() throws RepositoryException {
+    void applyPixelBaseUriOverride_withSysProp_updatesPixelCrispNode() throws RepositoryException {
         System.setProperty("brxdis.pixelBaseUri", "https://p-eu.brsrvr.com");
         when(session.nodeExists(PIXEL_NODE_PATH)).thenReturn(true);
         when(session.getNode(PIXEL_NODE_PATH)).thenReturn(pixelNode);
@@ -52,11 +76,11 @@ class DiscoveryPickerModuleTest {
         module.applyPixelBaseUriOverride(session);
 
         verify(pixelNode).setProperty(eq("crisp:propvalues"), eq(new String[]{"https://p-eu.brsrvr.com"}));
-        verify(session).save();
+        verify(session, never()).save();
     }
 
     @Test
-    void initialize_noOverride_doesNotUpdateNode() throws RepositoryException {
+    void applyPixelBaseUriOverride_noOverride_doesNotUpdateNode() throws RepositoryException {
         DiscoveryPickerModule module = new DiscoveryPickerModule(key -> null);
         module.applyPixelBaseUriOverride(session);
 
@@ -65,7 +89,7 @@ class DiscoveryPickerModuleTest {
     }
 
     @Test
-    void initialize_missingCrispNode_doesNotThrow() throws RepositoryException {
+    void applyPixelBaseUriOverride_missingCrispNode_doesNotThrow() throws RepositoryException {
         when(session.nodeExists(PIXEL_NODE_PATH)).thenReturn(false);
 
         DiscoveryPickerModule module = new DiscoveryPickerModule(

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 76 76">
+  <!-- Left filter panel (blue) -->
+  <rect x="1" y="1" width="28" height="74" fill="#ffd500"/>
+  <path d="M27.1,2.9V73.1H2.9V2.9H27.1 M29,1H1V75H29V1Z" fill="#002840"/>
+  <!-- Filter group 1 header -->
+  <rect x="3" y="6" width="22" height="2" fill="#002840"/>
+  <!-- Filter items: circle bullet + text line -->
+  <circle cx="7" cy="13" r="2.5" fill="#002840"/>
+  <rect x="12" y="12" width="14" height="1.9" fill="#fff"/>
+  <circle cx="7" cy="20" r="2.5" fill="#002840"/>
+  <rect x="12" y="19" width="11" height="1.9" fill="#fff"/>
+  <circle cx="7" cy="27" r="3" fill="#002840"/>
+  <rect x="12" y="26" width="14" height="1.9" fill="#fff"/>
+  <!-- Filter group 2 header -->
+  <rect x="3" y="35" width="22" height="2" fill="#002840"/>
+  <circle cx="7" cy="42" r="2.5" fill="#002840"/>
+  <rect x="12" y="41" width="16" height="1.9" fill="#fff"/>
+  <circle cx="7" cy="49" r="3" fill="#002840"/>
+  <rect x="12" y="48" width="11" height="1.9" fill="#fff"/>
+  <circle cx="7" cy="56" r="2.5" fill="#002840"/>
+  <rect x="12" y="55" width="14" height="1.9" fill="#fff"/>
+  <!-- Filter group 3 header -->
+  <rect x="3" y="64" width="22" height="2" fill="#002840"/>
+  <circle cx="7" cy="71" r="2.5" fill="#002840"/>
+  <rect x="12" y="70" width="13" height="1.9" fill="#fff"/>
+  <!-- Right: 3 filtered product result rows -->
+  <rect x="33" y="1" width="42" height="22" fill="#ffd500"/>
+  <path d="M73.1,2.9V21.1H34.9V2.9H73.1 M75,1H33V23H75V1Z" fill="#002840"/>
+  <rect x="35" y="3" width="10" height="16" fill="#fff"/>
+  <rect x="48" y="5" width="23" height="1.9" fill="#fff"/>
+  <rect x="48" y="9" width="17" height="1.9" fill="#fff"/>
+  <rect x="48" y="13" width="13" height="1.9" fill="#fff"/>
+
+  <rect x="33" y="27" width="42" height="22" fill="#ffd500"/>
+  <path d="M73.1,28.9V47.1H34.9V28.9H73.1 M75,27H33V49H75V27Z" fill="#002840"/>
+  <rect x="35" y="29" width="10" height="16" fill="#fff"/>
+  <rect x="48" y="31" width="23" height="1.9" fill="#fff"/>
+  <rect x="48" y="35" width="17" height="1.9" fill="#fff"/>
+  <rect x="48" y="39" width="13" height="1.9" fill="#fff"/>
+
+  <rect x="33" y="53" width="42" height="22" fill="#ffd500"/>
+  <path d="M73.1,54.9V73.1H34.9V54.9H73.1 M75,53H33V75H75V53Z" fill="#002840"/>
+  <rect x="35" y="55" width="10" height="16" fill="#fff"/>
+  <rect x="48" y="57" width="23" height="1.9" fill="#fff"/>
+  <rect x="48" y="61" width="17" height="1.9" fill="#fff"/>
+  <rect x="48" y="65" width="13" height="1.9" fill="#fff"/>
+</svg>

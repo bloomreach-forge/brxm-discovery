@@ -14,4 +14,4 @@ definitions:
           hst:mountpoint: /hst:demo/hst:sites/demo
           hst:pagemodelapi: resourceapi
           hst:parameternames: [discoveryConfigPath]
-          hst:parametervalues: ['/hippo:configuration/hippo:modules/brxm-discovery-picker/hippo:moduleconfig/discoveryConfig']
+          hst:parametervalues: ['/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig/channels/demo']

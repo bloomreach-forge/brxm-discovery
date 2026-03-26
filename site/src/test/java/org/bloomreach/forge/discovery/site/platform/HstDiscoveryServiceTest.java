@@ -1,24 +1,26 @@
 package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
-import org.bloomreach.forge.discovery.site.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClient;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigProvider;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigResolver;
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
+import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchMetadata;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.SearchMetadata;
+import org.bloomreach.forge.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.service.discovery.sor.SoREnrichmentProvider;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -31,10 +33,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.jcr.Session;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -43,7 +46,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HstDiscoveryServiceTest {
 
-    @Mock DiscoveryClient client;
+    @Mock DiscoveryApiClient client;
     @Mock DiscoveryConfigProvider configProvider;
     @Mock DiscoveryPixelService pixelService;
     @Mock HstRequest request;
@@ -54,6 +57,7 @@ class HstDiscoveryServiceTest {
     @Mock jakarta.servlet.http.HttpServletRequest servletRequest;
 
     private DiscoveryConfig validConfig;
+    private DiscoveryCredentials validCredentials;
     private SearchResult searchResult;
     private SearchResponse searchResponse;
     private HstDiscoveryService service;
@@ -63,23 +67,23 @@ class HstDiscoveryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HstDiscoveryService(client, configProvider, pixelService, null);
+        DiscoveryRuntimeContextFactory factory = new DiscoveryRuntimeContextFactory(configProvider);
+        service = new HstDiscoveryService(client, factory, pixelService, null);
 
         validConfig = new DiscoveryConfig(
                 "acct", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION",
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
                 10, "");
+        validCredentials = validConfig.credentials();
 
         searchResult = new SearchResult(List.of(), 0L, 0, 10, Map.of());
         searchResponse = new SearchResponse(searchResult, SearchMetadata.empty());
 
-        // Wire mount → configPath → config
+        // Wire mount → request context → config
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
         lenient().when(requestContext.getResolvedMount()).thenReturn(resolvedMount);
         lenient().when(resolvedMount.getMount()).thenReturn(mount);
-        lenient().when(mount.getParameter(DiscoveryConfigResolver.CONFIG_PATH_PARAM))
-                .thenReturn("/hippo:config/discoveryConfig");
-        lenient().when(configProvider.get("/hippo:config/discoveryConfig")).thenReturn(validConfig);
+        lenient().when(configProvider.get(nullable(Session.class))).thenReturn(validConfig);
 
         // Simulate attribute storage on requestContext mock (DiscoveryRequestCache uses HstRequestContext)
         lenient().doAnswer(inv -> attrs.get((String) inv.getArgument(0)))
@@ -94,6 +98,7 @@ class HstDiscoveryServiceTest {
         lenient().when(request.getServerPort()).thenReturn(443);
         lenient().when(request.getRequestURI()).thenReturn("/search");
         lenient().when(request.getQueryString()).thenReturn("q=shoes");
+        lenient().when(request.getHeader(anyString())).thenReturn(null);
         lenient().when(request.getHeader("Referer")).thenReturn(null);
         lenient().when(request.getHeader("X-Forwarded-For")).thenReturn(null);
         lenient().when(request.getHeader("User-Agent")).thenReturn(null);
@@ -108,23 +113,23 @@ class HstDiscoveryServiceTest {
 
     @Test
     void search_delegatesToClientWithResolvedConfig() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         SearchResponse result = service.search(request);
 
         assertSame(searchResult, result.result());
-        verify(client).search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class));
+        verify(client).search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class));
     }
 
     @Test
     void search_withComponentFallbacks_passedThroughToQueryBuilder() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        SearchResponse result = service.search(request, 24, "price asc");
+        SearchResponse result = service.search(request, new SearchRequestOptions(24, "price asc", null, "default", List.of(), null, null));
 
         assertSame(searchResult, result.result());
         ArgumentCaptor<SearchQuery> captor = ArgumentCaptor.forClass(SearchQuery.class);
-        verify(client).search(captor.capture(), eq(validConfig), any(ClientContext.class));
+        verify(client).search(captor.capture(), eq(validCredentials), any(ClientContext.class));
         // URL param absent → component fallback of 24 applied
         assertEquals(24, captor.getValue().pageSize());
         assertEquals("price asc", captor.getValue().sort());
@@ -132,10 +137,10 @@ class HstDiscoveryServiceTest {
 
     @Test
     void search_zeroPageSize_delegatesToNoArg() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
-        service.search(request, 0, null);
+        service.search(request, SearchRequestOptions.defaults());
 
         // both use the same underlying query (cache hit on second), client called once
         verify(client, times(1)).search(any(), any(), any());
@@ -153,10 +158,10 @@ class HstDiscoveryServiceTest {
 
     @Test
     void search_withNamedBand_storesCacheUnderBandKey() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        SearchResponse r1 = service.search(request, 12, null, null, "band-a");
-        SearchResponse r2 = service.search(request, 12, null, null, "band-b");
+        SearchResponse r1 = service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
+        SearchResponse r2 = service.search(request, new SearchRequestOptions(12, null, null, "band-b", List.of(), null, null));
 
         // Two different bands → two client calls (independent caches)
         verify(client, times(2)).search(any(), any(), any());
@@ -166,10 +171,10 @@ class HstDiscoveryServiceTest {
 
     @Test
     void search_withNamedBand_cacheHitOnSameBand() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        service.search(request, 12, null, null, "band-a");
-        service.search(request, 12, null, null, "band-a");
+        service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
+        service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
 
         // Same band → cache hit on second call
         verify(client, times(1)).search(any(), any(), any());
@@ -181,13 +186,13 @@ class HstDiscoveryServiceTest {
     void browse_callsClientCategoryMethod() {
         SearchResult catResult = new SearchResult(List.of(), 5L, 0, 10, Map.of());
         var catResponse = new SearchResponse(catResult, SearchMetadata.empty());
-        when(client.category(any(CategoryQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(catResponse);
+        when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
 
         SearchResponse result = service.browse(request, "cat-123");
 
         assertSame(catResult, result.result());
         ArgumentCaptor<CategoryQuery> captor = ArgumentCaptor.forClass(CategoryQuery.class);
-        verify(client).category(captor.capture(), eq(validConfig), any(ClientContext.class));
+        verify(client).category(captor.capture(), eq(validCredentials), any(ClientContext.class));
         assertEquals("cat-123", captor.getValue().categoryId());
     }
 
@@ -195,13 +200,13 @@ class HstDiscoveryServiceTest {
     void browse_withComponentFallbacks_passedThroughToQueryBuilder() {
         SearchResult catResult = new SearchResult(List.of(), 5L, 0, 24, Map.of());
         var catResponse = new SearchResponse(catResult, SearchMetadata.empty());
-        when(client.category(any(CategoryQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(catResponse);
+        when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
 
-        SearchResponse result = service.browse(request, "cat-123", 24, "price asc");
+        SearchResponse result = service.browse(request, "cat-123", new SearchRequestOptions(24, "price asc", null, "default", List.of(), null, null));
 
         assertSame(catResult, result.result());
         ArgumentCaptor<CategoryQuery> captor = ArgumentCaptor.forClass(CategoryQuery.class);
-        verify(client).category(captor.capture(), eq(validConfig), any(ClientContext.class));
+        verify(client).category(captor.capture(), eq(validCredentials), any(ClientContext.class));
         assertEquals("cat-123", captor.getValue().categoryId());
         assertEquals(24, captor.getValue().pageSize());
         assertEquals("price asc", captor.getValue().sort());
@@ -210,21 +215,21 @@ class HstDiscoveryServiceTest {
     @Test
     void browse_withNamedBand_storesCacheUnderBandKey() {
         var catResponse = new SearchResponse(new SearchResult(List.of(), 5L, 0, 10, Map.of()), SearchMetadata.empty());
-        when(client.category(any(CategoryQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(catResponse);
+        when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
 
-        service.browse(request, "cat-1", 10, null, "band-a");
-        service.browse(request, "cat-1", 10, null, "band-b");
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-b", List.of(), null, null));
 
         verify(client, times(2)).category(any(), any(), any());
     }
 
     @Test
     void browse_withNamedBand_cacheHitOnSameBand() {
-        when(client.category(any(CategoryQuery.class), eq(validConfig), any(ClientContext.class)))
+        when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(new SearchResponse(new SearchResult(List.of(), 5L, 0, 10, Map.of()), SearchMetadata.empty()));
 
-        service.browse(request, "cat-1", 10, null, "band-a");
-        service.browse(request, "cat-1", 10, null, "band-a");
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
+        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
 
         verify(client, times(1)).category(any(), any(), any());
     }
@@ -233,7 +238,7 @@ class HstDiscoveryServiceTest {
 
     @Test
     void recommend_withWidgetIdAndType_passesBothToClient() {
-        when(client.recommend(any(RecQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+        when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
 
         service.recommend(request, "w-123", "keyword", null, null, 8, null, null);
 
@@ -245,7 +250,7 @@ class HstDiscoveryServiceTest {
 
     @Test
     void recommend_nullWidgetId_usesEmptyString() {
-        when(client.recommend(any(RecQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+        when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
 
         service.recommend(request, null, "keyword", null, null, 8, null, null);
 
@@ -285,220 +290,130 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
+    void recommend_sameQueryDifferentLabels_reusesRequestCache() {
+        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-123", null, null, null, 8, null, null, "band-a");
+        service.recommend(request, "w-123", null, null, null, 8, null, null, "band-b");
+
+        verify(client, times(1)).recommend(any(), any(), any());
+    }
+
+    @Test
+    void recommend_differentContextProductIds_doNotShareCache() {
+        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-123", null, "sku-1", null, 8, null, null, "band-a");
+        service.recommend(request, "w-123", null, "sku-2", null, 8, null, null, "band-b");
+
+        verify(client, times(2)).recommend(any(), any(), any());
+    }
+
+    @Test
     void fetchProduct_firesProductPageViewPixel() {
         var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
-        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validConfig), any(ClientContext.class)))
+        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.of(product));
 
         service.fetchProduct(request, "pid-42");
 
-        verify(pixelService).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), anyString(), eq(validConfig), any(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
+                anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
     }
 
     @Test
     void fetchProduct_notFound_doesNotFirePixel() {
-        when(client.fetchProduct(eq("pid-99"), anyString(), eq(validConfig), any(ClientContext.class)))
+        when(client.fetchProduct(eq("pid-99"), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.empty());
 
         service.fetchProduct(request, "pid-99");
 
-        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any());
+    }
+
+    @Test
+    void fetchProduct_usesRequestCacheOnSecondCall() {
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(java.util.Optional.of(product));
+
+        Optional<ProductSummary> first = service.fetchProduct(request, "pid-42");
+        Optional<ProductSummary> second = service.fetchProduct(request, "pid-42");
+
+        assertTrue(first.isPresent());
+        assertSame(first.get(), second.orElseThrow());
+        verify(client, times(1)).fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class));
+        verify(pixelService, times(1)).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
+                anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+    }
+
+    @Test
+    void fetchProduct_widgetClickInteraction_firesDeferredEvent() {
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        when(servletRequest.getParameter("brxdis_event")).thenReturn("widget-click");
+        when(servletRequest.getParameter("brxdis_wid")).thenReturn("widget-1");
+        when(servletRequest.getParameter("brxdis_wty")).thenReturn("item");
+        when(servletRequest.getParameter("brxdis_wrid")).thenReturn("rid-1");
+        when(servletRequest.getParameter("brxdis_wq")).thenReturn("context-1");
+        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(Optional.of(product));
+
+        service.fetchProduct(request, "pid-42");
+
+        ArgumentCaptor<DeferredPixelEvent> eventCaptor = ArgumentCaptor.forClass(DeferredPixelEvent.class);
+        verify(pixelService).fireDeferredEvent(eventCaptor.capture(), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
+        DeferredPixelEvent event = eventCaptor.getValue();
+        assertEquals("widget", event.group());
+        assertEquals("click", event.etype());
+        assertEquals("product", event.ptype());
+        assertEquals("widget-1", event.widgetId());
+        assertEquals("rid-1", event.widgetResultId());
+        assertEquals("pid-42", event.itemId());
+    }
+
+    @Test
+    void fetchProduct_blankPid_returnsEmptyWithoutCallingClient() {
+        assertTrue(service.fetchProduct(request, " ").isEmpty());
+
+        verify(client, never()).fetchProduct(anyString(), anyString(), any(), any());
+        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any());
     }
 
     // ── configFor ──────────────────────────────────────────────────────────────
 
     @Test
-    void configFor_nullMountParam_passesNullToProvider() {
-        when(mount.getParameter(DiscoveryConfigResolver.CONFIG_PATH_PARAM)).thenReturn(null);
-        when(configProvider.get(null)).thenReturn(validConfig);
-        when(client.search(any(), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+    void configFor_callsProviderWithRequestSession() {
+        when(client.search(any(), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
-        verify(configProvider).get(null);
+        verify(configProvider).get(nullable(Session.class));
     }
 
-    // ── credential patching from channel info ─────────────────────────────────
+    // ── configFor credential validation ───────────────────────────────────────
 
     @Test
-    void patchFromChannelInfo_nullChannelInfo_returnsOriginalConfig() {
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(validConfig, null);
-        assertSame(validConfig, result);
-    }
-
-    @Test
-    void patchFromChannelInfo_blankAccountId_usesChannelInfo() {
-        DiscoveryConfig blankAccount = new DiscoveryConfig(
-                "", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getAccountId()).thenReturn("ci-account");
-        // getDomainKey() not stubbed → returns null → domainKey falls back to config.domainKey() = "domain"
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(blankAccount, channelInfo);
-
-        assertEquals("ci-account", result.accountId());
-        assertEquals("domain", result.domainKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_blankDomainKey_usesChannelInfo() {
-        DiscoveryConfig blankDomain = new DiscoveryConfig(
-                "acct", "", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        // getAccountId() not stubbed → returns null → accountId falls back to config.accountId() = "acct"
-        when(channelInfo.getDomainKey()).thenReturn("ci-domain");
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(blankDomain, channelInfo);
-
-        assertEquals("acct", result.accountId());
-        assertEquals("ci-domain", result.domainKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_nonBlankAllCredentials_returnsOriginalConfig() {
-        // Config with all credentials populated; channelInfo returns same values → no patch needed
-        DiscoveryConfig fullConfig = new DiscoveryConfig(
-                "acct", "domain", "key", "auth",
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getAccountId()).thenReturn("acct");
-        when(channelInfo.getDomainKey()).thenReturn("domain");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("");   // blank → no env lookup
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");  // blank → no env lookup
-        Function<String, String> neverCalled = k -> { throw new AssertionError("env lookup called with: " + k); };
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(fullConfig, channelInfo, neverCalled);
-
-        assertSame(fullConfig, result);
-    }
-
-    @Test
-    void patchFromChannelInfo_blankApiKey_resolvesFromEnvVar() {
-        DiscoveryConfig blankApiKey = new DiscoveryConfig(
-                "acct", "domain", "", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("MY_KEY");
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(
-                blankApiKey, channelInfo, k -> "MY_KEY".equals(k) ? "secret" : null);
-
-        assertEquals("secret", result.apiKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_blankApiKey_missingEnvVar_remainsBlank() {
-        DiscoveryConfig blankApiKey = new DiscoveryConfig(
-                "acct", "domain", "", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("MISSING_VAR");
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(
-                blankApiKey, channelInfo, k -> null);
-
-        assertEquals("", result.apiKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_blankApiKey_blankEnvVarName_skipped() {
-        DiscoveryConfig blankApiKey = new DiscoveryConfig(
-                "acct", "domain", "", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("");
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");
-        Function<String, String> neverCalled = k -> { throw new AssertionError("lookup called with: " + k); };
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(blankApiKey, channelInfo, neverCalled);
-
-        assertEquals("", result.apiKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_blankApiKeyEnvVar_keepsConfigApiKey() {
-        // validConfig has apiKey="key"; no per-channel env var → apiKey unchanged
-        when(channelInfo.getAccountId()).thenReturn("acct");
-        when(channelInfo.getDomainKey()).thenReturn("domain");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("");   // blank → no env lookup
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");  // blank → no env lookup
-        Function<String, String> neverCalled = k -> { throw new AssertionError("env lookup called with: " + k); };
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(validConfig, channelInfo, neverCalled);
-
-        assertEquals("key", result.apiKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_channelInfoAccountId_overridesNonBlankConfigAccountId() {
-        // config has stale values from JCR; channelInfo has current channel identifiers → channelInfo wins
-        DiscoveryConfig staleConfig = new DiscoveryConfig(
-                "old-account", "old-domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getAccountId()).thenReturn("6413");
-        when(channelInfo.getDomainKey()).thenReturn("pacifichome");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("");
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(staleConfig, channelInfo);
-
-        assertEquals("6413", result.accountId());
-        assertEquals("pacifichome", result.domainKey());
-        assertEquals("key", result.apiKey()); // unchanged — no per-channel env var configured
-    }
-
-    @Test
-    void patchFromChannelInfo_blankAuthKey_resolvesFromEnvVar() {
-        DiscoveryConfig blankAuth = new DiscoveryConfig(
-                "acct", "domain", "key", "",
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("MY_AUTH_KEY");
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(
-                blankAuth, channelInfo, k -> "MY_AUTH_KEY".equals(k) ? "auth-secret" : null);
-
-        assertEquals("auth-secret", result.authKey());
-    }
-
-    @Test
-    void patchFromChannelInfo_nullAuthKey_resolvesFromEnvVar() {
-        // validConfig has authKey=null (v1 API path)
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("MY_AUTH_KEY");
-
-        DiscoveryConfig result = HstDiscoveryService.patchFromChannelInfo(
-                validConfig, channelInfo, k -> "MY_AUTH_KEY".equals(k) ? "auth-secret" : null);
-
-        assertEquals("auth-secret", result.authKey());
-    }
-
-    @Test
-    void configFor_blankAccountId_patchedFromChannelInfo() {
-        DiscoveryConfig blankAccount = new DiscoveryConfig(
-                "", "domain", "key", null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(configProvider.get("/hippo:config/discoveryConfig")).thenReturn(blankAccount);
-        when(mount.getChannelInfo()).thenReturn(channelInfo);
-        when(channelInfo.getAccountId()).thenReturn("ci-account");
-        // getDomainKey() not stubbed → returns null → domainKey falls back to config.domainKey() = "domain"
-        when(client.search(any(), any(), any())).thenReturn(searchResponse);
+    void configFor_withValidConfig_returnsConfig() {
+        // validConfig already set up in setUp(); just verify the service passes it through
+        when(client.search(any(), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
-        // Verify the config passed to client has the patched accountId
-        ArgumentCaptor<DiscoveryConfig> configCaptor = ArgumentCaptor.forClass(DiscoveryConfig.class);
-        verify(client).search(any(), configCaptor.capture(), any());
-        assertEquals("ci-account", configCaptor.getValue().accountId());
+        ArgumentCaptor<DiscoveryCredentials> credentialsCaptor = ArgumentCaptor.forClass(DiscoveryCredentials.class);
+        verify(client).search(any(), credentialsCaptor.capture(), any());
+        assertEquals("acct", credentialsCaptor.getValue().accountId());
+        assertEquals("domain", credentialsCaptor.getValue().domainKey());
     }
 
     @Test
-    void configFor_blankCredentialsAfterPatching_throwsConfigurationException() {
+    void configFor_blankAccountId_throwsConfigurationException() {
         DiscoveryConfig noCredentials = new DiscoveryConfig(
                 null, null, null, null,
-                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "PRODUCTION", 10, "");
-        when(configProvider.get("/hippo:config/discoveryConfig")).thenReturn(noCredentials);
-        when(mount.getChannelInfo()).thenReturn(channelInfo);
-        when(channelInfo.getAccountId()).thenReturn("");
-        when(channelInfo.getDomainKey()).thenReturn("");
-        when(channelInfo.getApiKeyEnvVar()).thenReturn("");
-        when(channelInfo.getAuthKeyEnvVar()).thenReturn("");
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
+        when(configProvider.get(nullable(Session.class))).thenReturn(noCredentials);
 
         assertThrows(ConfigurationException.class, () -> service.search(request));
     }
@@ -544,13 +459,13 @@ class HstDiscoveryServiceTest {
         when(channelInfo.getDiscoveryPixelTestData()).thenReturn(false);
         when(channelInfo.getDiscoveryPixelDebug()).thenReturn(false);
         when(channelInfo.getPixelRegion()).thenReturn("EU");
-        // getAccountId/getDomainKey not stubbed → return null → config values ("acct"/"domain") used unchanged
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
         ArgumentCaptor<PixelFlags> flagsCaptor = ArgumentCaptor.forClass(PixelFlags.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), flagsCaptor.capture());
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), flagsCaptor.capture());
         assertEquals("EU", flagsCaptor.getValue().region());
     }
 
@@ -559,8 +474,7 @@ class HstDiscoveryServiceTest {
     @Test
     void search_programmaticOverload_delegatesDirectly() {
         SearchQuery query = new SearchQuery("shoes", 0, 10, null, Map.of(), null, null, null);
-        when(configProvider.get("/hippo:config/discoveryConfig")).thenReturn(validConfig);
-        when(client.search(query, validConfig, ClientContext.EMPTY)).thenReturn(searchResponse);
+        when(client.search(query, validCredentials, ClientContext.EMPTY)).thenReturn(searchResponse);
 
         SearchResponse result = service.search(requestContext, query);
 
@@ -571,28 +485,48 @@ class HstDiscoveryServiceTest {
 
     @Test
     void search_firesPixelEventOnCacheMiss() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
-        verify(pixelService).fireSearchEvent(any(SearchQuery.class), eq(searchResult), eq(validConfig), any(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(SearchQuery.class), eq(searchResult), eq(validCredentials),
+                anyString(), anyString(), any(ClientContext.class), any(PixelFlags.class));
+    }
+
+    @Test
+    void search_submitInteraction_firesDeferredEvent() {
+        when(servletRequest.getParameter("q")).thenReturn("shoes");
+        when(servletRequest.getParameter("brxdis_event")).thenReturn("search-submit");
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
+
+        service.search(request);
+
+        ArgumentCaptor<DeferredPixelEvent> eventCaptor = ArgumentCaptor.forClass(DeferredPixelEvent.class);
+        verify(pixelService).fireDeferredEvent(eventCaptor.capture(), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
+        DeferredPixelEvent event = eventCaptor.getValue();
+        assertEquals("suggest", event.group());
+        assertEquals("submit", event.etype());
+        assertEquals("search", event.ptype());
+        assertEquals("shoes", event.query());
     }
 
     @Test
     void search_doesNotFirePixelEventOnCacheHit() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);   // cache miss → fires
         service.search(request);   // cache hit  → should not fire again
 
-        verify(pixelService, times(1)).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), any());
+        verify(pixelService, times(1)).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), any());
     }
 
     @Test
     void search_nullPixelService_doesNotThrow() {
         HstDiscoveryService noPixel = new HstDiscoveryService(
-                client, configProvider, null, null);
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+                client, new DiscoveryRuntimeContextFactory(configProvider), null, null);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         assertDoesNotThrow(() -> noPixel.search(request));
     }
@@ -601,10 +535,10 @@ class HstDiscoveryServiceTest {
     void search_appliesEnrichmentOnCacheMiss() {
         SoREnrichmentProvider enricher = mock(SoREnrichmentProvider.class);
         HstDiscoveryService enrichedService = new HstDiscoveryService(
-                client, configProvider, pixelService, enricher);
+                client, new DiscoveryRuntimeContextFactory(configProvider), pixelService, enricher);
         List<ProductSummary> enrichedProducts = List.of(
                 new ProductSummary("e1", "Enriched", null, null, null, null, null));
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
         when(enricher.enrich(searchResult.products())).thenReturn(enrichedProducts);
 
         SearchResponse result = enrichedService.search(request);
@@ -614,7 +548,7 @@ class HstDiscoveryServiceTest {
 
     @Test
     void search_nullEnrichmentProvider_returnsOriginalResult() {
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         SearchResponse result = service.search(request);
 
@@ -625,11 +559,12 @@ class HstDiscoveryServiceTest {
     void search_pixelsDisabledByChannel_doesNotFirePixel() {
         when(mount.getChannelInfo()).thenReturn(channelInfo);
         when(channelInfo.getDiscoveryPixelsEnabled()).thenReturn(false);
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
-        verify(pixelService, never()).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), any());
+        verify(pixelService, never()).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), any());
     }
 
     @Test
@@ -638,12 +573,13 @@ class HstDiscoveryServiceTest {
         when(channelInfo.getDiscoveryPixelsEnabled()).thenReturn(true);
         when(channelInfo.getDiscoveryPixelTestData()).thenReturn(true);
         when(channelInfo.getDiscoveryPixelDebug()).thenReturn(false);
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
         ArgumentCaptor<PixelFlags> flagsCaptor = ArgumentCaptor.forClass(PixelFlags.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), any(), any(ClientContext.class), flagsCaptor.capture());
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+                any(ClientContext.class), flagsCaptor.capture());
         PixelFlags flags = flagsCaptor.getValue();
         assertTrue(flags.enabled());
         assertTrue(flags.testData());
@@ -655,18 +591,18 @@ class HstDiscoveryServiceTest {
     @Test
     void autosuggest_delegatesToClientWithResolvedConfig() {
         var expected = new AutosuggestResult("shoes", List.of("shoes"), List.of(), List.of());
-        when(client.autosuggest(any(AutosuggestQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(expected);
+        when(client.autosuggest(any(AutosuggestQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(expected);
 
         AutosuggestResult result = service.autosuggest(request, "shoes", 8);
 
         assertSame(expected, result);
-        verify(client).autosuggest(any(AutosuggestQuery.class), eq(validConfig), any(ClientContext.class));
+        verify(client).autosuggest(any(AutosuggestQuery.class), eq(validCredentials), any(ClientContext.class));
     }
 
     @Test
     void autosuggest_passesQueryAndLimit() {
         var expected = new AutosuggestResult("shi", List.of(), List.of(), List.of());
-        when(client.autosuggest(any(AutosuggestQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(expected);
+        when(client.autosuggest(any(AutosuggestQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(expected);
 
         service.autosuggest(request, "shi", 5);
 
@@ -679,7 +615,7 @@ class HstDiscoveryServiceTest {
     @Test
     void autosuggest_noCaching_alwaysCallsClient() {
         var expected = new AutosuggestResult("shi", List.of(), List.of(), List.of());
-        when(client.autosuggest(any(AutosuggestQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(expected);
+        when(client.autosuggest(any(AutosuggestQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(expected);
 
         service.autosuggest(request, "shi", 8);
         service.autosuggest(request, "shi", 8);
@@ -687,17 +623,30 @@ class HstDiscoveryServiceTest {
         verify(client, times(2)).autosuggest(any(), any(), any());
     }
 
+    @Test
+    void requestScopedRuntimeContext_reusesResolvedConfigAcrossOperations() {
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.autosuggest(any(AutosuggestQuery.class), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(new AutosuggestResult("shi", List.of(), List.of(), List.of()));
+
+        service.search(request);
+        service.autosuggest(request, "shi", 8);
+
+        verify(configProvider, times(1)).get(nullable(Session.class));
+    }
+
     // ── extractClientIp ────────────────────────────────────────────────────────
 
     @Test
     void search_extractsClientIpFromXForwardedFor() {
         when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.42, 10.0.0.1");
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
         ArgumentCaptor<String> clientIpCaptor = ArgumentCaptor.forClass(String.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), clientIpCaptor.capture(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), clientIpCaptor.capture(),
+                any(ClientContext.class), any(PixelFlags.class));
         assertEquals("203.0.113.42", clientIpCaptor.getValue(), "should use first token from X-Forwarded-For");
     }
 
@@ -705,23 +654,25 @@ class HstDiscoveryServiceTest {
     void search_extractsClientIpFromRemoteAddr_whenNoXff() {
         when(request.getHeader("X-Forwarded-For")).thenReturn(null);
         when(request.getRemoteAddr()).thenReturn("192.168.1.10");
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
         ArgumentCaptor<String> clientIpCaptor = ArgumentCaptor.forClass(String.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), clientIpCaptor.capture(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), clientIpCaptor.capture(),
+                any(ClientContext.class), any(PixelFlags.class));
         assertEquals("192.168.1.10", clientIpCaptor.getValue(), "should fall back to getRemoteAddr()");
     }
 
     @Test
     void search_passesClientIpToPixel() {
         when(request.getHeader("X-Forwarded-For")).thenReturn("10.1.2.3");
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
-        verify(pixelService).fireSearchEvent(any(), any(), any(), eq("10.1.2.3"), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), eq("10.1.2.3"),
+                any(ClientContext.class), any(PixelFlags.class));
     }
 
     @Test
@@ -729,15 +680,70 @@ class HstDiscoveryServiceTest {
         when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0");
         when(request.getHeader("Accept-Language")).thenReturn("en-US,en;q=0.9");
         when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.42, 10.0.0.1");
-        when(client.search(any(SearchQuery.class), eq(validConfig), any(ClientContext.class))).thenReturn(searchResponse);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
 
         ArgumentCaptor<ClientContext> ctxCaptor = ArgumentCaptor.forClass(ClientContext.class);
-        verify(client).search(any(SearchQuery.class), eq(validConfig), ctxCaptor.capture());
+        verify(client).search(any(SearchQuery.class), eq(validCredentials), ctxCaptor.capture());
         ClientContext ctx = ctxCaptor.getValue();
         assertEquals("Mozilla/5.0", ctx.userAgent());
         assertEquals("en-US,en;q=0.9", ctx.acceptLanguage());
         assertEquals("203.0.113.42, 10.0.0.1", ctx.xForwardedFor());
+    }
+
+    // ── channel credential overrides ────────────────────────────────────────
+
+    @Test
+    void channelAccountIdOverridesGlobalConfig() {
+        // Create service backed by a factory with a custom envResolver so we can supply the channel apiKey
+        DiscoveryRuntimeContextFactory factory = new DiscoveryRuntimeContextFactory(
+                configProvider, name -> "CHAN_API_KEY".equals(name) ? "chan-api-key" : null);
+        service = new HstDiscoveryService(client, factory, pixelService, null);
+
+        when(mount.getChannelInfo()).thenReturn(channelInfo);
+        when(channelInfo.getDiscoveryAccountId()).thenReturn("chan-acct");
+        when(channelInfo.getDiscoveryDomainKey()).thenReturn("chan-domain");
+        when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("CHAN_API_KEY");
+        when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
+
+        when(client.search(any(SearchQuery.class), any(DiscoveryCredentials.class), any(ClientContext.class)))
+                .thenReturn(searchResponse);
+
+        SearchResponse result = service.search(request);
+
+        assertSame(searchResult, result.result());
+        ArgumentCaptor<DiscoveryCredentials> credsCaptor = ArgumentCaptor.forClass(DiscoveryCredentials.class);
+        verify(client).search(any(SearchQuery.class), credsCaptor.capture(), any(ClientContext.class));
+        assertEquals("chan-acct", credsCaptor.getValue().accountId());
+        assertEquals("chan-domain", credsCaptor.getValue().domainKey());
+        assertEquals("chan-api-key", credsCaptor.getValue().apiKey());
+        // global domain/key are NOT used — channel credentials replace entirely
+        assertNull(credsCaptor.getValue().authKey());
+    }
+
+    @Test
+    void noChannelInfo_usesGlobalConfig() {
+        when(mount.getChannelInfo()).thenReturn(null);
+        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class)))
+                .thenReturn(searchResponse);
+
+        SearchResponse result = service.search(request);
+
+        assertSame(searchResult, result.result());
+        verify(client).search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class));
+    }
+
+    @Test
+    void channelApiKeyEnvVar_configuredButMissing_throwsConfigException() {
+        // Channel has opted-in by providing an env-var name, but the env var doesn't exist.
+        // Full replacement means apiKey resolves to null → validation must throw ConfigurationException.
+        when(mount.getChannelInfo()).thenReturn(channelInfo);
+        when(channelInfo.getDiscoveryAccountId()).thenReturn("");
+        when(channelInfo.getDiscoveryDomainKey()).thenReturn("");
+        when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("BRXDIS_NONEXISTENT_ENV_VAR_XYZ");
+        when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
+
+        assertThrows(ConfigurationException.class, () -> service.search(request));
     }
 }

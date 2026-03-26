@@ -2,11 +2,11 @@
 
 ## Overview
 
-Autosuggest (typeahead) is built into `DiscoverySearchComponent` — no separate component is needed. When `suggestionsEnabled = true` (the default), the search component calls the Bloomreach Discovery Autosuggest API at `suggest.dxpapi.com` and exposes an `autosuggestResult` model alongside the main search result.
+Autosuggest (typeahead) is built into `DiscoverySearchComponent` — no separate component is needed. When `suggestionsEnabled = true` (the default), the search component calls the Bloomreach Discovery Autosuggest API through `discoveryAutosuggestAPI` and exposes an `autosuggestResult` model alongside the main search result.
 
 The search component is the single entry point for both full-text search and real-time typeahead suggestions. Suggestions are always fetched live (not cached) — they reflect the query state at the moment the request is made.
 
-The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically by the plugin.
+The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically by the plugin and resolves its base URI from the shared Discovery config.
 
 ---
 

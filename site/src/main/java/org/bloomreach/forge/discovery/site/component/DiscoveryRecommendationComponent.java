@@ -1,11 +1,12 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryRecommendationBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryRecommendationComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -38,16 +39,16 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         final String label      = info.getConnectTo();
 
         DiscoveryRecommendationBean document = getHippoBeanForPath(request, info.getDocument(), DiscoveryRecommendationBean.class);
-        request.setAttribute("document", document);
-        request.setAttribute("showPrice", info.isShowPrice());
-        request.setAttribute("showDescription", info.isShowDescription());
-        setModelAndAttribute(request, "dataSource", dataSource);
-        setModelAndAttribute(request, "label", label);
+        request.setModel("document", document);
+        request.setModel(DiscoveryModelKeys.SHOW_PRICE, info.isShowPrice());
+        request.setModel(DiscoveryModelKeys.SHOW_DESCRIPTION, info.isShowDescription());
+        request.setModel(DiscoveryModelKeys.DATA_SOURCE, dataSource);
+        request.setModel(DiscoveryModelKeys.LABEL, label);
 
         String widgetId = resolveWidgetId(document, request);
         if (widgetId == null || widgetId.isBlank()) {
-            setModelAndAttribute(request, "products", List.of());
-            setModelAndAttribute(request, "widgetId", "");
+            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+            request.setModel(DiscoveryModelKeys.WIDGET_ID, "");
             return;
         }
 
@@ -63,12 +64,17 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         RecommendationResult recResult = svc.recommend(
                 request, widgetId, null, contextProductId, contextPageType, limit, fields, filter, label);
         List<ProductSummary> products = recResult.products();
+        String resolvedWidgetId = recResult.widgetId() != null && !recResult.widgetId().isBlank()
+                ? recResult.widgetId() : widgetId;
 
-        setModelAndAttribute(request, "products", products);
-        setModelAndAttribute(request, "widgetId", widgetId);
+        request.setModel(DiscoveryModelKeys.PRODUCTS, products);
+        request.setModel(DiscoveryModelKeys.WIDGET_ID, resolvedWidgetId);
+        request.setModel(DiscoveryModelKeys.WIDGET_TYPE, recResult.widgetType());
+        request.setModel(DiscoveryModelKeys.WIDGET_RESULT_ID, recResult.widgetResultId());
+        request.setModel(DiscoveryModelKeys.WIDGET_QUERY, contextProductId);
 
         log.debug("Recommendations widget '{}' dataSource='{}' label='{}' returned {} products",
-                widgetId, dataSource, label, products.size());
+                resolvedWidgetId, dataSource, label, products.size());
     }
 
     /** Widget ID: document field wins, then URL request param. */
@@ -92,30 +98,22 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         return resolveStandalonePid(request, info);
     }
 
-    /** productDetailBand mode: PID from PDP cache or PPR backfill. Empty = abort. */
+    /** productDetailBand mode: PID from PDP cache or backfill. Empty = abort. */
     private Optional<String> resolveProductDetailBandPid(HstRequest request, String label, String widgetId) {
         boolean labelPresent = DiscoveryRequestCache.isProductDetailBandPresent(request, label);
         if (!labelPresent) {
-            if (isIsolatedComponentRender(request)) {
-                Optional<String> backfilled = backfillProductDetailPid(request, label);
-                if (backfilled.isPresent()) return backfilled;
-                String pid = getPublicRequestParameter(request, "pid");
-                if (pid == null || pid.isBlank()) {
-                    setModelAndAttribute(request, "products", List.of());
-                    setModelAndAttribute(request, "widgetId", widgetId);
-                    return Optional.empty();
-                }
-                return Optional.of(pid);
-            } else {
-                if (isEditMode(request)) {
-                    request.setAttribute("brxdis_warning",
-                        "No product detail label '" + label + "' found. Add a Product Detail component " +
-                        "with label='" + label + "' to this page.");
-                }
-                setModelAndAttribute(request, "products", List.of());
-                setModelAndAttribute(request, "widgetId", widgetId);
-                return Optional.empty();
+            Optional<String> backfilled = backfillProductDetailPid(request, label);
+            if (backfilled.isPresent()) return backfilled;
+            String pid = getPublicRequestParameter(request, "pid");
+            if (pid != null && !pid.isBlank()) return Optional.of(pid);
+            if (isEditMode(request)) {
+                request.setAttribute("brxdis_warning",
+                    "No product detail label '" + label + "' found. Add a Product Detail component " +
+                    "with label='" + label + "' to this page.");
             }
+            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+            request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
+            return Optional.empty();
         }
         Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, label);
         if (cached.isEmpty()) {
@@ -124,8 +122,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
                     "Product detail label '" + label + "' is present but no product ID was resolved. " +
                     "Ensure the Product Detail component has a valid product configured.");
             }
-            setModelAndAttribute(request, "products", List.of());
-            setModelAndAttribute(request, "widgetId", widgetId);
+            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+            request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
             return Optional.empty();
         }
         return Optional.of(cached.get().id());

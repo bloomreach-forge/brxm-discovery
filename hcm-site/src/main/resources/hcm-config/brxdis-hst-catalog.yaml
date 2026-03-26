@@ -5,6 +5,7 @@ definitions:
       /search:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-search.svg
         hst:label: Discovery Search
         hst:template: brxdis-search
         hst:xtype: hst.Item
@@ -16,6 +17,7 @@ definitions:
       /category:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-category.svg
         hst:label: Discovery Category Browse
         hst:template: brxdis-category
         hst:xtype: hst.Item
@@ -24,6 +26,7 @@ definitions:
       /recommendations:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-recommendations.svg
         hst:label: Discovery Recommendations
         hst:template: brxdis-recommendations
         hst:xtype: hst.Item
@@ -32,6 +35,7 @@ definitions:
       /product-grid:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductGridComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-product-grid.svg
         hst:label: Discovery Product Grid
         hst:template: brxdis-product-grid
         hst:xtype: hst.Item
@@ -40,6 +44,7 @@ definitions:
       /facets:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryFacetComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-facets.svg
         hst:label: Discovery Facets
         hst:template: brxdis-facets
         hst:xtype: hst.Item
@@ -48,12 +53,14 @@ definitions:
       /product-detail:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-product-detail.svg
         hst:label: Discovery Product Detail
         hst:template: brxdis-product-detail
         hst:xtype: hst.Item
       /category-highlight:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryHighlightComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-category-highlight.svg
         hst:label: Discovery Category Highlight
         hst:template: brxdis-category-highlight
         hst:xtype: hst.Item
@@ -62,6 +69,7 @@ definitions:
       /product-highlight:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductHighlightComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-product-highlight.svg
         hst:label: Discovery Product Highlight
         hst:template: brxdis-product-highlight
         hst:xtype: hst.Item

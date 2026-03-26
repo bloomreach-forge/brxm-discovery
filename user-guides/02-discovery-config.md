@@ -1,6 +1,11 @@
 # Discovery Configuration
 
-Configuration lives on a `brxdis:discoveryConfig` JCR document created in the CMS. Channel Manager parameters on the mount act as the per-channel source of truth for account identifiers and point to server-side secret env vars for API keys.
+Configuration has two layers:
+
+- a global `brxdis:discoveryConfig` JCR node for shared defaults and structural settings
+- optional per-channel overrides through `hst:channelinfo`
+
+Global credentials resolve with `env -> sys -> JCR` precedence. Channel-level overrides are applied on top of that base config for `accountId`, `domainKey`, and env-var names for `apiKey` / `authKey`. Structural settings still resolve from the global JCR node when present and otherwise fall back to environment-aware defaults.
 
 ---
 
@@ -12,12 +17,9 @@ Resolved per-request in this order (highest wins):
 
 | Priority | Source | How to set |
 |---|---|---|
-| 1 (highest) | Channel Manager | `discoveryAccountId`, `discoveryDomainKey` on the mount |
-| 2 | Environment variable | `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` |
-| 3 | JVM system property | `brxdis.accountId`, `brxdis.domainKey` |
-| 4 (lowest) | JCR document | `brxdis:accountId`, `brxdis:domainKey` |
-
-Channel Manager wins whenever non-blank. This allows different channels to use different Discovery accounts without separate JVM deployments.
+| 1 (highest) | Environment variable | `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` |
+| 2 | JVM system property | `brxdis.accountId`, `brxdis.domainKey` |
+| 3 (lowest) | JCR global node | `brxdis:accountId`, `brxdis:domainKey` |
 
 ### API secrets — `apiKey` and `authKey`
 
@@ -25,43 +27,101 @@ Resolved per-request in this order:
 
 | Priority | Source | How to set |
 |---|---|---|
-| 1 (highest) | Per-channel env var | Name specified in `discoveryApiKeyEnvVar` / `discoveryAuthKeyEnvVar` on the mount |
-| 2 | Global environment variable | `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
-| 3 | JVM system property | `brxdis.apiKey`, `brxdis.authKey` |
-| 4 (lowest) | JCR document | `brxdis:apiKey`, `brxdis:authKey` |
+| 1 (highest) | Environment variable | `BRXDIS_API_KEY`, `BRXDIS_AUTH_KEY` |
+| 2 | JVM system property | `brxdis.apiKey`, `brxdis.authKey` |
+| 3 (lowest) | JCR global node | `brxdis:apiKey`, `brxdis:authKey` |
 
-`discoveryApiKeyEnvVar` stores the **name** of an env var (e.g. `PACIFICHOME_API_KEY`), not the key value itself. The secret lives only in the server environment. Multi-channel deployments can point each channel's mount at a different env var.
+`authKey` is only required for v2 Pathways recommendations; when absent the plugin uses the v1 API automatically.
+
+### Channel-level overrides — `hst:channelinfo`
+
+Optional per-channel overrides are resolved after the global config:
+
+| Channel property | Purpose |
+|---|---|
+| `discoveryAccountId` | Override account ID for this channel |
+| `discoveryDomainKey` | Override domain key for this channel |
+| `discoveryApiKeyEnvVar` | Name of the env var to read the API key from for this channel |
+| `discoveryAuthKeyEnvVar` | Name of the env var to read the Pathways auth key from for this channel |
+
+This lets one deployment share the addon while keeping channel-specific values in Channel Manager and secrets in environment variables.
 
 ### Other credentials
 
 | JCR property | Env var | System property | Description |
 |---|---|---|---|
-| `brxdis:environment` | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `PRODUCTION` (default) or `STAGING`. Drives API subdomain switching. |
+| `brxdis:environment` | `BRXDIS_ENVIRONMENT` | `brxdis.environment` | `PRODUCTION` (default) or `STAGING`. Selects the default Discovery endpoints when explicit base URIs are not set. |
 
 ### Required fields
 
 `accountId`, `domainKey`, and `apiKey` are required. If none of the resolution sources provide them after all layers are evaluated, a `ConfigurationException` is thrown at request time.
 
-### Structural config (resolved: JCR → coded default)
+### Structural config (resolved: JCR -> environment-aware default)
 
 | JCR property | Default | Description |
 |---|---|---|
-| `brxdis:baseUri` | `https://core.dxpapi.com` | Base URL of the Discovery Search/Category API |
-| `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` | Base URL of the Pathways recommendations API |
+| `brxdis:baseUri` | `https://core.dxpapi.com` or `https://staging-core.dxpapi.com` | Base URL of the Discovery Search/Category API |
+| `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` or `https://staging-pathways.dxpapi.com` | Base URL of the Pathways recommendations API |
+| `brxdis:autosuggestBaseUri` | `https://suggest.dxpapi.com` or `https://staging-suggest.dxpapi.com` | Base URL of the Autosuggest API |
 | `brxdis:defaultPageSize` | `12` | Results per page when not specified in the request |
 | `brxdis:defaultSort` | `` | Default sort expression, e.g. `price asc`. Blank = relevance. |
 
-Structural fields are edited in the CMS on the `brxdis:discoveryConfig` document. Coded defaults apply when the property is absent — no JCR document is required to run the plugin if credentials are supplied via environment variables.
+Structural fields are edited in the CMS on the `brxdis:discoveryConfig` node. If a base URI property is absent, the plugin derives the default from `environment`.
 
 ---
 
+## Global config node path
+
+All channels can read shared defaults from a single fixed JCR node:
+
+```
+/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
+```
+
+To create the node in your HCM config (runs once; place in your application or development module):
+
+```yaml
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      jcr:primaryType: brxdis:discoveryConfig
+      brxdis:accountId: 'your-account-id'
+      brxdis:domainKey: 'your-domain-key'
+      brxdis:apiKey: ''
+      brxdis:authKey: ''
+      brxdis:baseUri: 'https://core.dxpapi.com'
+      brxdis:pathwaysBaseUri: 'https://pathways.dxpapi.com'
+      brxdis:autosuggestBaseUri: 'https://suggest.dxpapi.com'
+      brxdis:environment: 'PRODUCTION'
+      brxdis:defaultPageSize: 12
+      brxdis:defaultSort: ''
+```
+
+Leave `brxdis:apiKey` / `brxdis:authKey` blank and inject the actual secrets via env vars (see [06-credential-injection.md](06-credential-injection.md)).
+
+---
+
+## Channel config example
+
+If your project uses `DiscoveryChannelInfo` or a composite interface that extends it, you can set channel-specific overrides in `hst:channelinfo`:
+
+```yaml
+/hst:hst/hst:configurations/<your-site>/hst:workspace/hst:channel/hst:channelinfo:
+  jcr:primaryType: hst:channelinfo
+  discoveryAccountId: '6413'
+  discoveryDomainKey: pacifichome
+  discoveryApiKeyEnvVar: BRXDIS_API_KEY
+  discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
+```
+
 ## Credential injection
 
-See the field tables above for full per-dimension precedence. The recommended setup for a multi-channel production deployment:
+The recommended production setup:
 
-- Set `discoveryAccountId` and `discoveryDomainKey` in Channel Manager — each channel's mount points to its own Discovery account.
-- Set `discoveryApiKeyEnvVar=MY_CHANNEL_API_KEY` in Channel Manager — the actual secret lives in the server environment, never in JCR.
-- Use global env vars (`BRXDIS_API_KEY`) as a single-channel fallback or for local development.
+- Set `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` as env vars or sys props — or in the JCR global node as fallback.
+- Set `BRXDIS_API_KEY` and `BRXDIS_AUTH_KEY` as env vars (never store secrets in JCR).
+- If channels need different account/domain values or different secret env-var names, set `discoveryAccountId`, `discoveryDomainKey`, `discoveryApiKeyEnvVar`, and `discoveryAuthKeyEnvVar` on `hst:channelinfo`.
+- Leave the JCR node fields blank for secrets — env var resolution takes precedence automatically.
 
 See [06-credential-injection.md](06-credential-injection.md) for deployment-specific patterns.
 
@@ -69,50 +129,41 @@ See [06-credential-injection.md](06-credential-injection.md) for deployment-spec
 
 ## JCR-less operation
 
-If `discoveryConfigPath` is not set on the mount, or the JCR document is missing, the plugin builds `DiscoveryConfig` entirely from environment variables / system properties + coded defaults. No JCR document is required to run the plugin — credentials must come from the environment in that case.
+If the global config node is missing, the plugin builds `DiscoveryConfig` entirely from environment variables / system properties + coded defaults. No JCR node is required to run the plugin — credentials must come from the environment in that case.
 
 ---
 
 ## CRISP resource spaces
 
-The CMS module bootstraps all three CRISP resource spaces automatically via `cms/src/main/resources/hcm-config/brxdis-crisp.yaml`. No manual CRISP configuration is required in your host project.
+The CMS module bootstraps the Discovery CRISP resource spaces automatically via `cms/src/main/resources/hcm-config/brxdis-crisp.yaml`. The site also ships matching fallback resolver beans. Both runtimes now use the same config-backed resolver model.
 
 | Resource space | Base URI | Used for |
 |---|---|---|
-| `discoverySearchAPI` | `https://core.dxpapi.com` | Search, category browse, widget listing, v1 recommendations |
-| `discoveryPathwaysAPI` | `https://pathways.dxpapi.com` | v2 Pathways recommendations (requires `authKey`) |
-| `discoveryAutosuggestAPI` | `https://suggest.dxpapi.com` | Autosuggest / typeahead |
+| `discoverySearchAPI` | Resolved from `brxdis:baseUri` or environment default | Search, category browse, widget listing, v1 recommendations |
+| `discoveryPathwaysAPI` | Resolved from `brxdis:pathwaysBaseUri` or environment default | v2 Pathways recommendations |
+| `discoveryAutosuggestAPI` | Resolved from `brxdis:autosuggestBaseUri` or environment default | Autosuggest / typeahead |
 
-The `account_id`, `domain_key`, and `auth-key` parameters are added per-request — they do not go in the CRISP config.
+The request credentials are added per request. `account_id` and `domain_key` go in the query string, `auth_key` is used for standard Discovery requests, and the Pathways v2 call sends `auth-key` as a header.
+
+On the site side, the resolver does not direct-wire `DiscoveryConfigProvider` from the Discovery addon Spring context. Instead, the site addon registers `DiscoveryConfigProvider` in `HippoServiceRegistry`, and the CRISP resolver looks it up there at runtime. This avoids cross-addon Spring visibility issues in real host projects.
 
 ### Overriding base URIs (staging / private cloud)
 
-If you need a non-default base URI (e.g. a staging endpoint), override the CRISP property in your host project's HCM config:
+Set the Discovery config properties instead of editing CRISP nodes directly:
 
 ```yaml
 definitions:
   config:
-    /hippo:configuration/hippo:modules/crispregistry/hippo:moduleconfig/crisp:resourceresolvercontainer/discoverySearchAPI:
-      crisp:propvalues:
-        - 'https://staging-core.dxpapi.com'
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      brxdis:baseUri: 'https://custom-core.example'
+      brxdis:pathwaysBaseUri: 'https://custom-pathways.example'
+      brxdis:autosuggestBaseUri: 'https://custom-suggest.example'
 ```
 
 ---
 
-## Link the config to a channel
+## Cache behaviour
 
-Add `discoveryConfigPath` as a mount parameter pointing at your `brxdis:discoveryConfig` document:
+The resolved base config is cached at JVM lifetime and invalidated automatically when you save the `brxdis:discoveryConfig` node in the CMS.
 
-```yaml
-definitions:
-  config:
-    /hst:hst/hst:hosts/dev-localhost/localhost/hst:root:
-      hst:parameternames: [discoveryConfigPath]
-      hst:parametervalues: ['/content/documents/administration/discovery-config/discovery-config']
-```
-
-All HST components read `discoveryConfigPath` from the resolved mount. When absent or pointing to a missing document, they fall back to env/sys + coded defaults.
-
-If you run multiple channels with different Discovery accounts, set `discoveryConfigPath` to different document paths on each mount and set `discoveryAccountId`/`discoveryDomainKey` in Channel Manager on each mount.
-
-**Cache behaviour:** structural config (`baseUri`, `defaultPageSize`, `defaultSort`) is JVM-lifetime cached per `discoveryConfigPath`. The cache is invalidated automatically when you save the `brxdis:discoveryConfig` document in the CMS — no JVM restart required. Changes are not instant; they take effect on the first request that arrives after the save triggers cache invalidation. Credentials (`accountId`, `domainKey`, `apiKey`, `authKey`) are re-evaluated from Channel Manager and server env vars on every request, so credential changes in Channel Manager or the server environment are picked up without a CMS save.
+Credential overrides from env vars and system properties are re-applied each time the provider is read, so env/sys credential changes do not depend on a JCR save. Structural JCR settings (`baseUri`, `pathwaysBaseUri`, `autosuggestBaseUri`, `defaultPageSize`, `defaultSort`) still depend on cache invalidation after a CMS save.

@@ -2,7 +2,7 @@ function initPickerField(cfg) {
   "use strict";
 
   var ui           = null;
-  var configPath   = "";
+  var documentId   = "";
   var currentValue = "";
 
   var valueDisplay = document.getElementById("value-display");
@@ -12,20 +12,18 @@ function initPickerField(cfg) {
   UiExtension.register().then(function (registeredUi) {
     ui = registeredUi;
 
-    var extConfig = {};
-    try { extConfig = JSON.parse(ui.extension.config || "{}"); } catch (e) {}
-    configPath = extConfig.configPath || "";
-
     ui.document.field.getValue().then(function (val) {
       currentValue = val || "";
       refreshDisplay(currentValue);
     });
 
     ui.document.get().then(function (doc) {
+      documentId = doc.id || "";
       setEditMode(doc.mode === "edit");
     });
 
     ui.document.observe(function (doc) {
+      documentId = doc.id || "";
       setEditMode(doc.mode === "edit");
     });
 
@@ -44,13 +42,14 @@ function initPickerField(cfg) {
       title: cfg.dialogTitle,
       url:   dialogUrl,
       size:  "large",
-      value: JSON.stringify({ configPath: configPath, currentValue: currentValue })
+      value: JSON.stringify({ documentId: documentId, currentValue: currentValue })
     })
     .then(function (selectedId) {
       if (selectedId) {
         currentValue = String(selectedId);
         ui.document.field.setValue(currentValue);
         refreshDisplay(currentValue);
+        if (cfg.onValueChange) cfg.onValueChange(currentValue, documentId);
       }
     })
     .catch(function (err) {

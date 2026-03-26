@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>brXM Discovery Plugin</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Introduction">
+      <p>
+        The brXM Discovery plugin integrates Bloomreach Discovery with brXM 16.7.0, providing CMS picker
+        tooling, shared configuration resolution, CRISP-backed service clients, and HST components for
+        search, category browse, recommendations, autosuggest, product detail, and pixel tracking.
+      </p>
+    </section>
+
+    <section name="Module Overview">
+      <table>
+        <tr><th>Module</th><th>Purpose</th></tr>
+        <tr>
+          <td><strong>brxm-discovery-cms</strong></td>
+          <td>CMS node types, picker REST endpoints, Open UI extensions, and Discovery bootstrap config.</td>
+        </tr>
+        <tr>
+          <td><strong>brxm-discovery-site</strong></td>
+          <td>Site runtime entry point: HST components, CRISP-backed clients, templates, and pixel service.</td>
+        </tr>
+        <tr>
+          <td><strong>brxm-discovery-shared</strong></td>
+          <td>Shared exceptions, configuration model, and request/query support used across runtimes.</td>
+        </tr>
+        <tr>
+          <td><strong>brxm-discovery-hcm-site</strong></td>
+          <td>Bundled HCM site bootstrap for the plugin's templates and HST resources.</td>
+        </tr>
+        <tr>
+          <td><strong>demo</strong></td>
+          <td>Standalone reference implementation showing the plugin wired into a runnable brXM project.</td>
+        </tr>
+      </table>
+    </section>
+
+    <section name="Getting Started">
+      <ol>
+        <li><a href="install.html">Install the plugin artifacts</a> into the CMS runtime and site runtime.</li>
+        <li><a href="quick-start.html">Follow the quick start</a> to enable CRISP, add credentials, and wire a search page.</li>
+      </ol>
+    </section>
+
+    <section name="Component Reference">
+      <table>
+        <tr><th>Page</th><th>Description</th></tr>
+        <tr>
+          <td><a href="search-category.html">Search &amp; Category</a></td>
+          <td>Search and category browse data components, shared view components, and highlight components.</td>
+        </tr>
+        <tr>
+          <td><a href="recommendations.html">Recommendations</a></td>
+          <td>Widget-driven recommendation delivery, v1/v2 Pathways behaviour, and PDP band mode.</td>
+        </tr>
+        <tr>
+          <td><a href="autosuggest.html">Autosuggest</a></td>
+          <td>Inline typeahead behaviour exposed by <code>DiscoverySearchComponent</code>.</td>
+        </tr>
+        <tr>
+          <td><a href="product-picker.html">Product Picker (CMS)</a></td>
+          <td>CMS editor integrations for products, widgets, categories, and live category preview.</td>
+        </tr>
+      </table>
+    </section>
+
+    <section name="Configuration Reference">
+      <table>
+        <tr><th>Page</th><th>Description</th></tr>
+        <tr>
+          <td><a href="configuration.html">Discovery Configuration</a></td>
+          <td>Global config node, structural defaults, channel overrides, CRISP spaces, and cache behaviour.</td>
+        </tr>
+        <tr>
+          <td><a href="credential-injection.html">Credential Injection</a></td>
+          <td>Environment, system property, and JCR precedence with deployment guidance for secrets.</td>
+        </tr>
+      </table>
+    </section>
+
+  </body>
+</document>

@@ -1,0 +1,13 @@
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      jcr:primaryType: brxdis:discoveryConfig
+      brxdis:accountId: '6413'
+      brxdis:domainKey: pacifichome
+      brxdis:apiKey: ''
+      brxdis:authKey: ''
+      brxdis:baseUri: 'https://core.dxpapi.com'
+      brxdis:pathwaysBaseUri: 'https://pathways.dxpapi.com'
+      brxdis:environment: PRODUCTION
+      brxdis:defaultPageSize: 12
+      brxdis:defaultSort: ''

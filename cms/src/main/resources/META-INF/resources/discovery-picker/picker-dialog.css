@@ -199,11 +199,6 @@ body {
 .type-default  { background: #f1f5f9; color: #475569; }
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
-/*
- * Category + widget pickers call setStatusEl() directly on #footer, which
- * sets className to "error" or "". The #footer ID rule ensures base layout
- * styles survive those class resets; #footer.error adds the error colour.
- */
 .footer, #footer {
   display: flex;
   align-items: center;

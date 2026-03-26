@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 76 76">
+  <!-- 2-column x 3-row product grid -->
+  <!-- Row 1 -->
+  <rect x="1" y="2" width="34" height="22" fill="#ffd500"/>
+  <path d="M33.1,3.9V22.1H2.9V3.9H33.1 M35,2H1V24H35V2Z" fill="#002840"/>
+  <rect x="3" y="4" width="28" height="12" fill="#fff"/>
+  <rect x="3" y="19" width="22" height="1.9" fill="#fff"/>
+
+  <rect x="41" y="2" width="34" height="22" fill="#ffd500"/>
+  <path d="M73.1,3.9V22.1H42.9V3.9H73.1 M75,2H41V24H75V2Z" fill="#002840"/>
+  <rect x="43" y="4" width="28" height="12" fill="#fff"/>
+  <rect x="43" y="19" width="22" height="1.9" fill="#fff"/>
+  <!-- Row 2 -->
+  <rect x="1" y="28" width="34" height="22" fill="#ffd500"/>
+  <path d="M33.1,29.9V48.1H2.9V29.9H33.1 M35,28H1V50H35V28Z" fill="#002840"/>
+  <rect x="3" y="30" width="28" height="12" fill="#fff"/>
+  <rect x="3" y="45" width="22" height="1.9" fill="#fff"/>
+
+  <rect x="41" y="28" width="34" height="22" fill="#ffd500"/>
+  <path d="M73.1,29.9V48.1H42.9V29.9H73.1 M75,28H41V50H75V28Z" fill="#002840"/>
+  <rect x="43" y="30" width="28" height="12" fill="#fff"/>
+  <rect x="43" y="45" width="22" height="1.9" fill="#fff"/>
+  <!-- Row 3 -->
+  <rect x="1" y="54" width="34" height="21" fill="#ffd500"/>
+  <path d="M33.1,55.9V73.1H2.9V55.9H33.1 M35,54H1V75H35V54Z" fill="#002840"/>
+  <rect x="3" y="56" width="28" height="11" fill="#fff"/>
+  <rect x="3" y="70" width="22" height="1.9" fill="#fff"/>
+
+  <rect x="41" y="54" width="34" height="21" fill="#ffd500"/>
+  <path d="M73.1,55.9V73.1H42.9V55.9H73.1 M75,54H41V75H75V54Z" fill="#002840"/>
+  <rect x="43" y="56" width="28" height="11" fill="#fff"/>
+  <rect x="43" y="70" width="22" height="1.9" fill="#fff"/>
+</svg>

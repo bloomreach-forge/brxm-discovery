@@ -1,8 +1,9 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryDataSourceComponentInfo;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.PaginationModel;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.search.model.PaginationModel;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -29,7 +30,7 @@ public class DiscoveryProductGridComponent extends AbstractDiscoveryComponent {
                 .map(r -> new PaginationModel(r.total(), r.page(), r.pageSize()))
                 .orElse(new PaginationModel(0L, 0, 0));
 
-        setModelAndAttribute(request, "products", products);
-        setModelAndAttribute(request, "pagination", pagination);
+        request.setModel(DiscoveryModelKeys.PRODUCTS, products);
+        request.setModel(DiscoveryModelKeys.PAGINATION, pagination);
     }
 }

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Product Picker (CMS)</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="What it provides">
+      <p>
+        The picker runtime is an Open UI document field extension embedded inside the brXM CMS editor. It
+        lets editors search Discovery data visually and store product IDs, widget IDs, or category IDs in
+        document fields without exposing Discovery credentials to the browser.
+      </p>
+    </section>
+
+    <section name="REST endpoint reference">
+      <table>
+        <tr><th>Endpoint</th><th>Purpose</th></tr>
+        <tr><td><code>/search</code></td><td>Search products for the product picker dialog.</td></tr>
+        <tr><td><code>/items</code></td><td>Resolve one or more specific product IDs.</td></tr>
+        <tr><td><code>/categories</code></td><td>Return the Discovery category tree.</td></tr>
+        <tr><td><code>/browse</code></td><td>Browse products within a category.</td></tr>
+        <tr><td><code>/widgets</code></td><td>List available recommendation widgets.</td></tr>
+        <tr><td><code>/category-products</code></td><td>Return preview products for an editor-selected category.</td></tr>
+      </table>
+    </section>
+
+    <section name="Category product preview">
+      <p>
+        <code>discoveryCategoryProductPreview</code> is the inline companion field used by the category
+        picker flow. It stores a thumbnail count, listens for category changes via <code>postMessage</code>,
+        and reloads preview products immediately without waiting for a document save.
+      </p>
+    </section>
+
+    <section name="Linking a document field">
+      <div class="brush: yaml">
+        <source><![CDATA[
+/my-product-ref:
+  jcr:primaryType: frontend:plugin
+  caption: 'Featured Product'
+  field: 'myns:productId'
+  plugin.class: 'org.onehippo.cms7.frontend.plugin.field.OpenUiStringFieldPlugin'
+  uiExtension: 'discoveryProductPicker'
+  wicket.id: '${cluster.id}.field'
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Troubleshooting">
+      <table>
+        <tr><th>Symptom</th><th>Likely cause</th></tr>
+        <tr><td>Picker iframe is blank</td><td><code>brxm-discovery-cms</code> is missing or the daemon module did not start.</td></tr>
+        <tr><td>Field value disappears after save</td><td>The property was not declared in the document type definition.</td></tr>
+        <tr><td>Preview thumbnails do not follow category changes</td><td>The category picker and preview field are not rendered as same-origin sibling iframes.</td></tr>
+      </table>
+    </section>
+
+  </body>
+</document>

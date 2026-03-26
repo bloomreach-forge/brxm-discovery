@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Release Notes</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="0.0.1-SNAPSHOT">
+      <p><strong>Status:</strong> Alpha. Not yet released to Bloomreach Forge.</p>
+      <p>
+        Snapshot coverage currently includes Discovery-powered search, category browse, recommendations
+        (v1 and v2 Pathways), autosuggest, CMS product/widget/category pickers, pixel tracking, and
+        per-channel credential overrides layered on top of shared global configuration.
+      </p>
+    </section>
+
+  </body>
+</document>

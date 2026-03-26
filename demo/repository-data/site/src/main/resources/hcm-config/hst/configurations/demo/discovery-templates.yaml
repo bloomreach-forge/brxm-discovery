@@ -6,30 +6,3 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:templates/home-page:
       jcr:primaryType: hst:template
       hst:renderpath: webfile:/ft/home.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-search:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-search.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-category:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-category.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-recommendations:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-product-grid:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-grid.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-facets:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-facets.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-pagination:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-pagination.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-product-detail:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-detail.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-category-highlight:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-category-highlight.ftl
-    /hst:hst/hst:configurations/demo/hst:templates/brxdis-product-highlight:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-highlight.ftl

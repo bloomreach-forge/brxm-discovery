@@ -202,10 +202,12 @@ export interface ProductHighlightModels {
 export interface CategoryHighlight {
   categoryId: string;
   displayName: string;
+  productPreviewCount: number;  // 0–4; set per document in CMS
 }
 
 export interface CategoryHighlightModels {
   categories: CategoryHighlight[];
+  previewProducts: Record<string, ProductSummary[]>;  // keyed by categoryId; empty when count=0
   editMode: boolean;
 }
 ```
@@ -674,7 +676,7 @@ export function ProductHighlight({ component }: BrComponentContext) {
 
 ### `DiscoveryCategoryHighlightComponent` → `CategoryHighlightModels`
 
-Renders up to 4 curated category navigation tiles sourced from `DiscoveryCategoryDocument` pickers. Links to the category browse page by `categoryId`.
+Renders up to 4 curated category navigation tiles sourced from `DiscoveryCategoryDocument` pickers. Each tile optionally shows a row of product thumbnails when the editor has set `productPreviewCount > 0` on the document.
 
 ```tsx
 // CategoryHighlight.tsx
@@ -682,17 +684,28 @@ import type { BrComponentContext } from '@bloomreach/react-sdk';
 import type { CategoryHighlightModels } from './discovery.types';
 
 export function CategoryHighlight({ component }: BrComponentContext) {
-  const { categories } = component.getModels<CategoryHighlightModels>();
+  const { categories, previewProducts } = component.getModels<CategoryHighlightModels>();
 
   if (categories.length === 0) return null;
 
   return (
     <nav className="category-highlight">
-      {categories.map(cat => (
-        <a key={cat.categoryId} href={`/category?categoryId=${cat.categoryId}`}>
-          {cat.displayName || cat.categoryId}
-        </a>
-      ))}
+      {categories.map(cat => {
+        const previews = previewProducts[cat.categoryId] ?? [];
+        return (
+          <a key={cat.categoryId} href={`/category?categoryId=${cat.categoryId}`}>
+            <span className="cat-name">{cat.displayName || cat.categoryId}</span>
+
+            {previews.length > 0 && (
+              <div className="cat-previews">
+                {previews.map(p => (
+                  <img key={p.id} src={p.imageUrl} alt={p.title} />
+                ))}
+              </div>
+            )}
+          </a>
+        );
+      })}
     </nav>
   );
 }
@@ -701,6 +714,9 @@ export function CategoryHighlight({ component }: BrComponentContext) {
 **Notes:**
 - `categoryId` is the Discovery category ID (set on the document in Channel Manager).
 - `displayName` is optional editorial label; fall back to `categoryId` if blank.
+- `previewProducts` is keyed by `categoryId`. It is an empty object when all `productPreviewCount` values are `0` or when `HstDiscoveryService` is unavailable.
+- `productPreviewCount` is for informational use — the actual fetched products are in `previewProducts`, already limited to that count.
+- **Caching**: preview products are served from a JVM-level cache with a ~5-minute TTL (±20% jitter). Products are fresh within that window; a change in Discovery catalog will not be visible immediately. This is intentional — category tiles are editorial fixtures, not real-time inventory.
 
 ---
 
@@ -863,5 +879,6 @@ These are set in Channel Manager and come through as part of the component's HST
 | No PID resolved on a product detail component | `product: null`, `pid: ""` |
 | `labelConnected: false` on grid/facets | `products: []` / `facets: {}` — data component not on page |
 | No documents on ProductHighlight | `products: [null, null, null, null]` — all slots empty |
-| No documents on CategoryHighlight | `categories: []` |
+| No documents on CategoryHighlight | `categories: []`, `previewProducts: {}` |
+| CategoryHighlight with `productPreviewCount=0` | `categories` populated, `previewProducts: {}` |
 | Discovery API unreachable | `SearchException` thrown server-side → component renders error page |

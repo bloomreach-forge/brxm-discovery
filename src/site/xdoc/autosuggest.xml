@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Autosuggest</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Enabling autosuggest">
+      <p>Autosuggest is built into <code>DiscoverySearchComponent</code>; no separate data component is required.</p>
+      <table>
+        <tr><th>Param</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>suggestionsEnabled</code></td><td><code>true</code></td><td>Enable the dropdown entirely.</td></tr>
+        <tr><td><code>suggestionsLimit</code></td><td><code>5</code></td><td>Maximum suggestions per result group.</td></tr>
+        <tr><td><code>minChars</code></td><td><code>2</code></td><td>Minimum characters before the API is called.</td></tr>
+        <tr><td><code>debounceMs</code></td><td><code>250</code></td><td>Client-side debounce delay.</td></tr>
+        <tr><td><code>placeholder</code></td><td><code>Search...</code></td><td>Rendered input placeholder text.</td></tr>
+        <tr><td><code>resultsPage</code></td><td><code>""</code></td><td>Optional redirect path for full results.</td></tr>
+      </table>
+    </section>
+
+    <section name="Suggest-only mode">
+      <p>Use <code>brxdis_suggest=1</code> to skip the full search call and return only autosuggest data.</p>
+      <div class="brush: text">
+        <source><![CDATA[
+GET /site/search?q=shi&brxdis_suggest=1
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="AutosuggestResult structure">
+      <div class="brush: text">
+        <source><![CDATA[
+AutosuggestResult
+├── originalQuery
+├── querySuggestions
+├── attributeSuggestions
+│   ├── name
+│   ├── value
+│   └── attributeType
+└── productSuggestions
+    ├── id
+    ├── title
+    ├── imageUrl
+    ├── price
+    └── currency
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Bundled FTL template">
+      <p>
+        The plugin ships <code>brxdis-search.ftl</code> for full search pages and inline autosuggest
+        behaviour. Projects that want a standalone dropdown implementation typically adapt that template's
+        autosuggest markup and JavaScript.
+      </p>
+    </section>
+
+    <section name="Page Model API">
+      <div class="brush: json">
+        <source><![CDATA[
+{
+  "page": {
+    "search": {
+      "models": {
+        "query": "shi",
+        "autosuggestResult": {
+          "originalQuery": "shi",
+          "querySuggestions": ["shirts", "shipping"],
+          "attributeSuggestions": [
+            { "name": "brand", "value": "Nike", "attributeType": "text" }
+          ],
+          "productSuggestions": [
+            { "id": "p1", "title": "Blue Shirt", "price": 29.99 }
+          ]
+        },
+        "suggestOnlyMode": true
+      }
+    }
+  }
+}
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Catalog view restrictions">
+      <p>
+        Catalog-view restriction is supported at the service layer through
+        <code>HstDiscoveryService.autosuggest()</code>. It is not exposed as a first-class
+        <code>DiscoverySearchComponent</code> parameter, so projects that need locale- or catalog-specific
+        autosuggest typically subclass the component.
+      </p>
+    </section>
+
+  </body>
+</document>

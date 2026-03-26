@@ -10,15 +10,15 @@
 
     <groupId>org.bloomreach.forge.discovery</groupId>
     <artifactId>brxm-discovery</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>brXM Discovery Plugin</name>
     <description>Bloomreach Discovery integration for brXM</description>
     <modules>
+        <module>shared</module>
         <module>cms</module>
         <module>site</module>
         <module>hcm-site</module>
-        <module>webfiles</module>
     </modules>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -28,6 +28,11 @@
     <dependencyManagement>
         <dependencies>
             <!-- Internal modules -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>brxm-discovery-shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>brxm-discovery-cms</artifactId>
@@ -43,17 +48,21 @@
                 <artifactId>brxm-discovery-hcm-site</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>brxm-discovery-webfiles</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <!-- CRISP -->
             <dependency>
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-addon-crisp-api</artifactId>
                 <version>${hippo.release.version}</version>
-                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-addon-crisp-repository</artifactId>
+                <version>${hippo.release.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.onehippo.cms7</groupId>
+                <artifactId>hippo-addon-crisp-hst</artifactId>
+                <version>${hippo.release.version}</version>
             </dependency>
             <!-- HST -->
             <dependency>
@@ -74,12 +83,16 @@
                 <version>${hippo.release.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.onehippo.cms7.hst.toolkit-resources.addon</groupId>
+                <artifactId>hst-addon-hcm-site</artifactId>
+                <version>${hippo.release.version}</version>
+            </dependency>
             <!-- Repository -->
             <dependency>
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-repository-api</artifactId>
                 <version>${hippo.release.version}</version>
-                <scope>provided</scope>
             </dependency>
             <!-- CMS -->
             <dependency>
@@ -140,7 +153,6 @@
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-services</artifactId>
                 <version>${hippo.release.version}</version>
-                <scope>provided</scope>
             </dependency>
             <!-- Guava -->
             <dependency>
@@ -183,18 +195,65 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <skip>false</skip>
+                    <aggregate>true</aggregate>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>aggregate</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <configuration>
+                    <aggregate>true</aggregate>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+    <distributionManagement>
+        <repository>
+            <name>Bloomreach Maven 2 Forge Repository</name>
+            <id>bloomreach-maven2-forge</id>
+            <url>https://maven.bloomreach.com/content/repositories/forge-releases</url>
+            <uniqueVersion>false</uniqueVersion>
+        </repository>
+    </distributionManagement>
+
     <repositories>
         <repository>
-            <id>bloomreach</id>
-            <name>Bloomreach Maven 2</name>
-            <url>https://maven.bloomreach.com/maven2/</url>
+            <id>bloomreach-maven2</id>
+            <name>Bloomreach Maven 2 Repository</name>
+            <url>https://maven.bloomreach.com/repository/maven2/</url>
         </repository>
         <repository>
-            <id>bloomreach-enterprise</id>
-            <name>Bloomreach Enterprise Maven 2</name>
-            <url>https://maven.bloomreach.com/maven2-enterprise/</url>
+            <id>bloomreach-maven2-forge</id>
+            <name>Bloomreach Maven 2 Forge Repository</name>
+            <url>https://maven.bloomreach.com/repository/maven2-forge/</url>
         </repository>
     </repositories>
+
     <profiles>
         <profile>
             <id>coverage</id>
@@ -218,6 +277,20 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>github.pages</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-site-plugin</artifactId>
+                        <configuration>
+                            <outputDirectory>docs</outputDirectory>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

@@ -1,6 +1,6 @@
 package org.bloomreach.forge.discovery.site.service.discovery.sor;
 
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.ProductSummary;
+import org.bloomreach.forge.discovery.search.model.ProductSummary;
 
 import java.util.List;
 

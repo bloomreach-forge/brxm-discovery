@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Pixel Tracking</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="How it works">
+      <p>
+        Pixel events are sent asynchronously after search, category, recommendation, and product-detail
+        renders. Delivery is fire-and-forget through a bounded <code>brxdis-pixel-*</code> thread pool, so
+        page rendering does not wait on <code>p.brsrvr.com/pix.gif</code> and failures are logged then dropped.
+      </p>
+    </section>
+
+    <section name="Default behaviour">
+      <p>
+        Once valid Discovery credentials exist and the site addon is loaded, pixel tracking is enabled by
+        default. No extra production configuration is required.
+      </p>
+    </section>
+
+    <section name="Kill switches">
+      <table>
+        <tr><th>System property</th><th>Default</th><th>Effect</th></tr>
+        <tr><td><code>brxdis.pixel.envEnabled</code></td><td><code>true</code></td><td>Global hard kill switch for all channels.</td></tr>
+        <tr><td><code>brxdis.pixel.testData</code></td><td><code>false</code></td><td>Append <code>test_data=true</code> to pixel requests.</td></tr>
+        <tr><td><code>brxdis.pixel.debug</code></td><td><code>false</code></td><td>Append <code>debug=true</code> to pixel requests.</td></tr>
+      </table>
+    </section>
+
+    <section name="Channel-level overrides">
+      <table>
+        <tr><th>Channel property</th><th>Description</th></tr>
+        <tr><td><code>discoveryPixelsEnabled</code></td><td>Enable or suppress pixel calls for this channel.</td></tr>
+        <tr><td><code>discoveryPixelTestData</code></td><td>Tag this channel's traffic as test data.</td></tr>
+        <tr><td><code>discoveryPixelDebug</code></td><td>Enable debug tagging for this channel.</td></tr>
+      </table>
+      <p>The global env/system kill switch always wins over channel settings.</p>
+    </section>
+
+    <section name="Verification via logging">
+      <p>Enable DEBUG logging for the plugin package to confirm emission behaviour.</p>
+      <div class="brush: properties">
+        <source><![CDATA[
+log4j2.logger.discovery=DEBUG,org.bloomreach.forge.discovery
+        ]]></source>
+      </div>
+      <div class="brush: text">
+        <source><![CDATA[
+DEBUG DiscoveryPixelServiceImpl - Discovery pixel event fired: type=SearchResponse, q=running shoes
+WARN  DiscoveryPixelServiceImpl - Discovery pixel event failed: ...
+        ]]></source>
+      </div>
+    </section>
+
+  </body>
+</document>

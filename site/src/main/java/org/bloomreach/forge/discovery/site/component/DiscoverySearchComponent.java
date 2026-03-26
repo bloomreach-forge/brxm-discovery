@@ -1,10 +1,12 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.AutosuggestResult;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
 
 import java.io.IOException;
 import java.util.List;
@@ -38,18 +40,18 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
         boolean suggestOnlyMode = "1".equals(getPublicRequestParameter(request, "brxdis_suggest"));
 
         // Config models — always set so FTL can render form/input correctly regardless of query
-        setModelAndAttribute(request, "label", label);
-        setModelAndAttribute(request, "suggestionsEnabled", info.isSuggestionsEnabled());
-        setModelAndAttribute(request, "resultsPage", info.getResultsPage());
-        setModelAndAttribute(request, "minChars", info.getMinChars());
-        setModelAndAttribute(request, "debounceMs", info.getDebounceMs());
-        setModelAndAttribute(request, "placeholder", info.getPlaceholder());
-        setModelAndAttribute(request, "query", query);
-        setModelAndAttribute(request, "suggestOnlyMode", suggestOnlyMode);
+        request.setModel(DiscoveryModelKeys.LABEL, label);
+        request.setModel(DiscoveryModelKeys.SUGGESTIONS_ENABLED, info.isSuggestionsEnabled());
+        request.setModel(DiscoveryModelKeys.RESULTS_PAGE, info.getResultsPage());
+        request.setModel(DiscoveryModelKeys.MIN_CHARS, info.getMinChars());
+        request.setModel(DiscoveryModelKeys.DEBOUNCE_MS, info.getDebounceMs());
+        request.setModel(DiscoveryModelKeys.PLACEHOLDER, info.getPlaceholder());
+        request.setModel(DiscoveryModelKeys.QUERY, query);
+        request.setModel(DiscoveryModelKeys.SUGGEST_ONLY_MODE, suggestOnlyMode);
 
         if (query.isBlank()) {
-            request.setModel("searchResult", null);
-            setModelAndAttribute(request, "autosuggestResult", null);
+            request.setModel(DiscoveryModelKeys.SEARCH_RESULT, null);
+            request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, null);
             return;
         }
 
@@ -58,16 +60,16 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
         if (!suggestOnlyMode) {
             String catalogName = info.getCatalogName();
             List<String> statsFields = parseStatsFields(info.getStatsFields());
-            SearchResponse searchResponse = svc.search(request, info.getPageSize(), info.getDefaultSort(),
-                    blankToNull(catalogName), label, statsFields,
-                    info.getSegment(), info.getExclusionFilter());
-            setModelAndAttribute(request, "searchResult", searchResponse.result());
-            setModelAndAttribute(request, "stats", searchResponse.metadata().stats());
-            setModelAndAttribute(request, "didYouMean", searchResponse.metadata().didYouMean());
-            setModelAndAttribute(request, "autoCorrectQuery", searchResponse.metadata().autoCorrectQuery());
-            setModelAndAttribute(request, "redirectUrl", searchResponse.metadata().redirectUrl());
-            setModelAndAttribute(request, "redirectQuery", searchResponse.metadata().redirectQuery());
-            setModelAndAttribute(request, "campaign", searchResponse.metadata().campaign());
+            SearchResponse searchResponse = svc.search(request, new SearchRequestOptions(
+                    info.getPageSize(), info.getDefaultSort(), blankToNull(catalogName),
+                    label, statsFields, info.getSegment(), info.getExclusionFilter()));
+            request.setModel(DiscoveryModelKeys.SEARCH_RESULT, searchResponse.result());
+            request.setModel(DiscoveryModelKeys.STATS, searchResponse.metadata().stats());
+            request.setModel(DiscoveryModelKeys.DID_YOU_MEAN, searchResponse.metadata().didYouMean());
+            request.setModel(DiscoveryModelKeys.AUTO_CORRECT_QUERY, searchResponse.metadata().autoCorrectQuery());
+            request.setModel(DiscoveryModelKeys.REDIRECT_URL, searchResponse.metadata().redirectUrl());
+            request.setModel(DiscoveryModelKeys.REDIRECT_QUERY, searchResponse.metadata().redirectQuery());
+            request.setModel(DiscoveryModelKeys.CAMPAIGN, searchResponse.metadata().campaign());
 
             String redirectUrl = searchResponse.metadata().redirectUrl();
             if (info.isAutoRedirect() && redirectUrl != null && !redirectUrl.isBlank()) {
@@ -84,9 +86,9 @@ public class DiscoverySearchComponent extends AbstractDiscoveryComponent {
 
         if (info.isSuggestionsEnabled()) {
             AutosuggestResult suggestions = svc.autosuggest(request, query, info.getSuggestionsLimit());
-            setModelAndAttribute(request, "autosuggestResult", suggestions);
+            request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, suggestions);
         } else {
-            setModelAndAttribute(request, "autosuggestResult", null);
+            request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, null);
         }
     }
 

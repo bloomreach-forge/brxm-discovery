@@ -21,7 +21,17 @@
     dialogPath:  "category-picker-dialog.html",
     dialogTitle: "Select Category",
     placeholder: "No category selected",
-    errorLabel:  "category"
+    errorLabel:  "category",
+    onValueChange: function (categoryId, documentId) {
+      // Broadcast to all sibling iframes (same origin) so the product-preview field
+      // can react without waiting for a JCR save.
+      var msg    = { type: "brxdis:categoryChanged", documentId: documentId, categoryId: categoryId };
+      var origin = window.location.origin;
+      var frames = window.parent.frames;
+      for (var i = 0; i < frames.length; i++) {
+        try { frames[i].postMessage(msg, origin); } catch (e) { /* cross-origin frame — skip */ }
+      }
+    }
   });
 </script>
 </body>

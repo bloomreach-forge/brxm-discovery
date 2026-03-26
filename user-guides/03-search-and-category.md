@@ -1,5 +1,7 @@
 # Search and Category Pages
 
+> **New to the plugin?** See [00-quick-start.md](00-quick-start.md) for the end-to-end setup walkthrough — dependencies, bean scanning, credential setup, and a minimal working search page — before reading the detailed parameter reference here.
+
 ## Overview
 
 `DiscoverySearchComponent` and `DiscoveryCategoryComponent` call the Discovery Search / Category Browse API via CRISP. They expose data via:
@@ -10,13 +12,13 @@ Both components cache results on the underlying servlet request (`DiscoveryReque
 
 `DiscoverySearchComponent` also handles autosuggest inline — it calls the Autosuggest API when `suggestionsEnabled = true` and exposes `autosuggestResult` alongside the main search result. No separate autosuggest component is needed.
 
-Credentials are resolved from the `discoveryConfigPath` mount parameter — see [02-discovery-config.md](02-discovery-config.md).
+Credentials are resolved from the shared Discovery config (`env -> sys -> JCR`) — see [02-discovery-config.md](02-discovery-config.md).
 
 ---
 
 ## HST configuration
 
-### 1. Register the components and templates
+### 1. Register the components
 
 In your project's HCM site config:
 
@@ -36,19 +38,7 @@ definitions:
         hst:template: brxdis-category
 ```
 
-**`templates.yaml`**
-
-```yaml
-definitions:
-  config:
-    /hst:hst/hst:configurations/<your-site>/hst:templates:
-      /brxdis-search:
-        jcr:primaryType: hst:template
-        hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
-      /brxdis-category:
-        jcr:primaryType: hst:template
-        hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
-```
+The bundled `brxdis-search` and `brxdis-category` templates are auto-registered under `hst:default`. Add your own `templates.yaml` only if you want to override them.
 
 ### 2. Add sitemap entries
 
@@ -192,24 +182,7 @@ When a view component (`DiscoveryProductGridComponent`, `DiscoveryFacetComponent
 
 ## Plugin FTL templates
 
-The webfiles module ships ready-to-use Freemarker templates. Register them in `templates.yaml`:
-
-```yaml
-/brxdis-search:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
-/brxdis-category:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-category.ftl
-/brxdis-product-grid:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-product-grid.ftl
-/brxdis-facets:
-  jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-facets.ftl
-```
-
-Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
+All `brxdis-*` templates are bundled inside `brxm-discovery-site` and auto-registered under `hst:default`. Each template injects scoped CSS via `<@hst.headContribution>` — no external stylesheet required.
 
 **Monolithic templates** (`brxdis-search.ftl`, `brxdis-category.ftl`): single component renders the full page — search form/bar, suggestion dropdown, facet sidebar, product grid, and pagination all in one template. Use for quick integration.
 
@@ -319,6 +292,58 @@ For headless delivery, a search page with composable components produces:
 
 ---
 
+---
+
+## `DiscoveryCategoryHighlightComponent`
+
+Renders a grid of curated category tiles (up to 4) sourced from `brxdis:categoryDocument` pickers configured in the Channel Manager. Each tile optionally shows a row of product thumbnails below the category name, driven by the `brxdis:productPreviewCount` field on the document.
+
+### Component parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `document1`–`document4` | JCR path | `""` | Paths to `brxdis:categoryDocument` nodes. Empty slots are skipped. |
+
+### Models set on the request
+
+| Key | Type | Description |
+|---|---|---|
+| `categories` | `List<DiscoveryCategoryBean>` | Resolved category beans in slot order. |
+| `previewProducts` | `Map<String, List<ProductSummary>>` | Preview products keyed by `categoryId`. Empty map when all counts are zero or `HstDiscoveryService` is unavailable. Served from `CategoryPreviewCache` (~5-min TTL) — not re-fetched from Discovery on every request. |
+
+### `DiscoveryCategoryBean` accessors
+
+| Method | Returns | Description |
+|---|---|---|
+| `getCategoryId()` | `String` | The Discovery category ID stored in `brxdis:categoryId`. |
+| `getDisplayName()` | `String` | Editor-facing label stored in `brxdis:displayName`. |
+| `getProductPreviewCount()` | `int` | Number of preview products (0–4) stored in `brxdis:productPreviewCount`. Returns `0` if absent or unparseable. |
+
+### FTL access
+
+```ftl
+<#assign previewProds = (previewProducts!{})[cat.categoryId!""]![]>
+<#list previewProds as p>
+  <img src="${p.imageUrl()!""}" alt="${(p.title()!"")?html}">
+</#list>
+```
+
+The bundled `brxdis-category-highlight.ftl` template handles this rendering automatically.
+
+### HST configuration
+
+```yaml
+definitions:
+  config:
+    /hst:hst/hst:configurations/<your-site>/hst:components:
+      /category-highlight:
+        jcr:primaryType: hst:component
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryHighlightComponent
+        hst:template: brxdis-category-highlight
+```
+
+---
+
 ## Error handling
 
-`ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the `discoveryConfigPath` mount parameter is missing or the JCR document is absent, the plugin falls back to env/sys + coded defaults rather than failing.
+`ConfigurationException` is thrown if required credentials (`accountId`, `domainKey`, `apiKey`) are missing from all resolution sources. Discovery API errors are wrapped in `SearchException` (a `RuntimeException` subtype). When the global JCR config node is absent, the plugin falls back to env/sys + coded defaults rather than failing.

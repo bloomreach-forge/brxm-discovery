@@ -1,11 +1,13 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
+import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.bloomreach.forge.discovery.search.model.SearchResponse;
+import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -36,7 +38,7 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
         // 1. Category document (editor-configured via Channel Manager)
         DiscoveryCategoryBean document = getHippoBeanForPath(
                 request, info.getDocument(), DiscoveryCategoryBean.class);
-        request.setAttribute("document", document);
+        request.setModel("document", document);
         String categoryId = document != null && document.getCategoryId() != null
                 && !document.getCategoryId().isBlank()
                 ? document.getCategoryId()
@@ -49,21 +51,23 @@ public class DiscoveryCategoryComponent extends AbstractDiscoveryComponent {
                         "No category configured. Attach a Category Document to this component " +
                         "or pass a '?category=' URL parameter.");
             }
-            setModelAndAttribute(request, "categoryId", "");
-            setModelAndAttribute(request, "categoryResult", emptyResult());
+            request.setModel(DiscoveryModelKeys.CATEGORY_ID, "");
+            request.setModel(DiscoveryModelKeys.CATEGORY_RESULT, emptyResult());
             return;
         }
 
         HstDiscoveryService svc = getDiscoveryService();
         List<String> statsFields = parseStatsFields(info.getStatsFields());
-        SearchResponse browseResponse = svc.browse(request, categoryId, info.getPageSize(), info.getDefaultSort(),
-                label, statsFields, info.getSegment(), info.getExclusionFilter());
+        SearchResponse browseResponse = svc.browse(request, categoryId, new SearchRequestOptions(
+                info.getPageSize(), info.getDefaultSort(), null,
+                label, statsFields, info.getSegment(), info.getExclusionFilter()));
 
-        setModelAndAttribute(request, "categoryId", categoryId);
-        setModelAndAttribute(request, "categoryResult", browseResponse.result());
-        setModelAndAttribute(request, "stats", browseResponse.metadata().stats());
-        setModelAndAttribute(request, "label", label);
-        setModelAndAttribute(request, "campaign", browseResponse.metadata().campaign());
+        request.setModel(DiscoveryModelKeys.CATEGORY_ID, categoryId);
+        request.setModel(DiscoveryModelKeys.DISPLAY_NAME, browseResponse.metadata().categoryName());
+        request.setModel(DiscoveryModelKeys.CATEGORY_RESULT, browseResponse.result());
+        request.setModel(DiscoveryModelKeys.STATS, browseResponse.metadata().stats());
+        request.setModel(DiscoveryModelKeys.LABEL, label);
+        request.setModel(DiscoveryModelKeys.CAMPAIGN, browseResponse.metadata().campaign());
 
         log.debug("Category '{}' returned {} results (page {})",
                 categoryId, browseResponse.result().total(), browseResponse.result().page());

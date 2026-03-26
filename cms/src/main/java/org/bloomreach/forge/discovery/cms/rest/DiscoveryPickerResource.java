@@ -1,11 +1,12 @@
 package org.bloomreach.forge.discovery.cms.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -17,21 +18,24 @@ import org.bloomreach.forge.discovery.cms.rest.dto.PickerCategoryDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerItemDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
-import org.bloomreach.forge.discovery.site.service.discovery.config.DiscoveryConfigReader;
-import org.bloomreach.forge.discovery.site.service.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.site.service.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.config.ConfigDefaults;
+import org.bloomreach.forge.discovery.config.DiscoveryChannelConfigReader;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
+import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestSpec;
+import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.UUID;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -49,64 +53,87 @@ import java.util.function.Function;
  *   <li>{@code GET /widgets}    — list available recommendation widgets</li>
  * </ul>
  *
- * <p>All endpoints require a {@code configPath} query param pointing to a
- * {@code brxdis:discoveryConfig} JCR node. API keys never leave the server.
+ * <p>All configuration is read from the global Discovery config node at
+ * {@link ConfigDefaults#CONFIG_NODE_PATH}. API keys never leave the server.
  */
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 public class DiscoveryPickerResource {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String SEARCH_PATH = "/api/v1/core/";
-    private static final String WIDGETS_PATH = "/api/v1/merchant/widgets";
-    private static final String DEFAULT_FIELDS = "pid,title,brand,price,sale_price,thumb_image,url,description";
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryPickerResource.class);
     private static final int MAX_PAGE_SIZE = 100;
-    private static final long CACHE_TTL_MS = 60_000L;
+    private static final String CATEGORY_ID_PROP = "brxdis:categoryId";
+    private static final DiscoveryRequestFactory REQUEST_FACTORY = new DiscoveryRequestFactory();
 
     // CXF injects a per-request proxy into this field even though the resource is a singleton.
     @Context
     private UriInfo uriInfo;
 
     private final Session moduleSession;
-    private final DiscoveryConfigReader configReader;
+    private final DiscoveryConfigProvider configProvider;
+    private final DiscoveryPickerResponseMapper responseMapper;
     // Extracted as a Function to allow injection of a test double
     final Function<String, String> httpGateway;
-    private final ConcurrentHashMap<String, CachedConfig> configCache = new ConcurrentHashMap<>();
+    private final Function<String, String> envResolver;
 
-    public DiscoveryPickerResource(Session moduleSession, DiscoveryConfigReader configReader,
+    public DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
                                    Function<String, String> httpGateway) {
+        this(moduleSession, configProvider, httpGateway, new DiscoveryPickerResponseMapper());
+    }
+
+    DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
+                            Function<String, String> httpGateway,
+                            DiscoveryPickerResponseMapper responseMapper) {
+        this(moduleSession, configProvider, httpGateway, responseMapper, System::getenv);
+    }
+
+    /** Package-private seam for tests — allows injecting a custom env resolver. */
+    DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
+                            Function<String, String> httpGateway,
+                            DiscoveryPickerResponseMapper responseMapper,
+                            Function<String, String> envResolver) {
         this.moduleSession = moduleSession;
-        this.configReader = configReader;
+        this.configProvider = configProvider;
         this.httpGateway = httpGateway;
+        this.responseMapper = responseMapper;
+        this.envResolver = envResolver;
     }
 
     @GET
     @Path("/search")
     public PickerSearchResponseDto search(
-            @QueryParam("configPath") String configPath,
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId,
             @QueryParam("q") @DefaultValue("*") String q,
             @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("pageSize") @DefaultValue("12") int pageSize) {
+            @QueryParam("pageSize") @DefaultValue("12") int pageSize,
+            @QueryParam("catId") @DefaultValue("") String catId) {
 
+        if (q.length() > 1000) {
+            throw new BadRequestException("Query exceeds maximum allowed length of 1000 characters");
+        }
         int safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
-        DiscoveryConfig config = resolveConfig(configPath);
-        SearchQuery query = new SearchQuery(q, page, safePageSize, config.defaultSort(), Map.of(), null, null, null);
-        String url = buildSearchUrl(query, config, requestUrl(), brUid2());
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        DiscoveryCredentials credentials = config.credentials();
+        DiscoverySettings settings = config.settings();
+        Map<String, List<String>> filters = catId.isBlank() ? Map.of() : Map.of("cat_id", List.of(catId));
+        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), filters, brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(settings, REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
-        return parseSearchResponse(json, page, safePageSize);
+        return responseMapper.toSearchResponse(json, page, safePageSize);
     }
 
     /**
      * Looks up specific products by PID. Used to reload already-selected items
      * when an editor re-opens a document.
      *
-     * @param configPath JCR path to the {@code brxdis:discoveryConfig} node
-     * @param ids        comma-separated product IDs (PIDs)
+     * @param ids comma-separated product IDs (PIDs)
      */
     @GET
     @Path("/items")
     public PickerSearchResponseDto items(
-            @QueryParam("configPath") String configPath,
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId,
             @QueryParam("ids") String ids) {
 
         if (ids == null || ids.isBlank()) {
@@ -121,92 +148,136 @@ public class DiscoveryPickerResource {
             return new PickerSearchResponseDto(List.of(), 0L, 0, 0);
         }
 
-        DiscoveryConfig config = resolveConfig(configPath);
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        DiscoveryCredentials credentials = config.credentials();
         // fq=pid:"id1"&fq=pid:"id2" — multiple values produce OR within same field
         SearchQuery query = new SearchQuery("*", 0, pidList.size(), null,
-                Map.of("pid", pidList), null, null, null);
-        String url = buildSearchUrl(query, config, requestUrl(), brUid2());
+                Map.of("pid", pidList), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
-        return parseSearchResponse(json, 0, pidList.size());
+        return responseMapper.toSearchResponse(json, 0, pidList.size());
     }
 
     /**
-     * Returns browsable categories matching a search query.
-     *
-     * <p>Uses {@code search_type=category&rows=0} against the core API so only
-     * the {@code category_map} is returned — no product rows are fetched.
-     *
-     * @param configPath JCR path to the {@code brxdis:discoveryConfig} node
+     * Returns recommendation widgets available for the channel.
      */
     @GET
     @Path("/widgets")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<PickerWidgetDto> listWidgets(@QueryParam("configPath") String configPath) {
-        DiscoveryConfig config = resolveConfig(configPath);
-        String url = buildWidgetsUrl(config);
+    public List<PickerWidgetDto> listWidgets(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId) {
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.merchantWidgets(config.credentials()));
         String json = httpGateway.apply(url);
-        return parseWidgetsResponse(json);
+        return responseMapper.toWidgets(json);
     }
 
+    /**
+     * Browses products within a specific category.
+     *
+     * <p>Uses {@code search_type=category&q={catId}} against the core API so
+     * the Discovery engine returns products ranked by category relevance.
+     */
+    @GET
+    @Path("/browse")
+    public PickerSearchResponseDto browse(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("catId") @DefaultValue("") String catId,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("pageSize") @DefaultValue("9") int pageSize) {
+
+        int safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        CategoryQuery query = new CategoryQuery(catId, page, safePageSize,
+                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
+        String json = httpGateway.apply(url);
+        return responseMapper.toSearchResponse(json, page, safePageSize);
+    }
+
+    /**
+     * Returns a thumbnail preview of products in a category document.
+     *
+     * <p>Reads {@code brxdis:categoryId} from the document node identified by {@code documentId},
+     * then issues a category browse with {@code rows=count} and returns the items list.
+     */
+    @GET
+    @Path("/category-products")
+    public List<PickerItemDto> categoryProducts(
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("categoryId") @DefaultValue("") String categoryId,
+            @QueryParam("count") @DefaultValue("4") int count,
+            @QueryParam("channelId") @DefaultValue("") String channelId) {
+
+        // categoryId may be supplied directly by the browser (live, pre-save value from the
+        // category picker); fall back to reading from the JCR draft only when absent.
+        String resolvedCategoryId = !categoryId.isBlank()
+                ? categoryId : resolveCategoryIdFromDocument(documentId);
+        if (resolvedCategoryId == null || resolvedCategoryId.isBlank()) {
+            return List.of();
+        }
+        int safeCount = Math.min(Math.max(count, 0), MAX_PAGE_SIZE);
+        if (safeCount == 0) {
+            return List.of();
+        }
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        CategoryQuery query = new CategoryQuery(resolvedCategoryId, 0, safeCount,
+                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
+        String json = httpGateway.apply(url);
+        return responseMapper.toSearchResponse(json, 0, safeCount).items();
+    }
+
+    /**
+     * Returns browsable categories for the channel.
+     *
+     * <p>Uses {@code search_type=category&rows=0} against the core API so only
+     * the {@code category_map} is returned — no product rows are fetched.
+     */
     @GET
     @Path("/categories")
-    public List<PickerCategoryDto> categories(@QueryParam("configPath") String configPath) {
-        DiscoveryConfig config = resolveConfig(configPath);
-        String url = buildCategoryUrl(config, requestUrl(), brUid2());
+    public List<PickerCategoryDto> categories(
+            @QueryParam("channelId") @DefaultValue("") String channelId,
+            @QueryParam("documentId") @DefaultValue("") String documentId) {
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        CategoryQuery query = new CategoryQuery("", 0, 0, null, Map.of(), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
-        return parseCategoryMapResponse(json);
+        return responseMapper.toCategories(json);
     }
 
-    private static String buildSearchUrl(SearchQuery query, DiscoveryConfig config,
-                                         String requestUrl, String brUid2) {
-        UriBuilder ub = UriBuilder.fromUri(config.baseUri())
-                .path(SEARCH_PATH)
-                .queryParam("account_id", config.accountId())
-                .queryParam("domain_key", config.domainKey());
-        if (config.apiKey() != null && !config.apiKey().isBlank()) {
-            ub.queryParam("auth_key", config.apiKey());
-        }
-        ub.queryParam("request_type", "search")
-          .queryParam("search_type", "keyword")
-          .queryParam("q", query.query() != null ? query.query() : "*")
-          .queryParam("fl", DEFAULT_FIELDS)
-          .queryParam("_br_uid_2", brUid2)
-          .queryParam("url", requestUrl)
-          .queryParam("start", (long) query.page() * query.pageSize())
-          .queryParam("rows", query.pageSize());
-        if (query.sort() != null && !query.sort().isBlank()) {
-            ub.queryParam("sort", query.sort());
-        }
-        if (query.filters() != null) {
-            for (Map.Entry<String, List<String>> entry : query.filters().entrySet()) {
-                for (String value : entry.getValue()) {
-                    ub.queryParam("fq", entry.getKey() + ":\"" + value + "\"");
+    /**
+     * Reads {@code brxdis:categoryId} from the document identified by {@code documentId}.
+     *
+     * <p>{@code documentId} is the <em>handle</em> UUID (as returned by {@code ui.document.get().id}).
+     * The property lives on the variant child node, not the handle itself, so we iterate the
+     * handle's children and return the first {@code brxdis:categoryId} value found.
+     */
+    private String resolveCategoryIdFromDocument(String documentId) {
+        if (documentId == null || documentId.isBlank()) return null;
+        try {
+            Node handle = moduleSession.getNodeByIdentifier(documentId);
+            // Property is on the variant child, not the handle
+            NodeIterator variants = handle.getNodes();
+            while (variants.hasNext()) {
+                Node variant = variants.nextNode();
+                if (variant.hasProperty(CATEGORY_ID_PROP)) {
+                    return variant.getProperty(CATEGORY_ID_PROP).getString();
                 }
             }
+            return null;
+        } catch (RepositoryException e) {
+            log.warn("[resolveCategoryIdFromDocument] documentId='{}': {}", documentId, e.getMessage());
+            return null;
         }
-        return ub.build().toString();
     }
 
-    private static String buildCategoryUrl(DiscoveryConfig config,
-                                           String requestUrl, String brUid2) {
-        UriBuilder ub = UriBuilder.fromUri(config.baseUri())
-                .path(SEARCH_PATH)
-                .queryParam("account_id", config.accountId())
-                .queryParam("domain_key", config.domainKey());
-        if (config.apiKey() != null && !config.apiKey().isBlank()) {
-            ub.queryParam("auth_key", config.apiKey());
-        }
-        // q="" (empty) means root/all categories for search_type=category.
-        // rows=0 so only category_map is returned (no product docs needed for the picker).
-        return ub.queryParam("request_type", "search")
-                 .queryParam("search_type", "category")
-                 .queryParam("q", "")
-                 .queryParam("fl", DEFAULT_FIELDS)
-                 .queryParam("_br_uid_2", brUid2)
-                 .queryParam("url", requestUrl)
-                 .queryParam("start", 0)
-                 .queryParam("rows", 0)
-                 .build().toString();
+    private static String buildAbsoluteUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {
+        UriBuilder builder = UriBuilder.fromUri(settings.baseUri()).path(request.path());
+        request.forEachQueryParameter((name, value) -> builder.queryParam(name, value));
+        return builder.build().toString();
     }
 
     /** Per-request UID derived from the CMS base URL; falls back to localhost when not in a live request (tests). */
@@ -216,121 +287,71 @@ public class DiscoveryPickerResource {
 
     /** Generates a fresh UUID-based tracking value per request. */
     private static String brUid2() {
-        return "uid=" + UUID.randomUUID();
+        return "uid=" + java.util.UUID.randomUUID();
     }
 
-    private DiscoveryConfig resolveConfig(String configPath) {
-        validateConfigPath(configPath);
-
-        CachedConfig cached = configCache.get(configPath);
-        if (cached != null && !cached.isExpired()) {
-            return cached.config();
-        }
-
-        DiscoveryConfig config;
-        synchronized (moduleSession) {
-            // double-check after acquiring lock — another thread may have populated the cache
-            cached = configCache.get(configPath);
-            if (cached != null && !cached.isExpired()) {
-                return cached.config();
-            }
-            try {
-                moduleSession.refresh(false);
-                config = configReader.read(moduleSession.getNode(configPath));
-            } catch (RepositoryException e) {
-                throw new InternalServerErrorException("Failed to read Discovery configuration", e);
-            }
-        }
-
-        configCache.put(configPath, new CachedConfig(config, System.currentTimeMillis()));
-        return config;
-    }
-
-    private static void validateConfigPath(String configPath) {
-        if (configPath == null || configPath.isBlank()) {
-            throw new BadRequestException("configPath query parameter is required");
-        }
-        if (!configPath.startsWith("/") || configPath.contains("..") || configPath.contains("\0")) {
-            throw new BadRequestException("Invalid configPath");
-        }
-    }
-
-    private static PickerSearchResponseDto parseSearchResponse(String json, int page, int pageSize) {
+    private void refreshSession() {
         try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode response = root.path("response");
-            long total = response.path("numFound").asLong(0);
-            List<PickerItemDto> items = new ArrayList<>();
-            for (JsonNode doc : response.path("docs")) {
-                String price = doc.path("price").isNumber()
-                        ? doc.path("price").asText()
-                        : null;
-                items.add(new PickerItemDto(
-                        doc.path("pid").asText(null),
-                        doc.path("title").asText(null),
-                        doc.path("thumb_image").asText(null),
-                        doc.path("url").asText(null),
-                        price));
-            }
-            return new PickerSearchResponseDto(items, total, page, pageSize);
-        } catch (IOException e) {
-            throw new InternalServerErrorException("Failed to parse Discovery API response", e);
+            moduleSession.refresh(false);
+        } catch (RepositoryException e) {
+            log.warn("brxm-discovery: could not refresh module session: {}", e.getMessage());
         }
     }
 
-    private String buildWidgetsUrl(DiscoveryConfig config) {
-        StringBuilder sb = new StringBuilder(config.baseUri())
-                .append(WIDGETS_PATH)
-                .append("?account_id=").append(encode(config.accountId()))
-                .append("&domain_key=").append(encode(config.domainKey()));
-        if (config.authKey() != null && !config.authKey().isBlank()) {
-            sb.append("&auth_key=").append(encode(config.authKey()));
-        }
-        return sb.toString();
-    }
-
-    private static List<PickerWidgetDto> parseWidgetsResponse(String json) {
+    private DiscoveryConfig resolveConfig(String channelId, String documentId) {
         try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode widgets = root.path("response").path("widgets");
-            List<PickerWidgetDto> result = new ArrayList<>();
-            for (JsonNode w : widgets) {
-                result.add(new PickerWidgetDto(
-                        w.path("id").asText(null),
-                        w.path("name").asText(null),
-                        w.path("type").asText(null),
-                        w.path("enabled").asBoolean(false),
-                        w.path("description").asText(null)));
-            }
-            return result;
-        } catch (IOException e) {
-            return List.of();
+            refreshSession();
+            DiscoveryConfig base = configProvider.get(moduleSession);
+            String effectiveChannelId = !channelId.isBlank()
+                    ? channelId
+                    : resolveChannelFromDocument(documentId, moduleSession);
+            DiscoveryCredentials overrides = DiscoveryChannelConfigReader.resolveFromJcr(effectiveChannelId, moduleSession, envResolver);
+            DiscoveryConfig config = overrides != null ? base.withCredentialOverrides(overrides) : base;
+            validateConfig(config);
+            return config;
+        } catch (NotFoundException | InternalServerErrorException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new InternalServerErrorException("Failed to resolve Discovery configuration", e);
         }
     }
 
-    private static List<PickerCategoryDto> parseCategoryMapResponse(String json) {
+    private String resolveChannelFromDocument(String documentId, Session session) {
+        if (documentId == null || documentId.isBlank()) return "";
         try {
-            JsonNode root = MAPPER.readTree(json);
-            JsonNode categoryMap = root.path("category_map");
-            List<PickerCategoryDto> result = new ArrayList<>();
-            categoryMap.fields().forEachRemaining(entry -> {
-                String id   = entry.getKey();
-                String name = entry.getValue().asText(id);
-                result.add(new PickerCategoryDto(id, name));
-            });
-            return result;
-        } catch (IOException e) {
-            throw new InternalServerErrorException("Failed to parse category_map response", e);
+            Node docNode = session.getNodeByIdentifier(documentId);
+            String path = docNode.getPath();
+            String[] parts = path.split("/");
+            // Expected: /content/documents/{siteName}/...  →  parts[3] = siteName
+            if (parts.length < 4 || !"content".equals(parts[1]) || !"documents".equals(parts[2])) {
+                log.warn("[resolveChannelFromDocument] Unexpected document path '{}'; " +
+                        "cannot resolve channel — falling back to global config", path);
+                return "";
+            }
+            return parts[3];
+        } catch (RepositoryException e) {
+            log.debug("[resolveChannelFromDocument] documentId='{}': {}", documentId, e.getMessage());
+            return "";
         }
     }
 
-    private static String encode(String value) {
-        return value == null ? "" : URLEncoder.encode(value, StandardCharsets.UTF_8);
+    private static void validateConfig(DiscoveryConfig config) {
+        DiscoveryCredentials credentials = config.credentials();
+        if (isBlank(credentials.accountId())) {
+            throw new NotFoundException("Discovery accountId is required at "
+                    + ConfigDefaults.CONFIG_NODE_PATH + " or via BRXDIS_ACCOUNT_ID / -Dbrxdis.accountId");
+        }
+        if (isBlank(credentials.domainKey())) {
+            throw new NotFoundException("Discovery domainKey is required at "
+                    + ConfigDefaults.CONFIG_NODE_PATH + " or via BRXDIS_DOMAIN_KEY / -Dbrxdis.domainKey");
+        }
+        if (isBlank(credentials.apiKey())) {
+            throw new NotFoundException("Discovery apiKey is required at "
+                    + ConfigDefaults.CONFIG_NODE_PATH + " or via BRXDIS_API_KEY / -Dbrxdis.apiKey");
+        }
     }
 
-    private record CachedConfig(DiscoveryConfig config, long timestamp) {
-        boolean isExpired() {
-            return System.currentTimeMillis() - timestamp > CACHE_TTL_MS;
-        }
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
