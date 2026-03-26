@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Search and Category</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="DiscoverySearchComponent">
+      <table>
+        <tr><th>Component param</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>pageSize</code></td><td><code>12</code></td><td>Results per page unless overridden by the request.</td></tr>
+        <tr><td><code>defaultSort</code></td><td><code>""</code></td><td>Default sort expression.</td></tr>
+        <tr><td><code>catalogName</code></td><td><code>""</code></td><td>Alternate catalog name for non-product search.</td></tr>
+        <tr><td><code>label</code></td><td><code>default</code></td><td>Band name used by sibling view components.</td></tr>
+        <tr><td><code>suggestionsEnabled</code></td><td><code>true</code></td><td>Enable inline autosuggest.</td></tr>
+      </table>
+      <table>
+        <tr><th>Request param</th><th>Description</th></tr>
+        <tr><td><code>q</code></td><td>Search term. <code>*</code> performs all-products browse.</td></tr>
+        <tr><td><code>page</code></td><td>1-indexed page number.</td></tr>
+        <tr><td><code>pageSize</code></td><td>Request override for results per page.</td></tr>
+        <tr><td><code>sort</code></td><td>Request override for sort order.</td></tr>
+        <tr><td><code>filter.{attribute}</code></td><td>Repeatable facet filters.</td></tr>
+        <tr><td><code>brxdis_suggest</code></td><td>Suggest-only mode for autosuggest AJAX calls.</td></tr>
+      </table>
+    </section>
+
+    <section name="DiscoveryCategoryComponent">
+      <table>
+        <tr><th>Component param</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>pageSize</code></td><td><code>12</code></td><td>Component-level default page size.</td></tr>
+        <tr><td><code>defaultSort</code></td><td><code>""</code></td><td>Component-level default sort.</td></tr>
+        <tr><td><code>label</code></td><td><code>default</code></td><td>Data band label for sibling components.</td></tr>
+      </table>
+      <table>
+        <tr><th>Request param</th><th>Description</th></tr>
+        <tr><td><code>categoryId</code></td><td>Discovery category ID. Required when no document supplies it.</td></tr>
+        <tr><td><code>page</code></td><td>1-indexed page number.</td></tr>
+        <tr><td><code>sort</code></td><td>Sort expression.</td></tr>
+        <tr><td><code>filter.{attribute}</code></td><td>Repeatable facet filters.</td></tr>
+      </table>
+      <p>Category ID can come from the request, a configured document, or other page context depending on how the page is wired.</p>
+    </section>
+
+    <section name="Named data bands">
+      <p>
+        Multiple Discovery result sets can coexist on one page. Use a unique <code>label</code> on each
+        data-fetching component, then point sibling view components at that band with
+        <code>connectTo</code>. This keeps "featured", "main", and category-specific datasets isolated.
+      </p>
+    </section>
+
+    <section name="View components">
+      <table>
+        <tr><th>View component</th><th>Primary param</th><th>Description</th></tr>
+        <tr><td><code>DiscoveryProductGridComponent</code></td><td><code>connectTo</code></td><td>Reads product results and pagination from a matching band.</td></tr>
+        <tr><td><code>DiscoveryFacetComponent</code></td><td><code>connectTo</code></td><td>Reads facet groups from a matching search or category band.</td></tr>
+      </table>
+    </section>
+
+    <section name="Models">
+      <table>
+        <tr><th>Model</th><th>Meaning</th></tr>
+        <tr><td><code>searchResult</code> / <code>categoryResult</code></td><td>Full Discovery response including products, facets, paging, and campaigns.</td></tr>
+        <tr><td><code>products</code></td><td>Product list exposed by the grid view component.</td></tr>
+        <tr><td><code>facets</code></td><td>Facet map exposed by the facet view component.</td></tr>
+        <tr><td><code>pagination</code></td><td>Pagination model for current page, total rows, and total pages.</td></tr>
+      </table>
+    </section>
+
+    <section name="Page Model API">
+      <p>Headless delivery receives the same data that drives the FTL templates.</p>
+      <div class="brush: json">
+        <source><![CDATA[
+{
+  "page": {
+    "search": {
+      "models": {
+        "query": "shoes",
+        "searchResult": { "total": 42, "products": [], "facets": {} },
+        "autosuggestResult": { "querySuggestions": [], "productSuggestions": [] }
+      }
+    },
+    "grid": {
+      "models": {
+        "products": [],
+        "pagination": { "total": 42, "page": 0, "pageSize": 12, "totalPages": 4 }
+      }
+    },
+    "facets": {
+      "models": {
+        "facets": {}
+      }
+    }
+  }
+}
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Category/Product Highlights">
+      <p>
+        Use <code>DiscoveryCategoryHighlightComponent</code> for curated category tiles and
+        <code>DiscoveryProductHighlightComponent</code> for hand-picked products. Both are editor-driven
+        showcase components intended for fixed placements such as homepages and landing pages.
+      </p>
+    </section>
+
+  </body>
+</document>

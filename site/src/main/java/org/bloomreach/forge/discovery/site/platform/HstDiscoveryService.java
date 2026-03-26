@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;

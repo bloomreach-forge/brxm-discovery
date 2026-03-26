@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Discovery Configuration</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Overview">
+      <p>
+        Configuration is resolved in two layers: a shared global <code>brxdis:discoveryConfig</code> node
+        for credentials and structural defaults, then optional per-channel overrides from
+        <code>hst:channelinfo</code> for account/domain values and secret env-var names.
+      </p>
+    </section>
+
+    <section name="Credential fields">
+      <subsection name="Account ID and domain key">
+        <table>
+          <tr><th>Priority</th><th>Source</th><th>Keys</th></tr>
+          <tr><td>1</td><td>Environment variable</td><td><code>BRXDIS_ACCOUNT_ID</code>, <code>BRXDIS_DOMAIN_KEY</code></td></tr>
+          <tr><td>2</td><td>System property</td><td><code>brxdis.accountId</code>, <code>brxdis.domainKey</code></td></tr>
+          <tr><td>3</td><td>JCR global node</td><td><code>brxdis:accountId</code>, <code>brxdis:domainKey</code></td></tr>
+        </table>
+      </subsection>
+      <subsection name="API key and auth key">
+        <table>
+          <tr><th>Priority</th><th>Source</th><th>Keys</th></tr>
+          <tr><td>1</td><td>Environment variable</td><td><code>BRXDIS_API_KEY</code>, <code>BRXDIS_AUTH_KEY</code></td></tr>
+          <tr><td>2</td><td>System property</td><td><code>brxdis.apiKey</code>, <code>brxdis.authKey</code></td></tr>
+          <tr><td>3</td><td>JCR global node</td><td><code>brxdis:apiKey</code>, <code>brxdis:authKey</code></td></tr>
+        </table>
+      </subsection>
+    </section>
+
+    <section name="Channel-level overrides">
+      <table>
+        <tr><th>Channel property</th><th>Purpose</th></tr>
+        <tr><td><code>discoveryAccountId</code></td><td>Override account ID for this channel.</td></tr>
+        <tr><td><code>discoveryDomainKey</code></td><td>Override domain key for this channel.</td></tr>
+        <tr><td><code>discoveryApiKeyEnvVar</code></td><td>Name of the env var holding the API key for this channel.</td></tr>
+        <tr><td><code>discoveryAuthKeyEnvVar</code></td><td>Name of the env var holding the Pathways auth key for this channel.</td></tr>
+      </table>
+      <div class="brush: yaml">
+        <source><![CDATA[
+/hst:hst/hst:configurations/<your-site>/hst:workspace/hst:channel/hst:channelinfo:
+  jcr:primaryType: hst:channelinfo
+  discoveryAccountId: '6413'
+  discoveryDomainKey: pacifichome
+  discoveryApiKeyEnvVar: BRXDIS_API_KEY
+  discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Structural config">
+      <table>
+        <tr><th>JCR property</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>brxdis:baseUri</code></td><td><code>https://core.dxpapi.com</code></td><td>Search and category API base URI.</td></tr>
+        <tr><td><code>brxdis:pathwaysBaseUri</code></td><td><code>https://pathways.dxpapi.com</code></td><td>Pathways recommendation base URI.</td></tr>
+        <tr><td><code>brxdis:autosuggestBaseUri</code></td><td><code>https://suggest.dxpapi.com</code></td><td>Autosuggest API base URI.</td></tr>
+        <tr><td><code>brxdis:defaultPageSize</code></td><td><code>12</code></td><td>Default results per page.</td></tr>
+        <tr><td><code>brxdis:defaultSort</code></td><td><code>""</code></td><td>Default Discovery sort expression.</td></tr>
+      </table>
+    </section>
+
+    <section name="Global config node">
+      <p>The shared config path is fixed for every channel:</p>
+      <div class="brush: text">
+        <source><![CDATA[
+/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
+        ]]></source>
+      </div>
+      <div class="brush: yaml">
+        <source><![CDATA[
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      jcr:primaryType: brxdis:discoveryConfig
+      brxdis:accountId: 'your-account-id'
+      brxdis:domainKey: 'your-domain-key'
+      brxdis:apiKey: ''
+      brxdis:authKey: ''
+      brxdis:baseUri: 'https://core.dxpapi.com'
+      brxdis:pathwaysBaseUri: 'https://pathways.dxpapi.com'
+      brxdis:autosuggestBaseUri: 'https://suggest.dxpapi.com'
+      brxdis:environment: 'PRODUCTION'
+      brxdis:defaultPageSize: 12
+      brxdis:defaultSort: ''
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="JCR-less operation">
+      <p>
+        The plugin can run without the JCR node entirely. In that mode it builds configuration from
+        env vars, system properties, and coded defaults. That is useful for ephemeral environments or
+        secret-only deployments.
+      </p>
+    </section>
+
+    <section name="CRISP resource spaces">
+      <table>
+        <tr><th>Space</th><th>Used for</th></tr>
+        <tr><td><code>discoverySearchAPI</code></td><td>Search, category browse, widget listing, and v1 recommendations.</td></tr>
+        <tr><td><code>discoveryPathwaysAPI</code></td><td>v2 Pathways recommendations when <code>authKey</code> is present.</td></tr>
+        <tr><td><code>discoveryAutosuggestAPI</code></td><td>Autosuggest and typeahead requests.</td></tr>
+      </table>
+    </section>
+
+    <section name="Cache behaviour">
+      <p>
+        Base configuration is cached for the lifetime of the JVM and invalidated automatically when the
+        Discovery config node changes. Env-var and system-property overrides are re-applied on each read,
+        so credential changes do not depend on a JCR save.
+      </p>
+    </section>
+
+  </body>
+</document>

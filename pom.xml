@@ -196,6 +196,42 @@
         </dependencies>
     </dependencyManagement>
 
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <skip>false</skip>
+                    <aggregate>true</aggregate>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>aggregate</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <configuration>
+                    <aggregate>true</aggregate>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
     <distributionManagement>
         <repository>
             <name>Bloomreach Maven 2 Forge Repository</name>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>React / SPA Integration</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Page Model API endpoint">
+      <p>Every Discovery component writes the same data to <code>request.setModel()</code> and <code>request.setAttribute()</code>, so headless delivery sees the same payload as FTL rendering.</p>
+      <div class="brush: text">
+        <source><![CDATA[
+GET /site/resourceapi/search?q=shirt&page=1
+Accept: application/json
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="TypeScript interfaces">
+      <p>These are the primary shapes SPA projects normally copy into a shared <code>discovery.types.ts</code> file.</p>
+      <div class="brush: ts">
+        <source><![CDATA[
+export interface SearchResult {
+  products: ProductSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  facets: Record<string, Facet>;
+}
+
+export interface ProductSummary {
+  id: string;
+  title: string;
+  url: string;
+  imageUrl: string;
+  price: number | null;
+  currency: string;
+  attributes: Record<string, unknown>;
+}
+
+export interface Facet {
+  name: string;
+  type: string;
+  value: FacetValue[];
+}
+
+export interface PaginationModel {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface AutosuggestResult {
+  originalQuery: string;
+  querySuggestions: string[];
+  attributeSuggestions: AttributeSuggestion[];
+  productSuggestions: ProductSummary[];
+}
+
+export interface RecommendationResult {
+  products: ProductSummary[];
+  widgetId: string;
+}
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="URL parameter reference">
+      <table>
+        <tr><th>Area</th><th>Parameters</th></tr>
+        <tr><td>Search</td><td><code>q</code>, <code>page</code>, <code>sort</code>, <code>filter.{field}</code>, <code>brxdis_suggest</code></td></tr>
+        <tr><td>Category</td><td><code>categoryId</code>, <code>page</code>, <code>sort</code>, <code>filter.{field}</code></td></tr>
+        <tr><td>Recommendations</td><td><code>widgetId</code>, <code>contextProductId</code>, <code>contextPageType</code>, <code>limit</code>, <code>fields</code>, <code>filter</code></td></tr>
+        <tr><td>Product detail</td><td><code>pid</code></td></tr>
+      </table>
+    </section>
+
+    <section name="Component examples">
+      <p>The repository guide contains fuller examples; the snippets below show the typical integration points.</p>
+      <div class="brush: tsx">
+        <source><![CDATA[
+export function SearchBar({ component }: BrComponentContext) {
+  const { query, autosuggestResult, placeholder } = component.getModels<SearchComponentModels>();
+  return <input type="search" name="q" defaultValue={query} placeholder={placeholder} />;
+}
+
+export function ProductGrid({ component }: BrComponentContext) {
+  const { products, pagination, labelConnected } = component.getModels<ProductGridModels>();
+  if (!labelConnected) return null;
+  return <div>{products.map(p => <article key={p.id}>{p.title}</article>)}</div>;
+}
+
+export function FacetSidebar({ component }: BrComponentContext) {
+  const { facets, labelConnected } = component.getModels<FacetModels>();
+  if (!labelConnected) return null;
+  return <nav>{Object.values(facets).map(f => <div key={f.name}>{f.name}</div>)}</nav>;
+}
+
+export function RecommendationsCarousel({ component }: BrComponentContext) {
+  const { products } = component.getModels<RecommendationModels>();
+  if (products.length === 0) return null;
+  return <section>{products.map(p => <a key={p.id}>{p.title}</a>)}</section>;
+}
+
+export function ProductDetail({ component }: BrComponentContext) {
+  const { product } = component.getModels<ProductDetailModels>();
+  if (!product) return <p>Product not found.</p>;
+  return <article><h1>{product.title}</h1></article>;
+}
+
+async function fetchSuggestions(query: string, resourceApiBase: string) {
+  const url = new URL(resourceApiBase + window.location.pathname);
+  url.searchParams.set('q', query);
+  url.searchParams.set('brxdis_suggest', '1');
+  const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+  return (await res.json())?.page?.['search-bar']?.models?.autosuggestResult ?? null;
+}
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Error states">
+      <table>
+        <tr><th>Condition</th><th>Result</th></tr>
+        <tr><td>Blank <code>q</code></td><td><code>searchResult</code> and <code>autosuggestResult</code> are null.</td></tr>
+        <tr><td>No PID resolved</td><td><code>product</code> is null and <code>pid</code> is an empty string.</td></tr>
+        <tr><td>No view/data wiring</td><td><code>labelConnected=false</code> and grid/facet models are empty.</td></tr>
+        <tr><td>Discovery API failure</td><td>The server throws a typed exception and the component renders an error state.</td></tr>
+      </table>
+      <p>React code should treat nullable models as the normal contract rather than an exceptional case.</p>
+    </section>
+
+  </body>
+</document>

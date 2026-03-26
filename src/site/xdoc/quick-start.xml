@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/XDOC/2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+  <properties>
+    <title>Quick Start</title>
+  </properties>
+  <body>
+
+    <section name="Alpha Notice">
+      <p>
+        <strong>&#9888; This plugin is in early-phase development (alpha).</strong>
+        APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change
+        without notice between releases. Do not treat any aspect of this plugin as stable until a
+        non-SNAPSHOT version is published to Bloomreach Forge.
+      </p>
+    </section>
+
+    <section name="Step 1 - Dependencies">
+      <div class="brush: xml">
+        <source><![CDATA[
+<dependency>
+  <groupId>org.bloomreach.forge.discovery</groupId>
+  <artifactId>brxm-discovery-cms</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+</dependency>
+<dependency>
+  <groupId>org.bloomreach.forge.discovery</groupId>
+  <artifactId>brxm-discovery-site</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+</dependency>
+        ]]></source>
+      </div>
+      <table>
+        <tr><th>Artifact</th><th>Runtime</th></tr>
+        <tr><td><code>brxm-discovery-cms</code></td><td>CMS runtime / CMS webapp</td></tr>
+        <tr><td><code>brxm-discovery-site</code></td><td>Site webapp</td></tr>
+        <tr><td><code>brxm-discovery-site</code></td><td><code>site/components</code> when custom code compiles against addon APIs</td></tr>
+      </table>
+    </section>
+
+    <section name="Step 2 - Enable CRISP broker">
+      <p>Add the following to the site webapp <code>hst-config.properties</code>:</p>
+      <div class="brush: properties">
+        <source><![CDATA[
+crisp.broker.registerService=true
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Step 3 - Configure credentials">
+      <p>System properties are the fastest local-development path:</p>
+      <div class="brush: bash">
+        <source><![CDATA[
+mvn -P cargo.run cargo:run \
+  -Dbrxdis.accountId=YOUR_ACCOUNT_ID \
+  -Dbrxdis.domainKey=YOUR_DOMAIN_KEY \
+  -Dbrxdis.apiKey=YOUR_API_KEY
+        ]]></source>
+      </div>
+      <p>For deployed environments, prefer env vars such as <code>BRXDIS_ACCOUNT_ID</code>, <code>BRXDIS_DOMAIN_KEY</code>, and <code>BRXDIS_API_KEY</code>.</p>
+    </section>
+
+    <section name="Step 4 - Create config node (optional)">
+      <p>If credentials are not coming entirely from env vars or system properties, bootstrap the global config node in HCM.</p>
+      <div class="brush: yaml">
+        <source><![CDATA[
+definitions:
+  config:
+    /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig:
+      jcr:primaryType: brxdis:discoveryConfig
+      brxdis:accountId: 'your-account-id'
+      brxdis:domainKey: 'your-domain-key'
+      brxdis:apiKey: ''
+      brxdis:defaultPageSize: 12
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Step 5 - Wire a search page">
+      <p>
+        The minimum working page is one data component plus view components connected by the same
+        <code>label</code> / <code>connectTo</code> value. The data component writes results into the
+        request cache under the label, and the view components read from that label.
+      </p>
+      <div class="brush: yaml">
+        <source><![CDATA[
+definitions:
+  config:
+    /hst:hst/hst:configurations/<your-site>/hst:workspace/hst:pages:
+      /search-page:
+        jcr:primaryType: hst:component
+        hst:referencecomponent: hst:abstractpages/base
+        /main:
+          jcr:primaryType: hst:component
+          /search:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
+            hst:template: brxdis-search
+            hst:parameternames: [label, pageSize]
+            hst:parametervalues: [default, 12]
+          /facets:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryFacetComponent
+            hst:template: brxdis-facets
+            hst:parameternames: [connectTo]
+            hst:parametervalues: [default]
+          /grid:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductGridComponent
+            hst:template: brxdis-product-grid
+            hst:parameternames: [connectTo]
+            hst:parametervalues: [default]
+        ]]></source>
+      </div>
+      <div class="brush: yaml">
+        <source><![CDATA[
+definitions:
+  config:
+    /hst:hst/hst:configurations/<your-site>/hst:sitemap:
+      /search:
+        jcr:primaryType: hst:sitemapitem
+        hst:componentconfigurationid: hst:pages/search-page
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="Step 6 - Verify">
+      <p>Start the site webapp and open <code>http://localhost:8080/site/search?q=shirt</code>.</p>
+      <p>Expected output: a search form, facet sidebar, and product grid populated from the Discovery API.</p>
+      <p>Startup log lines to look for:</p>
+      <div class="brush: text">
+        <source><![CDATA[
+brxm-discovery: registered picker endpoint at /discovery/picker
+brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
+        ]]></source>
+      </div>
+    </section>
+
+    <section name="What's next">
+      <table>
+        <tr><th>Guide</th><th>Purpose</th></tr>
+        <tr><td><a href="configuration.html">Discovery Configuration</a></td><td>Shared config model, defaults, and CRISP wiring.</td></tr>
+        <tr><td><a href="search-category.html">Search &amp; Category</a></td><td>Detailed parameter reference for search/category pages.</td></tr>
+        <tr><td><a href="recommendations.html">Recommendations</a></td><td>Widget configuration and Pathways behaviour.</td></tr>
+        <tr><td><a href="autosuggest.html">Autosuggest</a></td><td>Search bar typeahead and suggest-only mode.</td></tr>
+      </table>
+    </section>
+
+  </body>
+</document>

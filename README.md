@@ -1,5 +1,9 @@
 # brxm-discovery
 
+> **⚠ Alpha — Early Development**
+> This plugin is in active early-phase development. APIs, configuration schemas, and component
+> interfaces are subject to change without notice between releases.
+
 Bloomreach Discovery integration plugin for brXM 16.7.0.
 
 This repository keeps Discovery search, category, recommendations, autosuggest, and the CMS picker aligned around one shared config model. CMS and site both resolve Discovery settings from the same env/sys/JCR precedence, and CRISP now uses generic resource spaces whose base URIs come from that shared config instead of duplicated production/staging resolver definitions.
