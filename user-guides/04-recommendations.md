@@ -34,16 +34,15 @@ The bundled `brxdis-recommendations` template is auto-registered under `hst:defa
 
 Set in HST config via `@ParametersInfo` (visible in the Channel Manager component editor):
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `document` | JCR path | — | `brxdis:recommendationDocument` picker. Stores the widget ID. When set, takes precedence over URL `widgetId`. |
-| `contextProductId` | String | `""` | Static PID override — used as `contextProductId` when no product band is wired. |
-| `contextProductPidProperty` | String | `"brxdis:pid"` | JCR property name on a product bean to read PID from (advanced). |
-| `limit` | int | `8` | Default number of recommendations. |
-| `showPrice` | boolean | `true` | Whether the template shows price. |
-| `showDescription` | boolean | `false` | Whether the template shows description. |
-| `dataSource` | String | `"standalone"` | `"standalone"` or `"productDetailBand"`. See [PDP band mode](#pdp-band-mode). |
-| `band` | String | `"default"` | Band name to read the product PID from when `dataSource=productDetailBand`. |
+| Parameter | Group | Type | Default | Description |
+|---|---|---|---|---|
+| `document` | Recommendations | JCR path | — | `brxdis:recommendationDocument` picker. Stores the widget ID. When set, takes precedence over URL `widgetId`. |
+| `limit` | Recommendations | int | `8` | Default number of recommendations. |
+| `showPrice` | Recommendations | boolean | `true` | Whether the template shows price. |
+| `showDescription` | Recommendations | boolean | `false` | Whether the template shows description. |
+| `useProductDetailContext` | Advanced | boolean | `false` | When checked, reads the product shown by a Product Detail component on this page and recommends similar items. The Product Detail component must appear above this one in the layout. |
+| `contextProductId` | Advanced | String | `""` | Explicit product ID to recommend against. Overrides automatic detection. Leave blank for auto. |
+| `contextProductPidProperty` | Advanced | String | `"brxdis:pid"` | JCR property name for product ID resolution from the page content bean. Only change if your content model uses a custom property. |
 
 ---
 
@@ -71,34 +70,52 @@ Example (v2): `GET /site/recommendations?widgetId=similar-items&contextProductId
 
 ---
 
-## PDP band mode
+## Product Detail page — "Similar Items" carousel
 
-When `dataSource=productDetailBand`, the component reads the `contextProductId` from `DiscoveryRequestCache` populated by a sibling `DiscoveryProductDetailComponent` on the same page (identified by the matching `band` parameter). This allows a "Similar Items" widget to automatically use the current product's PID without any URL parameter wiring.
+To show a "Similar Items" carousel on a PDP that automatically uses the current product's PID, use `DiscoveryProductDetailComponent` alongside `DiscoveryRecommendationComponent` and check **Link to Product Detail on page** on the recommendations component.
+
+### Channel Manager setup
+
+1. Add `DiscoveryProductDetailComponent` to the page layout.
+2. Add `DiscoveryRecommendationComponent` **below** it on the same page.
+3. On the recommendations component, set **Link to Product Detail on page** = checked.
+4. Pick a recommendation widget document (or pass `?widgetId=` in the URL).
+
+### HST `pages.yaml` example
 
 ```yaml
 /pdp-page:
   jcr:primaryType: hst:component
-  hst:componentclassname: …DiscoveryProductDetailComponent
-  hst:template: brxdis-product-detail
-  hst:parameternames: [band]
-  hst:parametervalues: [default]
-  /similar:
+  /main:
     jcr:primaryType: hst:component
-    hst:componentclassname: …DiscoveryRecommendationComponent
-    hst:template: brxdis-recommendations
-    hst:parameternames: [dataSource, band, limit]
-    hst:parametervalues: [productDetailBand, default, 6]
+    hst:template: pdp-layout
+    /product-detail:
+      jcr:primaryType: hst:containercomponent
+      hst:xtype: hst.nomarkup
+      /product:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent
+        hst:template: brxdis-product-detail
+    /similar:
+      jcr:primaryType: hst:containercomponent
+      hst:xtype: hst.nomarkup
+      /recs:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
+        hst:template: brxdis-recommendations
+        hst:parameternames: [useProductDetailContext, limit]
+        hst:parametervalues: [true, 6]
 ```
 
-In Channel Manager preview mode, if the band has not been populated (e.g. the product detail component is missing), a `brxdis_warning` attribute is set.
+When `useProductDetailContext=true`, the recommendation component reads the PID resolved by `DiscoveryProductDetailComponent` on the same page. If the Product Detail component is missing or has no PID, an empty products list is returned (with a `brxdis_warning` in Channel Manager preview).
 
-**Standalone mode** (`dataSource=standalone`, the default): reads `contextProductId` from the URL param or the `contextProductId` component parameter. Use for recommendation widgets not on a PDP.
+**Standalone mode** (the default, `useProductDetailContext=false`): reads `contextProductId` from the URL param or the `contextProductId` component parameter. Use this for recommendation widgets not on a PDP.
 
 ---
 
 ## Dynamic widget resolution
 
-When `widgetId` is not set (neither via document picker nor URL param) but a `widgetType` is needed, the component can auto-resolve the first enabled widget of that type via `DiscoveryWidgetService`. Results are cached in-process for 5 minutes.
+When `widgetId` is not set (neither via document picker nor URL param), the component can auto-resolve the first enabled widget of the appropriate type via `DiscoveryWidgetService`. Results are cached in-process for 5 minutes.
 
 ```yaml
 /recs:
@@ -168,4 +185,4 @@ Models set: `products` (`List<ProductSummary>`, may contain nulls for slots with
 
 `ConfigurationException` is thrown when required credentials are missing. Discovery API errors are wrapped in `RecommendationException`. An empty `products` list is returned when the API returns no results — the template should guard with `<#if products?has_content>`.
 
-When `authKey` is absent, v2 mode is silently skipped — the component calls v1 without error. When `dataSource=productDetailBand` and the band has not been populated, an empty products list is returned (with a `brxdis_warning` in Channel Manager preview).
+When `authKey` is absent, v2 mode is silently skipped — the component calls v1 without error. When `useProductDetailContext=true` and no product is on the page, an empty products list is returned (with a `brxdis_warning` in Channel Manager preview).

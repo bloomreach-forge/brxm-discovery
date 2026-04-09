@@ -11,20 +11,17 @@ class CrispRepositoryConfigTest {
 
     private static final String SIMPLE_RESOLVER_CLASS =
             "org.onehippo.cms7.crisp.core.resource.jackson.SimpleJacksonRestTemplateResourceResolver";
-    private static final String CONFIG_BACKED_RESOLVER_CLASS =
-            "org.bloomreach.forge.discovery.crisp.ConfigBackedDiscoveryResourceResolver";
 
     @Test
-    void platformScopedRepositoryResolvers_declareConcreteClassAndScope() throws Exception {
+    void repositoryResolvers_allUseStandardSimpleResolverWithPropvalues() throws Exception {
         String yaml = new ClassPathResource("hcm-config/brxdis-crisp.yaml")
                 .getContentAsString(StandardCharsets.UTF_8);
 
-        assertEquals(5, count(yaml, "crisp:sitescopes:\n        - platform"));
+        assertEquals(0, count(yaml, "crisp:sitescopes:"));
         assertEquals(5, count(yaml, "parent=\"abstractCrispSimpleJacksonRestTemplateResourceResolver\""));
-        assertEquals(3, count(yaml, "class=\"" + CONFIG_BACKED_RESOLVER_CLASS + "\""));
-        assertEquals(2, count(yaml, "class=\"" + SIMPLE_RESOLVER_CLASS + "\""));
+        assertEquals(5, count(yaml, "class=\"" + SIMPLE_RESOLVER_CLASS + "\""));
         assertEquals(5, count(yaml, "<property name=\"cacheEnabled\" value=\"false\"/>"));
-        assertEquals(2, count(yaml, "crisp:propvalues:"));
+        assertEquals(5, count(yaml, "crisp:propvalues:"));
     }
 
     private static int count(String text, String needle) {

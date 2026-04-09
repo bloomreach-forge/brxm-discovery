@@ -84,22 +84,22 @@ This is the safest production-ready pattern for split site projects because it k
 </dependency>
 ```
 
-This JAR provides its core site wiring through the addon assembly loaded from `META-INF/hst-assembly/addon/module.xml` and `META-INF/hst-assembly/addon/brxm-discovery-site.xml`:
+This JAR provides its core site wiring through an addon module assembly (`META-INF/hst-assembly/addon/brxm-discovery/brxm-discovery-site.xml`), discovered automatically by brXM's `ModuleDescriptorUtils` across all JARs:
 
 | Bean | Role |
 |---|---|
 | `HstDiscoveryService` | HST façade: config, cookie/URL extraction, caching, Discovery API calls |
 | `DiscoveryClientImpl` | CRISP broker calls; builds all API request paths |
-| `CachingDiscoveryConfigProvider` | JVM-lifetime config cache, JCR-observation-invalidated |
-| `DiscoveryConfigJcrListener` | Invalidates config cache on CMS node changes (no restart needed) |
-| `DiscoveryConfigResolver` | Two-tier config resolution (env/sys/JCR + coded defaults) |
-| `ConfigBackedDiscoveryResourceResolver` | CRISP resolver that reads active base URIs from shared Discovery config |
-| `DiscoveryConfigProviderServiceRegistration` | Registers `DiscoveryConfigProvider` in `HippoServiceRegistry` for CRISP resolver access |
+| `CachingDiscoveryConfigProvider` | JVM-lifetime config cache; implements `EventListener` to self-invalidate on CMS config saves |
 | `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on an injected executor |
 
 **HST components** (reference by fully-qualified class name in your HST config):
-- Data-fetching: `DiscoverySearchComponent`, `DiscoveryCategoryComponent`, `DiscoveryRecommendationComponent`, `DiscoveryProductDetailComponent`, `DiscoveryProductHighlightComponent`, `DiscoveryCategoryHighlightComponent`
-- Composable view: `DiscoveryProductGridComponent`, `DiscoveryFacetComponent`
+- `DiscoveryResultsComponent` — search results and category browse (single component for both modes; includes facets, pagination, sort)
+- `DiscoverySearchInputComponent` — standalone search bar with autosuggest
+- `DiscoveryRecommendationComponent` — recommendation widgets (v1 and v2 Pathways API)
+- `DiscoveryProductDetailComponent` — product detail page
+- `DiscoveryProductHighlightComponent` — up to 4 curated product slots
+- `DiscoveryCategoryHighlightComponent` — up to 4 curated category tiles with optional product previews
 
 All components expose data via `request.setModel()` (Page Model API / headless) and `request.setAttribute()` (FTL).
 

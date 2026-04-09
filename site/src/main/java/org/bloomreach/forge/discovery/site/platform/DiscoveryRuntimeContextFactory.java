@@ -6,30 +6,23 @@ import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
-import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
-import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamParser;
 import org.hippoecm.hst.configuration.hosting.Mount;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
-import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 
 public final class DiscoveryRuntimeContextFactory {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryRuntimeContextFactory.class);
     private static final String ATTR = DiscoveryRuntimeContextFactory.class.getName();
-    private static final Pattern IP_PATTERN =
-            Pattern.compile("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$|^[0-9a-fA-F:]+$");
 
     private final DiscoveryConfigProvider configProvider;
     private final DiscoveryBrUid2Service brUid2Service;
@@ -69,21 +62,21 @@ public final class DiscoveryRuntimeContextFactory {
         DiscoveryConfig config = applyChannelOverrides(rawConfig, requestContext);
         logCredentials(config.credentials());
         validateCredentials(config.credentials());
-        String pageUrl = pageUrl(request);
+        String pageUrl = PageContextResolver.pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), pageUrl);
-        String pageType = pageType(request);
+        String pageType = PageContextResolver.pageType(request);
         DiscoveryRuntimeContext runtimeContext = new DiscoveryRuntimeContext(
                 config,
-                clientContext(request),
-                resolvePixelFlags(request),
+                ClientContextExtractor.clientContext(request),
+                PixelFlagsResolver.resolvePixelFlags(request),
                 paramProvider(request),
                 brUid2Service.ensure(request),
                 pageUrl,
-                pageTitle(request, pageType),
+                PageContextResolver.pageTitle(request, pageType),
                 pageType,
                 refUrl,
-                originalRefUrl(request, refUrl),
-                extractClientIp(request)
+                PageContextResolver.originalRefUrl(request, refUrl),
+                ClientContextExtractor.extractClientIp(request)
         );
         requestContext.setAttribute(ATTR, runtimeContext);
         return runtimeContext;
@@ -127,36 +120,6 @@ public final class DiscoveryRuntimeContextFactory {
         return overrides != null ? config.withCredentials(overrides) : config;
     }
 
-    static String resolvePixelRegion(DiscoveryChannelInfo channelInfo) {
-        String sysProp = System.getProperty("brxdis.pixel.region");
-        if (sysProp != null && !sysProp.isBlank()) {
-            return sysProp.toUpperCase();
-        }
-        if (channelInfo != null) {
-            String channelRegion = channelInfo.getPixelRegion();
-            if (channelRegion != null && !channelRegion.isBlank()) {
-                return channelRegion.toUpperCase();
-            }
-        }
-        return "US";
-    }
-
-    private static PixelFlags resolvePixelFlags(HstRequest request) {
-        if (!PixelFlags.envEnabled()) {
-            return PixelFlags.DISABLED;
-        }
-        Mount mount = request.getRequestContext().getResolvedMount().getMount();
-        DiscoveryChannelInfo channelInfo = mount.getChannelInfo();
-        String region = resolvePixelRegion(channelInfo);
-        if (channelInfo == null) {
-            return new PixelFlags(true, PixelFlags.envTestData(), PixelFlags.envDebug(), region);
-        }
-        if (!channelInfo.getDiscoveryPixelsEnabled()) {
-            return PixelFlags.DISABLED;
-        }
-        return new PixelFlags(true, channelInfo.getDiscoveryPixelTestData(), channelInfo.getDiscoveryPixelDebug(), region);
-    }
-
     private static void validateCredentials(DiscoveryCredentials credentials) {
         if (isBlank(credentials.accountId())) {
             throw new ConfigurationException(
@@ -170,35 +133,6 @@ public final class DiscoveryRuntimeContextFactory {
             throw new ConfigurationException(
                     "Discovery apiKey is required — set brxdis:apiKey in the config node, BRXDIS_API_KEY env var, or -Dbrxdis.apiKey");
         }
-    }
-
-    private static String maskSecret(String s) {
-        return s == null ? "null" : (s.isBlank() ? "blank" : "set");
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
-    }
-
-    private static ClientContext clientContext(HstRequest request) {
-        return new ClientContext(
-                request.getHeader("User-Agent"),
-                request.getHeader("Accept-Language"),
-                request.getHeader("X-Forwarded-For")
-        );
-    }
-
-    private static String extractClientIp(HstRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            String candidate = xff.split(",")[0].trim();
-            if (IP_PATTERN.matcher(candidate).matches()) {
-                return candidate;
-            }
-            log.debug("Ignoring malformed X-Forwarded-For value: {}", candidate);
-        }
-        String remoteAddr = request.getRemoteAddr();
-        return remoteAddr != null ? remoteAddr : "";
     }
 
     private static QueryParamParser.RequestParamProvider paramProvider(HstRequest request) {
@@ -217,89 +151,11 @@ public final class DiscoveryRuntimeContextFactory {
         };
     }
 
-    private static String originalRefUrl(HstRequest request, String fallbackRefUrl) {
-        HstRequestContext requestContext = request.getRequestContext();
-        if (requestContext == null || requestContext.getServletRequest() == null) {
-            return null;
-        }
-        String fromParam = requestContext.getServletRequest().getParameter("orig_ref_url");
-        if (fromParam != null && !fromParam.isBlank()) {
-            return fromParam;
-        }
-        String fromHeader = request.getHeader("X-Brxdis-Orig-Ref-Url");
-        if (fromHeader != null && !fromHeader.isBlank()) {
-            return fromHeader;
-        }
-        return fallbackRefUrl;
+    private static String maskSecret(String s) {
+        return s == null ? "null" : (s.isBlank() ? "blank" : "set");
     }
 
-    private static String pageTitle(HstRequest request, String pageType) {
-        HstRequestContext requestContext = request.getRequestContext();
-        if (requestContext != null) {
-            ResolvedSiteMapItem siteMapItem = requestContext.getResolvedSiteMapItem();
-            if (siteMapItem != null) {
-                String pageTitle = siteMapItem.getPageTitle();
-                if (pageTitle != null && !pageTitle.isBlank()) {
-                    return pageTitle;
-                }
-            }
-        }
-        String requestUri = request.getRequestURI();
-        if (requestUri == null || requestUri.isBlank() || "/".equals(requestUri)) {
-            return "homepage".equals(pageType) ? "Home" : pageType;
-        }
-        return requestUri;
-    }
-
-    private static String pageType(HstRequest request) {
-        HstRequestContext requestContext = request.getRequestContext();
-        if (requestContext != null && requestContext.getServletRequest() != null) {
-            String override = requestContext.getServletRequest().getParameter("brxdis_ptype");
-            if (override != null && !override.isBlank()) {
-                return override;
-            }
-        }
-        String headerOverride = request.getHeader("X-Brxdis-Ptype");
-        if (headerOverride != null && !headerOverride.isBlank()) {
-            return headerOverride;
-        }
-        String pid = requestContext != null && requestContext.getServletRequest() != null
-                ? requestContext.getServletRequest().getParameter("pid") : null;
-        if (pid != null && !pid.isBlank()) {
-            return "product";
-        }
-        String query = requestContext != null && requestContext.getServletRequest() != null
-                ? requestContext.getServletRequest().getParameter("q") : null;
-        if (query != null && !query.isBlank()) {
-            return "search";
-        }
-        String requestUri = request.getRequestURI();
-        if (requestUri == null || requestUri.isBlank() || "/".equals(requestUri)) {
-            return "homepage";
-        }
-        String normalized = requestUri.toLowerCase();
-        if (normalized.contains("/product")) {
-            return "product";
-        }
-        if (normalized.contains("/category")) {
-            return "category";
-        }
-        return "content";
-    }
-
-    private static String pageUrl(HstRequest request) {
-        UriComponentsBuilder urlBuilder = UriComponentsBuilder.newInstance()
-                .scheme(request.getScheme())
-                .host(request.getServerName())
-                .replacePath(request.getRequestURI());
-        int port = request.getServerPort();
-        if (port != 80 && port != 443) {
-            urlBuilder.port(port);
-        }
-        String query = request.getQueryString();
-        if (query != null && !query.isBlank()) {
-            urlBuilder.query(query);
-        }
-        return urlBuilder.build(false).toUriString();
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 }

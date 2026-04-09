@@ -1,9 +1,6 @@
 package org.bloomreach.forge.discovery.site.platform;
 
-import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
 
@@ -22,77 +19,28 @@ public final class DiscoveryRequestCache {
 
     private DiscoveryRequestCache() {}
 
-    // ── Label-aware overloads ──────────────────────────────────────────────────
-
-    public static Optional<SearchResponse> getSearchResponse(HstRequest request, String label) {
-        return Optional.ofNullable((SearchResponse) ctx(request).getAttribute(ATTR + ".searchResult." + label));
-    }
-
-    public static void putSearchResponse(HstRequest request, String label, SearchResponse response) {
-        ctx(request).setAttribute(ATTR + ".searchResult." + label, response);
-    }
-
-    public static Optional<SearchResponse> getCategoryResponse(HstRequest request, String label) {
-        return Optional.ofNullable((SearchResponse) ctx(request).getAttribute(ATTR + ".categoryResult." + label));
-    }
-
-    public static void putCategoryResponse(HstRequest request, String label, SearchResponse response) {
-        ctx(request).setAttribute(ATTR + ".categoryResult." + label, response);
-    }
-
-    // ── Label-presence markers (set by data components before any early return) ──
+    // ── Product detail ────────────────────────────────────────────────────────
     //
-    // View components use these to distinguish "label not wired up on this page" (show warning)
-    // from "label connected but no results yet, e.g. no query typed" (silent empty state).
-    // Search and category markers are kept separate so a category component on the same page
-    // cannot satisfy a view component that expects a search data source and vice-versa.
+    // PDP component writes the resolved product so downstream recommendation
+    // components can read the PID without needing a URL param.
 
-    public static void markSearchBandPresent(HstRequest request, String label) {
-        ctx(request).setAttribute(ATTR + ".label.search." + label, Boolean.TRUE);
+    public static void markProductDetailRendered(HstRequest request) {
+        ctx(request).setAttribute(ATTR + ".productDetailPresent", Boolean.TRUE);
     }
 
-    public static boolean isSearchBandPresent(HstRequest request, String label) {
-        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.search." + label));
+    public static boolean isProductDetailRendered(HstRequest request) {
+        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".productDetailPresent"));
     }
 
-    public static void markCategoryBandPresent(HstRequest request, String label) {
-        ctx(request).setAttribute(ATTR + ".label.category." + label, Boolean.TRUE);
+    public static void putProductResult(HstRequest request, ProductSummary product) {
+        ctx(request).setAttribute(ATTR + ".productDetailResult", product);
     }
 
-    public static boolean isCategoryBandPresent(HstRequest request, String label) {
-        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.category." + label));
+    public static Optional<ProductSummary> getProductResult(HstRequest request) {
+        return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productDetailResult"));
     }
 
-    // ── No-band overloads delegate to "default" band (backward compat) ────────
-
-    public static Optional<SearchResponse> getSearchResponse(HstRequest request) {
-        return getSearchResponse(request, "default");
-    }
-
-    public static void putSearchResponse(HstRequest request, SearchResponse response) {
-        putSearchResponse(request, "default", response);
-    }
-
-    public static Optional<SearchResponse> getCategoryResponse(HstRequest request) {
-        return getCategoryResponse(request, "default");
-    }
-
-    public static void putCategoryResponse(HstRequest request, SearchResponse response) {
-        putCategoryResponse(request, "default", response);
-    }
-
-    // ── Product detail label ──────────────────────────────────────────────────
-    //
-    // PDP components write the resolved product to a named label so downstream
-    // recommendation components can read the PID without needing a URL param.
-
-    public static void putProductResult(HstRequest request, String label, ProductSummary product) {
-        ctx(request).setAttribute(ATTR + ".productDetailResult." + label, product);
-    }
-
-    public static Optional<ProductSummary> getProductResult(HstRequest request, String label) {
-        return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productDetailResult." + label));
-    }
+    // ── Fetched product by PID (dedup within render) ──────────────────────────
 
     public static void putFetchedProduct(HstRequest request, String pid, ProductSummary product) {
         ctx(request).setAttribute(ATTR + ".productLookup." + pid, product);
@@ -102,30 +50,12 @@ public final class DiscoveryRequestCache {
         return Optional.ofNullable((ProductSummary) ctx(request).getAttribute(ATTR + ".productLookup." + pid));
     }
 
-    public static void markProductDetailBandPresent(HstRequest request, String label) {
-        ctx(request).setAttribute(ATTR + ".label.productDetail." + label, Boolean.TRUE);
-    }
-
-    public static boolean isProductDetailBandPresent(HstRequest request, String label) {
-        return Boolean.TRUE.equals(ctx(request).getAttribute(ATTR + ".label.productDetail." + label));
-    }
-
-    // ── Query-aware recommendation overloads ────────────────────────────────
-
-    public static Optional<RecommendationResult> getRecommendations(HstRequest request, RecQuery query) {
-        return Optional.ofNullable((RecommendationResult) ctx(request).getAttribute(recommendationKey(query)));
-    }
-
-    public static void putRecommendations(HstRequest request, RecQuery query, RecommendationResult result) {
-        ctx(request).setAttribute(recommendationKey(query), result);
-    }
-
     private static HstRequestContext ctx(HstRequest request) {
-        return request.getRequestContext();
-    }
-
-    private static String recommendationKey(RecQuery query) {
-        String widgetId = query.widgetId() != null ? query.widgetId() : "";
-        return ATTR + ".recs." + widgetId + "." + Integer.toHexString(query.hashCode());
+        HstRequestContext ctx = request.getRequestContext();
+        if (ctx == null) {
+            throw new IllegalStateException(
+                    "HstRequestContext is null — cache methods must only be called within an active HST request");
+        }
+        return ctx;
     }
 }

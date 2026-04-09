@@ -6,8 +6,10 @@ import org.hippoecm.hst.core.parameters.JcrPath;
 import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
-    @FieldGroup(value = {"document", "productPidProperty", "productUrlParam", "label"},
-                titleKey = "pdp.group")
+    @FieldGroup(value = {"document"},
+                titleKey = "pdp.group"),
+    @FieldGroup(value = {"productPidProperty", "productUrlParam"},
+                titleKey = "pdp.advanced.group")
 })
 public interface DiscoveryProductDetailComponentInfo {
 
@@ -21,14 +23,11 @@ public interface DiscoveryProductDetailComponentInfo {
     String getDocument();
 
     @Parameter(name = "productPidProperty",
-               displayName = "PID property name (advanced)",
+               displayName = "Product ID field name",
                defaultValue = "brxdis:pid")
     String getProductPidProperty();
 
-    @Parameter(name = "productUrlParam", displayName = "URL parameter name", defaultValue = "pid")
+    @Parameter(name = "productUrlParam", displayName = "URL parameter", defaultValue = "pid")
     String getProductUrlParam();
-
-    @Parameter(name = "label", displayName = "Label", defaultValue = "default")
-    String getLabel();
 
 }

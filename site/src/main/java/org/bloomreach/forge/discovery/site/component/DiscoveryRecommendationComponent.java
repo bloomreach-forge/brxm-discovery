@@ -35,15 +35,11 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         super.doBeforeRender(request, response);
         DiscoveryRecommendationComponentInfo info = getComponentParametersInfo(request);
         HstDiscoveryService svc = getDiscoveryService();
-        final String dataSource = info.getDataSource();
-        final String label      = info.getConnectTo();
 
         DiscoveryRecommendationBean document = getHippoBeanForPath(request, info.getDocument(), DiscoveryRecommendationBean.class);
         request.setModel("document", document);
         request.setModel(DiscoveryModelKeys.SHOW_PRICE, info.isShowPrice());
         request.setModel(DiscoveryModelKeys.SHOW_DESCRIPTION, info.isShowDescription());
-        request.setModel(DiscoveryModelKeys.DATA_SOURCE, dataSource);
-        request.setModel(DiscoveryModelKeys.LABEL, label);
 
         String widgetId = resolveWidgetId(document, request);
         if (widgetId == null || widgetId.isBlank()) {
@@ -52,8 +48,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
             return;
         }
 
-        Optional<String> pidResolution = resolveContextProductId(request, info, dataSource, label, widgetId);
-        if (pidResolution.isEmpty()) return; // productDetailBand aborted — empty state already set
+        Optional<String> pidResolution = resolveContextProductId(request, info, widgetId);
+        if (pidResolution.isEmpty()) return; // aborted — empty state already set
         String contextProductId = pidResolution.get().isEmpty() ? null : pidResolution.get();
 
         String contextPageType = getPublicRequestParameter(request, CONTEXT_PAGE_TYPE_PARAM);
@@ -62,7 +58,7 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         String filter          = getPublicRequestParameter(request, FILTER_PARAM);
 
         RecommendationResult recResult = svc.recommend(
-                request, widgetId, null, contextProductId, contextPageType, limit, fields, filter, label);
+                request, widgetId, null, contextProductId, contextPageType, limit, fields, filter);
         List<ProductSummary> products = recResult.products();
         String resolvedWidgetId = recResult.widgetId() != null && !recResult.widgetId().isBlank()
                 ? recResult.widgetId() : widgetId;
@@ -73,8 +69,8 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
         request.setModel(DiscoveryModelKeys.WIDGET_RESULT_ID, recResult.widgetResultId());
         request.setModel(DiscoveryModelKeys.WIDGET_QUERY, contextProductId);
 
-        log.debug("Recommendations widget '{}' dataSource='{}' label='{}' returned {} products",
-                resolvedWidgetId, dataSource, label, products.size());
+        log.debug("Recommendations widget '{}' useProductDetailContext='{}' returned {} products",
+                resolvedWidgetId, info.isUseProductDetailContext(), products.size());
     }
 
     /** Widget ID: document field wins, then URL request param. */
@@ -91,46 +87,46 @@ public class DiscoveryRecommendationComponent extends AbstractDiscoveryComponent
      */
     private Optional<String> resolveContextProductId(HstRequest request,
                                                        DiscoveryRecommendationComponentInfo info,
-                                                       String dataSource, String label, String widgetId) {
-        if ("productDetailBand".equals(dataSource)) {
-            return resolveProductDetailBandPid(request, label, widgetId);
+                                                       String widgetId) {
+        if (info.isUseProductDetailContext()) {
+            return resolveProductDetailContextPid(request, widgetId);
         }
         return resolveStandalonePid(request, info);
     }
 
-    /** productDetailBand mode: PID from PDP cache or backfill. Empty = abort. */
-    private Optional<String> resolveProductDetailBandPid(HstRequest request, String label, String widgetId) {
-        boolean labelPresent = DiscoveryRequestCache.isProductDetailBandPresent(request, label);
-        if (!labelPresent) {
-            Optional<String> backfilled = backfillProductDetailPid(request, label);
-            if (backfilled.isPresent()) return backfilled;
-            String pid = getPublicRequestParameter(request, "pid");
-            if (pid != null && !pid.isBlank()) return Optional.of(pid);
-            if (isEditMode(request)) {
-                request.setAttribute("brxdis_warning",
-                    "No product detail label '" + label + "' found. Add a Product Detail component " +
-                    "with label='" + label + "' to this page.");
+    /** productDetailContext mode: PID from PDP cache or URL pid param as PPR fallback. */
+    private Optional<String> resolveProductDetailContextPid(HstRequest request, String widgetId) {
+        if (DiscoveryRequestCache.isProductDetailRendered(request)) {
+            Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request);
+            if (cached.isEmpty()) {
+                if (isEditMode(request)) {
+                    request.setAttribute("brxdis_warning",
+                        "Product Detail component is present but no product ID was resolved. " +
+                        "Ensure the Product Detail component has a valid product configured.");
+                }
+                request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+                request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
+                return Optional.empty();
             }
-            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
-            request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
-            return Optional.empty();
+            return Optional.of(cached.get().id());
         }
-        Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, label);
-        if (cached.isEmpty()) {
-            if (isEditMode(request)) {
-                request.setAttribute("brxdis_warning",
-                    "Product detail label '" + label + "' is present but no product ID was resolved. " +
-                    "Ensure the Product Detail component has a valid product configured.");
-            }
-            request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
-            request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
-            return Optional.empty();
+        // PDP not yet rendered (PPR mode) — fall back to URL pid param
+        String pid = getPublicRequestParameter(request, "pid");
+        if (pid != null && !pid.isBlank()) {
+            return Optional.of(pid);
         }
-        return Optional.of(cached.get().id());
+        if (isEditMode(request)) {
+            request.setAttribute("brxdis_warning",
+                "No Product Detail component found on this page. Add a Product Detail component " +
+                "or disable 'Use Product Detail context'.");
+        }
+        request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
+        request.setModel(DiscoveryModelKeys.WIDGET_ID, widgetId);
+        return Optional.empty();
     }
 
     /**
-     * Standalone mode: 5-stage PID resolution (URL param → component param → page bean → URL pid → none).
+     * Standalone mode: multi-stage PID resolution (URL param → component param → page bean → URL pid → none).
      * Always returns present — empty string means no context product (HstDiscoveryService handles gracefully).
      */
     private Optional<String> resolveStandalonePid(HstRequest request, DiscoveryRecommendationComponentInfo info) {

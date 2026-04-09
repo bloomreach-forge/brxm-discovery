@@ -27,7 +27,6 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         super.doBeforeRender(request, response);
 
         DiscoveryProductDetailComponentInfo info = getComponentParametersInfo(request);
-        String label = info.getLabel();
 
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
                 DiscoveryProductDetailBean.class);
@@ -35,8 +34,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
 
         String pid = getPublicRequestParameter(request, info.getProductUrlParam());
 
-        // Stage 2 — Document bean (picker-driven; overrides only when the document has a non-blank productId.
-        // A document with an unset productId must NOT wipe out a valid URL param from stage 1.)
+        // Stage 2 — Document bean (picker-driven; overrides only when the document has a non-blank productId)
         if (document != null) {
             String docPid = document.getProductId();
             if (docPid != null && !docPid.isBlank()) {
@@ -49,13 +47,10 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             pid = resolvePidFromBean(request, info);
         }
 
-        // Expose resolved pid and label for template unconditionally (before any early returns)
         request.setModel(DiscoveryModelKeys.PID, pid != null ? pid : "");
-        request.setModel(DiscoveryModelKeys.LABEL, label);
 
         if (pid == null || pid.isBlank()) {
-            // Mark label present so downstream components know PDP ran (just no PID resolved)
-            DiscoveryRequestCache.markProductDetailBandPresent(request, label);
+            DiscoveryRequestCache.markProductDetailRendered(request);
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
                     "No product ID resolved. Select a 'Product Detail Document' in component properties, " +
@@ -72,12 +67,12 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         ProductSummary product = found.orElse(null);
         request.setModel(DiscoveryModelKeys.PRODUCT, product);
 
-        DiscoveryRequestCache.markProductDetailBandPresent(request, label);
+        DiscoveryRequestCache.markProductDetailRendered(request);
         if (product != null) {
-            DiscoveryRequestCache.putProductResult(request, label, product);
+            DiscoveryRequestCache.putProductResult(request, product);
         }
 
-        log.debug("PDP pid='{}' product={} label='{}'", pid, product != null ? product.id() : "null", label);
+        log.debug("PDP pid='{}' product={}", pid, product != null ? product.id() : "null");
     }
 
     /**

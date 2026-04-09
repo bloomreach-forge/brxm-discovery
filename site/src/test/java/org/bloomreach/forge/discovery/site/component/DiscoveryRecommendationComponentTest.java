@@ -17,12 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 
 
 @ExtendWith(MockitoExtension.class)
@@ -48,25 +46,25 @@ class DiscoveryRecommendationComponentTest {
         }).when(requestContext).setAttribute(anyString(), any());
     }
 
-    private TestableRecommendationComponent componentWith(String widgetId,
-                                                           int componentLimit, String limitParam) {
+    /** Standalone mode (useProductDetailContext=false). */
+    private TestableRecommendationComponent standalone(String widgetId,
+                                                        int componentLimit, String limitParam) {
         return new TestableRecommendationComponent(discoveryService, widgetId,
-                componentLimit, limitParam, "standalone", "default", false, null);
+                componentLimit, limitParam, false, false, null);
     }
 
-    private TestableRecommendationComponent componentWith(String widgetId, int componentLimit,
-                                                           String limitParam,
-                                                           String dataSource, String band) {
+    /** useProductDetailContext mode. */
+    private TestableRecommendationComponent pdpContext(String widgetId, int componentLimit,
+                                                        String limitParam) {
         return new TestableRecommendationComponent(discoveryService, widgetId,
-                componentLimit, limitParam, dataSource, band, false, null);
+                componentLimit, limitParam, true, false, null);
     }
 
-    private TestableRecommendationComponent componentWithPpr(String widgetId, int componentLimit,
-                                                              String limitParam,
-                                                              String dataSource, String band,
-                                                              String pidParam) {
+    /** useProductDetailContext mode, in PPR (isolated render). */
+    private TestableRecommendationComponent pdpContextPpr(String widgetId, int componentLimit,
+                                                            String limitParam, String pidParam) {
         return new TestableRecommendationComponent(discoveryService, widgetId,
-                componentLimit, limitParam, dataSource, band, true, pidParam);
+                componentLimit, limitParam, true, true, pidParam);
     }
 
     // ── limit: component default vs URL override ────────────────────────────
@@ -74,23 +72,23 @@ class DiscoveryRecommendationComponentTest {
     @Test
     void limitFromComponentInfo_usedWhenUrlParamAbsent() {
         when(discoveryService.recommend(eq(request), any(), any(), any(), any(),
-                eq(20), any(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+                eq(20), any(), any())).thenReturn(RecommendationResult.of(List.of()));
 
-        componentWith("w-1", 20, null).doBeforeRender(request, response);
+        standalone("w-1", 20, null).doBeforeRender(request, response);
 
         verify(discoveryService).recommend(eq(request), any(), any(), any(), any(),
-                eq(20), any(), any(), any());
+                eq(20), any(), any());
     }
 
     @Test
     void limitFromUrlParam_overridesComponentInfo() {
         when(discoveryService.recommend(eq(request), any(), any(), any(), any(),
-                eq(5), any(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+                eq(5), any(), any())).thenReturn(RecommendationResult.of(List.of()));
 
-        componentWith("w-1", 20, "5").doBeforeRender(request, response);
+        standalone("w-1", 20, "5").doBeforeRender(request, response);
 
         verify(discoveryService).recommend(eq(request), any(), any(), any(), any(),
-                eq(5), any(), any(), any());
+                eq(5), any(), any());
     }
 
     // ── model keys ──────────────────────────────────────────────────────────
@@ -98,10 +96,10 @@ class DiscoveryRecommendationComponentTest {
     @Test
     void setsProductsAndWidgetIdOnModel() {
         List<ProductSummary> products = List.of();
-        when(discoveryService.recommend(any(), any(), any(), any(), any(), anyInt(), any(), any(), any()))
+        when(discoveryService.recommend(any(), any(), any(), any(), any(), anyInt(), any(), any()))
                 .thenReturn(RecommendationResult.of(products));
 
-        componentWith("w-42", 8, null).doBeforeRender(request, response);
+        standalone("w-42", 8, null).doBeforeRender(request, response);
 
         verify(request).setModel("products", products);
         verify(request).setModel("widgetId", "w-42");
@@ -109,121 +107,91 @@ class DiscoveryRecommendationComponentTest {
 
     @Test
     void nullWidgetId_setsEmptyStringOnModel() {
-        componentWith(null, 8, null).doBeforeRender(request, response);
+        standalone(null, 8, null).doBeforeRender(request, response);
 
         verify(request).setModel("widgetId", "");
     }
 
-    // ── productDetailBand mode ───────────────────────────────────────────────
+    // ── useProductDetailContext mode ─────────────────────────────────────────
 
     @Test
-    void productDetailBand_mode_readsPidFromCachedProduct() {
+    void pdpContext_readsPidFromCachedProduct() {
         ProductSummary cached = new ProductSummary("p-from-pdp", "T", null, null, null, null, Map.of());
-        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
-        DiscoveryRequestCache.putProductResult(request, "default", cached);
+        DiscoveryRequestCache.markProductDetailRendered(request);
+        DiscoveryRequestCache.putProductResult(request, cached);
         when(discoveryService.recommend(eq(request), eq("w-1"), any(), eq("p-from-pdp"),
-                any(), anyInt(), any(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+                any(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
 
-        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+        pdpContext("w-1", 8, null).doBeforeRender(request, response);
 
         verify(discoveryService).recommend(eq(request), eq("w-1"), any(), eq("p-from-pdp"),
-                any(), anyInt(), any(), any(), any());
+                any(), anyInt(), any(), any());
     }
 
     @Test
-    void productDetailBand_mode_bandAbsent_returnsEmpty_live() {
-        // band not marked → not edit mode → empty products, no warning
-        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+    void pdpContext_bandAbsent_noPidParam_returnsEmpty_live() {
+        // PDP not marked, no pid param → not edit mode → empty products, no warning
+        pdpContext("w-1", 8, null).doBeforeRender(request, response);
 
-        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any(), any());
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
         verify(request).setModel("products", List.of());
         verify(request, never()).setAttribute(eq("brxdis_warning"), any());
     }
 
     @Test
-    void productDetailBand_mode_bandAbsent_setsWarning_inEditMode() {
+    void pdpContext_bandAbsent_noPidParam_setsWarning_inEditMode() {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        componentWith("w-1", 8, null, "productDetailBand", "my-band").doBeforeRender(request, response);
+        pdpContext("w-1", 8, null).doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), argThat(msg ->
-                msg.toString().contains("my-band")));
-        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any(), any());
+                msg.toString().contains("Product Detail")));
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
     }
 
     @Test
-    void productDetailBand_mode_bandPresentNoProduct_returnsEmpty() {
-        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
+    void pdpContext_bandPresentNoProduct_returnsEmpty() {
+        DiscoveryRequestCache.markProductDetailRendered(request);
         // No putProductResult → cache empty
 
-        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+        pdpContext("w-1", 8, null).doBeforeRender(request, response);
 
-        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any(), any());
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
         verify(request).setModel("products", List.of());
     }
 
     @Test
-    void productDetailBand_mode_bandPresentNoProduct_setsWarning_inEditMode() {
+    void pdpContext_bandPresentNoProduct_setsWarning_inEditMode() {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-        DiscoveryRequestCache.markProductDetailBandPresent(request, "default");
+        DiscoveryRequestCache.markProductDetailRendered(request);
 
-        componentWith("w-1", 8, null, "productDetailBand", "default").doBeforeRender(request, response);
+        pdpContext("w-1", 8, null).doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), any());
-        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any(), any());
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
     }
 
-    // ── productDetailBand PPR fallback ───────────────────────────────────────
+    // ── useProductDetailContext PPR fallback ─────────────────────────────────
 
     @Test
-    void productDetailBand_pprMode_usesPidUrlParam() {
-        // band NOT marked (PDP did not run), but PPR active and pid present in URL
+    void pdpContext_pprMode_usesPidUrlParam() {
+        // PDP not marked, but pid present in URL — PPR fallback
         when(discoveryService.recommend(eq(request), eq("w-1"), any(), eq("abc"),
-                any(), anyInt(), any(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+                any(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
 
-        componentWithPpr("w-1", 8, null, "productDetailBand", "default", "abc")
-                .doBeforeRender(request, response);
+        pdpContextPpr("w-1", 8, null, "abc").doBeforeRender(request, response);
 
         verify(discoveryService).recommend(eq(request), eq("w-1"), any(), eq("abc"),
-                any(), anyInt(), any(), any(), any());
+                any(), anyInt(), any(), any());
     }
 
     @Test
-    void productDetailBand_pprMode_noPidParam_returnsEmpty() {
+    void pdpContext_pprMode_noPidParam_returnsEmpty() {
         // PPR active but no pid param — should not call service
-        componentWithPpr("w-1", 8, null, "productDetailBand", "default", null)
-                .doBeforeRender(request, response);
+        pdpContextPpr("w-1", 8, null, null).doBeforeRender(request, response);
 
-        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any(), any());
+        verify(discoveryService, never()).recommend(any(), any(), any(), any(), any(), anyInt(), any(), any());
         verify(request).setModel("products", List.of());
-    }
-
-    @Test
-    void productDetailBand_pprMode_usesBackfilledPidFromPageTree() {
-        // PPR active, band NOT in cache, but backfill finds PID from page tree
-        when(discoveryService.recommend(eq(request), eq("w-1"), any(), eq("backfilled-pid"),
-                any(), anyInt(), any(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
-
-        new TestableRecommendationComponent(discoveryService, "w-1", 8, null,
-                "productDetailBand", "default", true, null, Optional.of("backfilled-pid"))
-                .doBeforeRender(request, response);
-
-        verify(discoveryService).recommend(eq(request), eq("w-1"), any(), eq("backfilled-pid"),
-                any(), anyInt(), any(), any(), any());
-    }
-
-    @Test
-    void productDetailBand_pprMode_backfillEmpty_fallsBackToUrlPid() {
-        // PPR active, backfill returns empty, URL pid used instead
-        when(discoveryService.recommend(eq(request), eq("w-1"), any(), eq("url-pid"),
-                any(), anyInt(), any(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
-
-        new TestableRecommendationComponent(discoveryService, "w-1", 8, null,
-                "productDetailBand", "default", true, "url-pid", Optional.empty())
-                .doBeforeRender(request, response);
-
-        verify(discoveryService).recommend(eq(request), eq("w-1"), any(), eq("url-pid"),
-                any(), anyInt(), any(), any(), any());
     }
 
     // ── testable subclass ───────────────────────────────────────────────────
@@ -234,34 +202,21 @@ class DiscoveryRecommendationComponentTest {
         private final String widgetId;
         private final int componentLimit;
         private final String limitParam;
-        private final String dataSource;
-        private final String band;
+        private final boolean useProductDetailContext;
         private final boolean isolatedRender;
         private final String pidParam;
-        private final Optional<String> backfilledPid;
 
         TestableRecommendationComponent(HstDiscoveryService service, String widgetId,
                                          int componentLimit, String limitParam,
-                                         String dataSource, String band,
+                                         boolean useProductDetailContext,
                                          boolean isolatedRender, String pidParam) {
-            this(service, widgetId, componentLimit, limitParam, dataSource, band,
-                    isolatedRender, pidParam, Optional.empty());
-        }
-
-        TestableRecommendationComponent(HstDiscoveryService service, String widgetId,
-                                         int componentLimit, String limitParam,
-                                         String dataSource, String band,
-                                         boolean isolatedRender, String pidParam,
-                                         Optional<String> backfilledPid) {
             this.service = service;
             this.widgetId = widgetId;
             this.componentLimit = componentLimit;
             this.limitParam = limitParam;
-            this.dataSource = dataSource;
-            this.band = band;
+            this.useProductDetailContext = useProductDetailContext;
             this.isolatedRender = isolatedRender;
             this.pidParam = pidParam;
-            this.backfilledPid = backfilledPid;
         }
 
         @Override
@@ -279,19 +234,13 @@ class DiscoveryRecommendationComponentTest {
                 @Override public int getLimit() { return componentLimit; }
                 @Override public boolean isShowPrice() { return true; }
                 @Override public boolean isShowDescription() { return false; }
-                @Override public String getDataSource() { return dataSource; }
-                @Override public String getConnectTo() { return band; }
+                @Override public boolean isUseProductDetailContext() { return useProductDetailContext; }
             };
         }
 
         @Override
         protected boolean isIsolatedComponentRender(HstRequest request) {
             return isolatedRender;
-        }
-
-        @Override
-        protected Optional<String> backfillProductDetailPid(HstRequest request, String label) {
-            return backfilledPid;
         }
 
         @Override

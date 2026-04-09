@@ -1,23 +1,14 @@
 definitions:
   config:
-    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-search:
+    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-results:
       jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-search.ftl
-    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-category:
+      hst:renderpath: classpath:/freemarker/brxdis/brxdis-results.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-search-input:
       jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-category.ftl
+      hst:renderpath: classpath:/freemarker/brxdis/brxdis-search-input.ftl
     /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-recommendations:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations.ftl
-    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-product-grid:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-grid.ftl
-    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-facets:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-facets.ftl
-    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-pagination:
-      jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-pagination.ftl
     /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-product-detail:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-detail.ftl

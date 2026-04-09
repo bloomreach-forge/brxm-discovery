@@ -23,9 +23,9 @@
 </@hst.headContribution>
 
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-<#-- @ftlvariable name="label" type="java.lang.String" -->
-<#if (editMode!false) && label?has_content>
-  <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Product detail &mdash; label: <strong>${label}</strong></div>
+<#-- @ftlvariable name="pid" type="java.lang.String" -->
+<#if (editMode!false)>
+  <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Product Detail<#if pid?has_content> &mdash; PID: <strong>${pid}</strong></#if></div>
 </#if>
 
 <div class="brxdis-pdp">

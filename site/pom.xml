@@ -84,7 +84,7 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <!-- Spring Web (UriComponentsBuilder for query-param assembly in DiscoveryClientImpl) -->
+        <!-- Spring Web (UriComponentsBuilder for pixel URL assembly in DefaultDiscoveryPixelTransport) -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>

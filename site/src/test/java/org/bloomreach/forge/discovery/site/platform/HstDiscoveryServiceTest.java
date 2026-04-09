@@ -125,7 +125,7 @@ class HstDiscoveryServiceTest {
     void search_withComponentFallbacks_passedThroughToQueryBuilder() {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        SearchResponse result = service.search(request, new SearchRequestOptions(24, "price asc", null, "default", List.of(), null, null));
+        SearchResponse result = service.search(request, new SearchRequestOptions(24, "price asc", null, List.of(), null, null));
 
         assertSame(searchResult, result.result());
         ArgumentCaptor<SearchQuery> captor = ArgumentCaptor.forClass(SearchQuery.class);
@@ -136,48 +136,14 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
-    void search_zeroPageSize_delegatesToNoArg() {
+    void search_eachCallHitsClient_noRequestCaching() {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
         service.search(request);
-        service.search(request, SearchRequestOptions.defaults());
-
-        // both use the same underlying query (cache hit on second), client called once
-        verify(client, times(1)).search(any(), any(), any());
-    }
-
-    @Test
-    void search_usesRequestCacheOnSecondCall() {
-        when(client.search(any(SearchQuery.class), any(), any(ClientContext.class))).thenReturn(searchResponse);
-
-        service.search(request);
         service.search(request);
 
-        verify(client, times(1)).search(any(), any(), any());
-    }
-
-    @Test
-    void search_withNamedBand_storesCacheUnderBandKey() {
-        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
-
-        SearchResponse r1 = service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
-        SearchResponse r2 = service.search(request, new SearchRequestOptions(12, null, null, "band-b", List.of(), null, null));
-
-        // Two different bands → two client calls (independent caches)
+        // No request-level caching for search results; client called each time
         verify(client, times(2)).search(any(), any(), any());
-        assertSame(searchResult, r1.result());
-        assertSame(searchResult, r2.result());
-    }
-
-    @Test
-    void search_withNamedBand_cacheHitOnSameBand() {
-        when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
-
-        service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
-        service.search(request, new SearchRequestOptions(12, null, null, "band-a", List.of(), null, null));
-
-        // Same band → cache hit on second call
-        verify(client, times(1)).search(any(), any(), any());
     }
 
     // ── browse ─────────────────────────────────────────────────────────────────
@@ -202,7 +168,7 @@ class HstDiscoveryServiceTest {
         var catResponse = new SearchResponse(catResult, SearchMetadata.empty());
         when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
 
-        SearchResponse result = service.browse(request, "cat-123", new SearchRequestOptions(24, "price asc", null, "default", List.of(), null, null));
+        SearchResponse result = service.browse(request, "cat-123", new SearchRequestOptions(24, "price asc", null, List.of(), null, null));
 
         assertSame(catResult, result.result());
         ArgumentCaptor<CategoryQuery> captor = ArgumentCaptor.forClass(CategoryQuery.class);
@@ -210,28 +176,6 @@ class HstDiscoveryServiceTest {
         assertEquals("cat-123", captor.getValue().categoryId());
         assertEquals(24, captor.getValue().pageSize());
         assertEquals("price asc", captor.getValue().sort());
-    }
-
-    @Test
-    void browse_withNamedBand_storesCacheUnderBandKey() {
-        var catResponse = new SearchResponse(new SearchResult(List.of(), 5L, 0, 10, Map.of()), SearchMetadata.empty());
-        when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(catResponse);
-
-        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
-        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-b", List.of(), null, null));
-
-        verify(client, times(2)).category(any(), any(), any());
-    }
-
-    @Test
-    void browse_withNamedBand_cacheHitOnSameBand() {
-        when(client.category(any(CategoryQuery.class), eq(validCredentials), any(ClientContext.class)))
-                .thenReturn(new SearchResponse(new SearchResult(List.of(), 5L, 0, 10, Map.of()), SearchMetadata.empty()));
-
-        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
-        service.browse(request, "cat-1", new SearchRequestOptions(10, null, null, "band-a", List.of(), null, null));
-
-        verify(client, times(1)).category(any(), any(), any());
     }
 
     // ── recommend ──────────────────────────────────────────────────────────────
@@ -277,36 +221,6 @@ class HstDiscoveryServiceTest {
         assertNotNull(result);
         assertEquals("rid-1", result.widgetResultId());
         assertEquals(1, result.products().size());
-    }
-
-    @Test
-    void recommend_usesRequestCacheKeyedByEffectiveWidgetId() {
-        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
-
-        service.recommend(request, "w-123", null, null, null, 8, null, null);
-        service.recommend(request, "w-123", null, null, null, 8, null, null);
-
-        verify(client, times(1)).recommend(any(), any(), any());
-    }
-
-    @Test
-    void recommend_sameQueryDifferentLabels_reusesRequestCache() {
-        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
-
-        service.recommend(request, "w-123", null, null, null, 8, null, null, "band-a");
-        service.recommend(request, "w-123", null, null, null, 8, null, null, "band-b");
-
-        verify(client, times(1)).recommend(any(), any(), any());
-    }
-
-    @Test
-    void recommend_differentContextProductIds_doNotShareCache() {
-        when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
-
-        service.recommend(request, "w-123", null, "sku-1", null, 8, null, null, "band-a");
-        service.recommend(request, "w-123", null, "sku-2", null, 8, null, null, "band-b");
-
-        verify(client, times(2)).recommend(any(), any(), any());
     }
 
     @Test
@@ -418,39 +332,6 @@ class HstDiscoveryServiceTest {
         assertThrows(ConfigurationException.class, () -> service.search(request));
     }
 
-    // ── pixel region resolution ────────────────────────────────────────────────
-
-    @Test
-    void resolvePixelRegion_nullChannelInfo_defaultsToUS() {
-        System.clearProperty("brxdis.pixel.region");
-        assertEquals("US", HstDiscoveryService.resolvePixelRegion(null));
-    }
-
-    @Test
-    void resolvePixelRegion_channelInfoEU_returnsEU() {
-        System.clearProperty("brxdis.pixel.region");
-        when(channelInfo.getPixelRegion()).thenReturn("EU");
-        assertEquals("EU", HstDiscoveryService.resolvePixelRegion(channelInfo));
-    }
-
-    @Test
-    void resolvePixelRegion_sysPropWinsOverChannelInfo() {
-        System.setProperty("brxdis.pixel.region", "EU");
-        try {
-            // channelInfo.getPixelRegion() is never called when sys prop is set
-            assertEquals("EU", HstDiscoveryService.resolvePixelRegion(channelInfo));
-        } finally {
-            System.clearProperty("brxdis.pixel.region");
-        }
-    }
-
-    @Test
-    void resolvePixelRegion_channelInfoLowercase_normalizedToUppercase() {
-        System.clearProperty("brxdis.pixel.region");
-        when(channelInfo.getPixelRegion()).thenReturn("eu");
-        assertEquals("EU", HstDiscoveryService.resolvePixelRegion(channelInfo));
-    }
-
     @Test
     void search_pixelRegionFromChannelInfo_passedInFlags() {
         System.clearProperty("brxdis.pixel.region");
@@ -512,13 +393,14 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
-    void search_doesNotFirePixelEventOnCacheHit() {
+    void search_firesPixelEventOnEveryCall() {
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
 
-        service.search(request);   // cache miss → fires
-        service.search(request);   // cache hit  → should not fire again
+        service.search(request);
+        service.search(request);
 
-        verify(pixelService, times(1)).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+        // No request-level caching — pixel fires on every search call
+        verify(pixelService, times(2)).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
                 any(ClientContext.class), any());
     }
 

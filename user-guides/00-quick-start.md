@@ -101,14 +101,7 @@ Leave `brxdis:apiKey` / `brxdis:authKey` blank and inject secrets via env vars. 
 
 ## Step 5 — Wire a search page
 
-This is the minimum page composition for a working search page: one data-fetching component (`DiscoverySearchComponent`) and one view component (`DiscoveryProductGridComponent`) connected by a shared `label` / `connectTo` value.
-
-### How `label` and `connectTo` work
-
-- The data-fetching component writes its result to the request cache under a **label** (default `"default"`).
-- View components on the same page read from the cache using **connectTo** to identify which label to read.
-- Both default to `"default"` — a single search + grid page needs no explicit label configuration.
-- Multiple search sections on the same page (e.g. a featured section + a main search section) use distinct label values to keep results separate.
+`DiscoveryResultsComponent` is the single component for search results pages — it handles data fetching, facets, pagination, and sort all in one. No additional view components are needed.
 
 ### `pages.yaml` (workspace page composition)
 
@@ -122,36 +115,36 @@ definitions:
         /main:
           jcr:primaryType: hst:component
           hst:template: search-layout
-          /search:
+          /content:
+            jcr:primaryType: hst:containercomponent
+            hst:xtype: hst.nomarkup
+            /search-results:
+              jcr:primaryType: hst:containeritemcomponent
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
+              hst:template: brxdis-results
+              hst:parameternames: [dataSource, pageSize]
+              hst:parametervalues: [search, 12]
+```
+
+That's it — one component, one template. The bundled `brxdis-results` template renders the search form, facet sidebar, product grid, and pagination in one pass.
+
+### Optional: add a standalone search bar to the header
+
+Place `DiscoverySearchInputComponent` in any zone (header, sidebar) to provide a search input that submits to your results page:
+
+```yaml
+          /header:
             jcr:primaryType: hst:containercomponent
             hst:xtype: hst.nomarkup
             /search-bar:
               jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
-              hst:template: brxdis-search
-              hst:parameternames: [label, pageSize]
-              hst:parametervalues: [default, 12]
-          /sidebar:
-            jcr:primaryType: hst:containercomponent
-            hst:xtype: hst.nomarkup
-            /facets:
-              jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryFacetComponent
-              hst:template: brxdis-facets
-              hst:parameternames: [connectTo]
-              hst:parametervalues: [default]
-          /content:
-            jcr:primaryType: hst:containercomponent
-            hst:xtype: hst.nomarkup
-            /product-grid:
-              jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductGridComponent
-              hst:template: brxdis-product-grid
-              hst:parameternames: [connectTo]
-              hst:parametervalues: [default]
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchInputComponent
+              hst:template: brxdis-search-input
+              hst:parameternames: [resultsPage, placeholder]
+              hst:parametervalues: [/search, 'Search products...']
 ```
 
-The `label=default` on `DiscoverySearchComponent` and `connectTo=default` on both view components are the pairing. The Discovery API is called exactly once per page render — the request cache deduplicates all subsequent reads.
+The search bar is independent — it submits to the `resultsPage` path where `DiscoveryResultsComponent` runs the actual search.
 
 ### `sitemap.yaml`
 
@@ -193,7 +186,7 @@ brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 
 **If you see `No resource space for 'discoverySearchAPI'`**, the site webapp is still using stale CRISP resolver wiring from an older addon snapshot. Reinstall the addon locally, rebuild the host project, and restart the site webapp.
 
-**For the Page Model API** (headless delivery), call `http://localhost:8080/site/search?q=shirt` with `Accept: application/json` — the response will include `searchResult`, `products`, `facets`, and `pagination` in the JSON model.
+**For the Page Model API** (headless delivery), call `http://localhost:8080/site/search?q=shirt` with `Accept: application/json` — the response will include `products`, `facets`, `pagination`, `facetUrls`, `pageUrls`, and `sortUrl` in the JSON model.
 
 ---
 

@@ -37,7 +37,7 @@ final class DiscoveryCoreApiClient {
     }
 
     AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.autosuggest(query, credentials));
+        String path = requestFactory.autosuggest(query, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery autosuggest [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
@@ -54,7 +54,7 @@ final class DiscoveryCoreApiClient {
     }
 
     SearchResponse search(SearchQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.search(query, credentials));
+        String path = requestFactory.search(query, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery search [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
@@ -71,7 +71,7 @@ final class DiscoveryCoreApiClient {
     }
 
     SearchResponse category(CategoryQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.category(query, credentials));
+        String path = requestFactory.category(query, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery category browse [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
@@ -88,7 +88,7 @@ final class DiscoveryCoreApiClient {
     }
 
     Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.productLookup(pid, url, credentials));
+        String path = requestFactory.productLookup(pid, url, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery fetchProduct [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {

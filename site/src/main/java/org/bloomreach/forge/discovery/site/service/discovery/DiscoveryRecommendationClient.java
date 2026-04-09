@@ -47,7 +47,7 @@ final class DiscoveryRecommendationClient {
     }
 
     private RecommendationResult recommendV1(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.recommendationV1(query, credentials));
+        String path = requestFactory.recommendationV1(query, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery recommendations v1 [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
@@ -64,7 +64,7 @@ final class DiscoveryRecommendationClient {
     }
 
     private RecommendationResult recommendV2(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.recommendationV2(query, credentials));
+        String path = requestFactory.recommendationV2(query, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery recommendations v2 (Pathways) [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
@@ -104,7 +104,7 @@ final class DiscoveryRecommendationClient {
     }
 
     private Map<String, String> loadWidgetTypes(DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = DiscoveryRequestPaths.toRelativePath(requestFactory.merchantWidgets(credentials));
+        String path = requestFactory.merchantWidgets(credentials).toRelativePath();
         try {
             return responseMapper.toWidgetTypeMap(executor.resolve(SEARCH_RESOURCE_SPACE, path, ctx));
         } catch (ResourceException e) {

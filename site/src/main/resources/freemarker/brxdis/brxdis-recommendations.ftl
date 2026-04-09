@@ -42,14 +42,9 @@
 </@hst.headContribution>
 
 <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-<#-- @ftlvariable name="dataSource" type="java.lang.String" -->
-<#-- @ftlvariable name="label" type="java.lang.String" -->
+<#-- @ftlvariable name="widgetId" type="java.lang.String" -->
 <#if (editMode!false)>
-  <#if (dataSource!"standalone") == "productDetailBand">
-    <div class="brxdis-band-badge brxdis-band-badge--green">&#128204; Recommendations &mdash; reads PID from product detail label: <strong>${label!"default"}</strong></div>
-  <#else>
-    <div class="brxdis-band-badge brxdis-band-badge--blue">&#128204; Recommendations &mdash; standalone PID resolution</div>
-  </#if>
+  <div class="brxdis-band-badge brxdis-band-badge--blue">&#128204; Recommendations<#if widgetId?has_content> &mdash; widget: <strong>${widgetId}</strong></#if></div>
 </#if>
 
 <section class="brxdis-recs" data-brxdis-carousel>

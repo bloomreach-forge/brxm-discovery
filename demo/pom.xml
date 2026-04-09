@@ -129,17 +129,17 @@
             <dependency>
                 <groupId>org.bloomreach.forge.discovery</groupId>
                 <artifactId>brxm-discovery-cms</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.2-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.bloomreach.forge.discovery</groupId>
                 <artifactId>brxm-discovery-site</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.2-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.bloomreach.forge.discovery</groupId>
                 <artifactId>brxm-discovery-hcm-site</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>${version}</version>
             </dependency>
 
         </dependencies>

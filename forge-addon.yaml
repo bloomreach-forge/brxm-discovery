@@ -60,7 +60,7 @@ installation:
         \ use BRXDIS_ACCOUNT_ID, -Dbrxdis.accountId, or brxdis:accountId in the global\
         \ config node"
       required: false
-      example: 6413
+      example: "6413"
     - name: discoveryDomainKey
       description: "Optional channel-level domain key in hst:channelinfo; otherwise\
         \ use BRXDIS_DOMAIN_KEY, -Dbrxdis.domainKey, or brxdis:domainKey in the global\

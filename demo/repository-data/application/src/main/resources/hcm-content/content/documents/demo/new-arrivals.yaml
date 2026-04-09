@@ -3,21 +3,22 @@
   jcr:primaryType: hippo:handle
   jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
   jcr:uuid: c9d0e1f2-a3b4-5678-cdef-789012345678
-  hippo:versionHistory: db8a5134-6eb5-4f57-88ab-fbd979546141
+  hippo:versionHistory: dc1775e9-58b2-4815-ac0c-b6acf5a4a649
   /new-arrivals[1]:
     jcr:primaryType: brxdis:categoryDocument
     jcr:mixinTypes: ['mix:referenceable']
     jcr:uuid: d0e1f2a3-b4c5-6789-defa-890123456789
     brxdis:categoryId: '117417'
     brxdis:displayName: New Arrivals
+    brxdis:productPreviewCount: '4'
     hippo:availability: [live]
     hippostd:retainable: false
     hippostd:state: published
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-03-07T13:36:32.274Z
+    hippostdpubwf:lastModificationDate: 2026-03-27T21:56:58.929Z
     hippostdpubwf:lastModifiedBy: admin
-    hippostdpubwf:publicationDate: 2026-03-07T23:10:41.204Z
+    hippostdpubwf:publicationDate: 2026-03-27T21:57:04.236Z
     hippostdpubwf:publishedBy: admin
   /new-arrivals[2]:
     jcr:primaryType: brxdis:categoryDocument
@@ -25,12 +26,13 @@
     jcr:uuid: 7a539c64-e087-4d83-93ea-49b5ce6ed162
     brxdis:categoryId: '117417'
     brxdis:displayName: New Arrivals
+    brxdis:productPreviewCount: '4'
     hippo:availability: [preview]
     hippostd:retainable: false
     hippostd:state: unpublished
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-03-07T13:36:32.274Z
+    hippostdpubwf:lastModificationDate: 2026-03-27T21:56:58.929Z
     hippostdpubwf:lastModifiedBy: admin
   /new-arrivals[3]:
     jcr:primaryType: brxdis:categoryDocument
@@ -38,11 +40,11 @@
     jcr:uuid: 89c33861-f0e9-4df5-bc50-b2e06717b195
     brxdis:categoryId: '117417'
     brxdis:displayName: New Arrivals
+    brxdis:productPreviewCount: '4'
     hippo:availability: []
     hippostd:retainable: false
     hippostd:state: draft
-    hippostd:transferable: false
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-03-07T23:10:36.643Z
+    hippostdpubwf:lastModificationDate: 2026-03-27T21:56:58.940Z
     hippostdpubwf:lastModifiedBy: admin

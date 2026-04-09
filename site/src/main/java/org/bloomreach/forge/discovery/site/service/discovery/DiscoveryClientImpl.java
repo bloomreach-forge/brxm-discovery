@@ -28,13 +28,22 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     private final DiscoveryRecommendationClient recommendationClient;
     private final DiscoveryPixelTransport pixelTransport;
 
-    public DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper) {
-        this(broker, responseMapper, new DiscoveryRequestFactory());
+    public DiscoveryClientImpl(DiscoveryResponseMapper responseMapper) {
+        this(new DiscoveryResourceExecutor(), responseMapper, new DiscoveryRequestFactory());
+    }
+
+    /** Test seam: inject broker so tests don't need HippoServiceRegistry. */
+    DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper) {
+        this(new DiscoveryResourceExecutor(broker), responseMapper, new DiscoveryRequestFactory());
     }
 
     DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper,
                         DiscoveryRequestFactory requestFactory) {
-        DiscoveryResourceExecutor executor = new DiscoveryResourceExecutor(broker);
+        this(new DiscoveryResourceExecutor(broker), responseMapper, requestFactory);
+    }
+
+    private DiscoveryClientImpl(DiscoveryResourceExecutor executor, DiscoveryResponseMapper responseMapper,
+                                DiscoveryRequestFactory requestFactory) {
         this.coreApiClient = new DiscoveryCoreApiClient(executor, responseMapper, requestFactory);
         this.recommendationClient = new DiscoveryRecommendationClient(executor, responseMapper, requestFactory);
         this.pixelTransport = new DefaultDiscoveryPixelTransport(executor);

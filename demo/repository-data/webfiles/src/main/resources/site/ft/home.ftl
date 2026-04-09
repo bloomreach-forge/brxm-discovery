@@ -19,7 +19,7 @@
       <p style="margin:0;font-size:.875rem;color:#6b7280">AI-driven product recommendations via Pathways widgets (v1 and v2).</p>
     </a>
 
-    <a href="autosuggest?q=shi" style="display:block;padding:1.25rem;border:1px solid #e5e7eb;border-radius:.5rem;text-decoration:none;color:inherit;transition:box-shadow .15s">
+    <a href="search?q=shi" style="display:block;padding:1.25rem;border:1px solid #e5e7eb;border-radius:.5rem;text-decoration:none;color:inherit;transition:box-shadow .15s">
       <h3 style="margin:0 0 .5rem;font-size:1.125rem;color:#111827">Autosuggest</h3>
       <p style="margin:0;font-size:.875rem;color:#6b7280">Typeahead suggestions with query, attribute, and product matches.</p>
     </a>

@@ -71,13 +71,6 @@ class DiscoveryProductDetailComponentTest {
         verify(request).setModel("product", null);
     }
 
-    @Test
-    void label_setEvenWhenPidBlank() {
-        component("").doBeforeRender(request, response);
-
-        verify(request).setModel("label", "default");
-    }
-
     // ── product found → model set ─────────────────────────────────────────────
 
     @Test
@@ -213,7 +206,7 @@ class DiscoveryProductDetailComponentTest {
 
         component("p-1").doBeforeRender(request, response);
 
-        assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
+        assertTrue(DiscoveryRequestCache.isProductDetailRendered(request));
     }
 
     @Test
@@ -222,7 +215,7 @@ class DiscoveryProductDetailComponentTest {
 
         component("p-99").doBeforeRender(request, response);
 
-        assertTrue(DiscoveryRequestCache.isProductDetailBandPresent(request, "default"));
+        assertTrue(DiscoveryRequestCache.isProductDetailRendered(request));
     }
 
     @Test
@@ -232,7 +225,7 @@ class DiscoveryProductDetailComponentTest {
 
         component("p-1").doBeforeRender(request, response);
 
-        Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request, "default");
+        Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request);
         assertTrue(cached.isPresent());
         assertSame(product, cached.get());
     }
@@ -243,7 +236,7 @@ class DiscoveryProductDetailComponentTest {
 
         component("p-99").doBeforeRender(request, response);
 
-        assertTrue(DiscoveryRequestCache.getProductResult(request, "default").isEmpty());
+        assertTrue(DiscoveryRequestCache.getProductResult(request).isEmpty());
     }
 
     // ── testable subclass ─────────────────────────────────────────────────────
@@ -280,7 +273,6 @@ class DiscoveryProductDetailComponentTest {
                 @Override public String getDocument() { return documentPid != null ? "test-doc" : ""; }
                 @Override public String getProductPidProperty() { return pidProperty; }
                 @Override public String getProductUrlParam() { return productUrlParam; }
-                @Override public String getLabel() { return "default"; }
             };
         }
 

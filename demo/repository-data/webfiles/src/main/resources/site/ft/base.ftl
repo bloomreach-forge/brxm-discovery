@@ -11,7 +11,7 @@
   | <a href="<@hst.link path="/search"/>">Search</a>
   | <a href="<@hst.link path="/category"/>">Category</a>
   | <a href="<@hst.link path="/recommendations"/>">Recommendations</a>
-  | <a href="<@hst.link path="/autosuggest"/>">Autosuggest</a>
+  | <a href="<@hst.link path="/search"/>?q=shi">Autosuggest</a>
 </nav>
 <main>
   <@hst.include ref="main"/>

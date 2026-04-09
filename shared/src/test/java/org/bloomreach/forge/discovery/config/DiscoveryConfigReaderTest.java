@@ -1,6 +1,8 @@
 package org.bloomreach.forge.discovery.config;
 
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
+import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,8 +10,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,6 +25,7 @@ class DiscoveryConfigReaderTest {
     private DiscoveryConfigReader reader;
 
     @Mock Node configNode;
+    @Mock Session session;
 
     @BeforeEach
     void setUp() {
@@ -285,6 +290,66 @@ class DiscoveryConfigReaderTest {
         assertEquals("PRODUCTION", config.environment());
         assertEquals(20, config.defaultPageSize());
         assertEquals("price asc", config.defaultSort());
+    }
+
+    // --- resolve(Session) ---
+
+    @Test
+    void resolve_findsConfigNode_returnsFullConfig() throws RepositoryException {
+        when(session.getNode(ConfigDefaults.CONFIG_NODE_PATH)).thenReturn(configNode);
+        stubAllProperties();
+
+        DiscoveryConfig config = reader.resolve(session);
+
+        assertEquals("acct123", config.accountId());
+        assertEquals("secret-key", config.apiKey());
+    }
+
+    @Test
+    void resolve_nodeNotFound_fallsBackToDefaults() throws RepositoryException {
+        when(session.getNode(ConfigDefaults.CONFIG_NODE_PATH)).thenThrow(new PathNotFoundException("not found"));
+
+        DiscoveryConfig config = reader.resolve(session);
+
+        assertNull(config.accountId());
+        assertEquals(ConfigDefaults.BASE_URI, config.baseUri());
+    }
+
+    @Test
+    void resolve_repositoryException_throwsConfigurationException() throws RepositoryException {
+        when(session.getNode(ConfigDefaults.CONFIG_NODE_PATH)).thenThrow(new RepositoryException("JCR error"));
+
+        assertThrows(ConfigurationException.class, () -> reader.resolve(session));
+    }
+
+    // --- applyEnvSysCredentials ---
+
+    @Test
+    void applyEnvSysCredentials_sysPropSet_overridesBaseCredential() {
+        DiscoveryConfig base = new DiscoveryConfig(
+                "acct", "domain", null, null,
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
+        System.setProperty("brxdis.apiKey", "sys-api-key");
+        try {
+            DiscoveryConfig result = reader.applyEnvSysCredentials(base);
+            assertEquals("sys-api-key", result.apiKey());
+            assertEquals("acct", result.accountId());
+            assertEquals("https://core.dxpapi.com", result.baseUri());
+        } finally {
+            System.clearProperty("brxdis.apiKey");
+        }
+    }
+
+    @Test
+    void applyEnvSysCredentials_noOverrides_returnsBaseUnchanged() {
+        DiscoveryConfig base = new DiscoveryConfig(
+                "acct", "domain", "base-key", null,
+                "https://core.dxpapi.com", "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION", 10, "");
+
+        DiscoveryConfig result = reader.applyEnvSysCredentials(base);
+
+        assertEquals("base-key", result.apiKey());
+        assertEquals("acct", result.accountId());
     }
 
     // --- helpers ---

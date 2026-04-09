@@ -2,35 +2,56 @@
 
 ## Overview
 
-Autosuggest (typeahead) is built into `DiscoverySearchComponent` — no separate component is needed. When `suggestionsEnabled = true` (the default), the search component calls the Bloomreach Discovery Autosuggest API through `discoveryAutosuggestAPI` and exposes an `autosuggestResult` model alongside the main search result.
+`DiscoverySearchInputComponent` is a standalone search bar component. It:
 
-The search component is the single entry point for both full-text search and real-time typeahead suggestions. Suggestions are always fetched live (not cached) — they reflect the query state at the moment the request is made.
+- Renders a search input in any page zone (header, sidebar, or inline)
+- Calls the Bloomreach Discovery Autosuggest API when `suggestionsEnabled=true`
+- Exposes an `autosuggestResult` model for typeahead dropdown rendering
+- Submits the search form to a configurable results page (which uses `DiscoveryResultsComponent`)
 
-The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically by the plugin and resolves its base URI from the shared Discovery config.
+The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically. Autosuggest results are fetched live (not cached) — they reflect the query state at the moment of the request.
 
 ---
 
-## Enabling suggestions on a search component
+## Enabling suggestions
 
-All suggestion parameters are set as component parameters in the HST config:
+All suggestion parameters are component parameters set in HST config:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
+| `placeholder` | String | `"Search..."` | Input placeholder text rendered by the FTL. |
+| `resultsPage` | String | `""` | Path to redirect to for full results. Blank = submit to current page. |
 | `suggestionsEnabled` | boolean | `true` | Enable autosuggest dropdown. Set `false` to disable entirely. |
 | `suggestionsLimit` | int | `5` | Max suggestions shown per category (query, attribute, product). |
 | `minChars` | int | `2` | Minimum characters before the suggestion dropdown is triggered. |
 | `debounceMs` | int | `250` | Debounce delay in milliseconds — prevents API calls on every keystroke. |
-| `placeholder` | String | `"Search..."` | Input placeholder text rendered by the FTL. |
-| `resultsPage` | String | `""` | Path to redirect to for full results. Blank = render results on the current page. |
 
 ```yaml
-/search:
+/search-bar:
   jcr:primaryType: hst:component
-  hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchComponent
-  hst:template: brxdis-search
+  hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchInputComponent
+  hst:template: brxdis-search-input
   hst:parameternames: [suggestionsEnabled, suggestionsLimit, minChars, debounceMs, placeholder, resultsPage]
   hst:parametervalues: [true, 5, 2, 250, 'Search products...', '/search']
 ```
+
+---
+
+## How it works with results
+
+`DiscoverySearchInputComponent` and `DiscoveryResultsComponent` are independent. The search bar submits a form to the results page (`resultsPage` param); the results page runs the full search.
+
+Typical page layout:
+
+```
+Any page (e.g. homepage):
+  └── search-bar: DiscoverySearchInputComponent (resultsPage=/search)
+
+Search results page (/search):
+  └── results: DiscoveryResultsComponent (dataSource=search)
+```
+
+For pages where the search bar is on the same page as the results (e.g. a simple search page), set `resultsPage=""` — the form submits to the current page and `DiscoveryResultsComponent` picks up the `q` parameter.
 
 ---
 
@@ -38,11 +59,13 @@ All suggestion parameters are set as component parameters in the HST config:
 
 To use the component purely as a typeahead endpoint (e.g. called via AJAX before the user submits), add `brxdis_suggest=1` to the request:
 
+> **Note:** `DiscoverySearchInputComponent` does not support suggest-only mode directly. For AJAX-based typeahead, call the Page Model API endpoint where your search bar component lives and read `autosuggestResult` from the models:
+
 ```
-GET /site/search?q=shi&brxdis_suggest=1
+GET /site/resourceapi/<path-to-search-bar-page>?q=shi
 ```
 
-In suggest-only mode, the full Discovery search call is skipped — only `autosuggestResult` is populated. This is useful for wiring up a JavaScript typeahead that calls the page endpoint via `fetch`.
+Response includes `autosuggestResult` in the component models.
 
 ---
 
@@ -51,13 +74,12 @@ In suggest-only mode, the full Discovery search call is skipped — only `autosu
 | Key | Type | Description |
 |---|---|---|
 | `query` | `String` | Trimmed search term (empty string when blank) |
-| `autosuggestResult` | `AutosuggestResult` | Suggestion payload (null when query is blank or `suggestionsEnabled=false`) |
-| `suggestionsEnabled` | `boolean` | Whether suggestions are configured on this component |
-| `minChars` | `int` | Minimum chars threshold (for FTL to render correctly) |
-| `debounceMs` | `int` | Debounce delay (for FTL to configure the JS handler) |
 | `placeholder` | `String` | Input placeholder text |
-| `resultsPage` | `String` | Configured results page path |
-| `suggestOnlyMode` | `boolean` | True when `brxdis_suggest=1` |
+| `resultsPage` | `String` | Configured results page path (empty = current page) |
+| `suggestionsEnabled` | `boolean` | Whether suggestions are configured on this component |
+| `minChars` | `int` | Minimum chars threshold |
+| `debounceMs` | `int` | Debounce delay (for FTL to configure the JS handler) |
+| `autosuggestResult` | `AutosuggestResult` | Suggestion payload (null when query is blank or `suggestionsEnabled=false`) |
 
 ### `AutosuggestResult` model
 
@@ -81,14 +103,14 @@ AutosuggestResult
 
 ## Plugin FTL template
 
-`brxdis-search.ftl` renders a search form with an inline suggestion panel. The panel contains three sections (query suggestions, attribute suggestions, product cards) and uses `suggestionsEnabled`, `minChars`, and `debounceMs` to configure the JavaScript behaviour. Scoped CSS is injected via `<@hst.headContribution>`.
+`brxdis-search-input.ftl` renders a search form with an inline suggestion panel. The panel contains three sections (query suggestions, attribute suggestions, product cards) and uses `suggestionsEnabled`, `minChars`, and `debounceMs` to configure the JavaScript behaviour. Scoped CSS is injected via `<@hst.headContribution>`.
 
 Register and use it directly:
 
 ```yaml
-/brxdis-search:
+/brxdis-search-input:
   jcr:primaryType: hst:template
-  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search.ftl
+  hst:renderpath: webfile:/freemarker/brxdis/brxdis-search-input.ftl
 ```
 
 ---
@@ -102,7 +124,7 @@ Register and use it directly:
   <#if autosuggestResult.querySuggestions()?has_content>
   <ul class="suggestions">
     <#list autosuggestResult.querySuggestions() as term>
-    <li><a href="?q=${term?url('UTF-8')}">${term}</a></li>
+    <li><a href="${(resultsPage!"")?has_content?then(resultsPage, "")}?q=${term?url('UTF-8')}">${term}</a></li>
     </#list>
   </ul>
   </#if>
@@ -129,10 +151,10 @@ Register and use it directly:
 
 ## Page Model API shape
 
-For a headless/SPA implementation, call the search endpoint in suggest-only mode via AJAX:
+For a headless/SPA implementation, call the page endpoint via AJAX:
 
 ```
-GET /site/search?q=shi&brxdis_suggest=1
+GET /site/resourceapi/<search-bar-page>?q=shi
 ```
 
 Response shape:
@@ -140,9 +162,13 @@ Response shape:
 ```json
 {
   "page": {
-    "search": {
+    "search-bar": {
       "models": {
         "query": "shi",
+        "placeholder": "Search products...",
+        "suggestionsEnabled": true,
+        "minChars": 2,
+        "debounceMs": 250,
         "autosuggestResult": {
           "originalQuery": "shi",
           "querySuggestions": ["shirts", "shipping"],
@@ -152,8 +178,7 @@ Response shape:
           "productSuggestions": [
             { "id": "p1", "title": "Blue Shirt", "price": 29.99 }
           ]
-        },
-        "suggestOnlyMode": true
+        }
       }
     }
   }
@@ -164,10 +189,10 @@ Response shape:
 
 ## Catalog views
 
-To restrict suggestions to a specific catalog view (e.g. a locale-specific product catalog), use the `catalogViews` parameter on `HstDiscoveryService.autosuggest()`. This is not exposed as a component parameter on `DiscoverySearchComponent` — wire it programmatically if needed in a custom component subclass.
+To restrict suggestions to a specific catalog view (e.g. a locale-specific product catalog), use the `catalogViews` parameter on `HstDiscoveryService.autosuggest()`. This is not exposed as a component parameter on `DiscoverySearchInputComponent` — wire it programmatically in a custom component subclass if needed.
 
 ---
 
 ## Error handling
 
-Discovery API errors are wrapped in `SearchException` (a `RuntimeException`). A blank or null query returns a null `autosuggestResult` without calling the API — templates should guard with `<#if autosuggestResult??>`. Autosuggest failures do not affect the main search result.
+Discovery API errors are wrapped in `SearchException` (a `RuntimeException`). A blank or null query returns a null `autosuggestResult` without calling the API — templates should guard with `<#if autosuggestResult??>`. Autosuggest failures do not affect other components on the page.

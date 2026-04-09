@@ -13,6 +13,8 @@ import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.parameters.ParametersInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +29,7 @@ import java.util.Map;
 @ParametersInfo(type = DiscoveryCategoryHighlightComponentInfo.class)
 public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryComponent {
 
+    private static final Logger log = LoggerFactory.getLogger(DiscoveryCategoryHighlightComponent.class);
     private static final int MAX_SLOTS = 4; // supports up to 4 curated category slots
 
     @Override
@@ -76,11 +79,16 @@ public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryCompon
             cache.get(catId, count).ifPresentOrElse(
                     products -> result.put(catId, products),
                     () -> {
-                        SearchResponse resp = svc.browse(request, catId,
-                                SearchRequestOptions.of("highlight-preview-" + catId, count));
-                        List<ProductSummary> products = resp.result().products();
-                        cache.put(catId, count, products);
-                        result.put(catId, products);
+                        try {
+                            SearchResponse resp = svc.browse(request, catId,
+                                    SearchRequestOptions.of(count));
+                            List<ProductSummary> products = resp.result().products();
+                            cache.put(catId, count, products);
+                            result.put(catId, products);
+                        } catch (Exception e) {
+                            log.warn("Preview products unavailable for category '{}': {}",
+                                    catId, e.getMessage());
+                        }
                     });
         }
         return result;

@@ -3,11 +3,14 @@ package org.bloomreach.forge.discovery.config;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -184,6 +187,32 @@ public class DiscoveryConfigReader {
             if (value != null && !value.isBlank()) return value;
         }
         return null;
+    }
+
+    /**
+     * Resolves config from the global JCR node, falling back to env/sys + coded defaults
+     * if the node is absent.
+     */
+    public DiscoveryConfig resolve(Session session) {
+        try {
+            Node configNode = session.getNode(ConfigDefaults.CONFIG_NODE_PATH);
+            return read(configNode);
+        } catch (PathNotFoundException e) {
+            log.warn("Discovery config node not found at '{}' — falling back to env/sys and defaults",
+                    ConfigDefaults.CONFIG_NODE_PATH);
+            return readWithDefaults();
+        } catch (RepositoryException e) {
+            log.error("Failed to read Discovery config from {}: {}", ConfigDefaults.CONFIG_NODE_PATH, e.getMessage());
+            throw new ConfigurationException(
+                    "Failed to read Discovery config from '" + ConfigDefaults.CONFIG_NODE_PATH + "': " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Overlays env/sys credential values onto a base config. Structural fields are unchanged.
+     */
+    public DiscoveryConfig applyEnvSysCredentials(DiscoveryConfig base) {
+        return base.withCredentialOverrides(credentialsFromEnvSysOnly());
     }
 
     record CredentialSource(String envVar, String sysProp, String jcrProp) { }

@@ -114,6 +114,23 @@ class DiscoveryRequestFactoryTest {
         assertTrue(request.queryParameters().stream().noneMatch(parameter -> parameter.name().equals("auth_key")));
     }
 
+    @Test
+    void toRelativePath_noQueryParams_returnsPathOnly() {
+        DiscoveryRequestSpec spec = DiscoveryRequestSpec.builder("/api/v1/core/").build();
+
+        assertEquals("/api/v1/core/", spec.toRelativePath());
+    }
+
+    @Test
+    void toRelativePath_withQueryParams_rendersAsQueryString() {
+        DiscoveryRequestSpec spec = DiscoveryRequestSpec.builder("/api/v1/core/")
+                .queryParam("q", "shoes")
+                .queryParam("rows", 10)
+                .build();
+
+        assertEquals("/api/v1/core/?q=shoes&rows=10", spec.toRelativePath());
+    }
+
     private static String valueOf(DiscoveryRequestSpec request, String name) {
         return request.queryParameters().stream()
                 .filter(parameter -> parameter.name().equals(name))

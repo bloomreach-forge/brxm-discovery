@@ -16,6 +16,19 @@ public record DiscoveryRequestSpec(String path, List<QueryParameter> queryParame
         queryParameters.forEach(parameter -> consumer.accept(parameter.name(), parameter.value()));
     }
 
+    /** Returns a relative URL string, e.g. {@code /api/v1/core/search?q=shoes&rows=10}. */
+    public String toRelativePath() {
+        if (queryParameters.isEmpty()) {
+            return path;
+        }
+        StringBuilder sb = new StringBuilder(path).append('?');
+        for (int i = 0; i < queryParameters.size(); i++) {
+            if (i > 0) sb.append('&');
+            sb.append(queryParameters.get(i).name()).append('=').append(queryParameters.get(i).value());
+        }
+        return sb.toString();
+    }
+
     public static Builder builder(String path) {
         return new Builder(path);
     }

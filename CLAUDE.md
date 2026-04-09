@@ -48,8 +48,7 @@ org.bloomreach.forge.discovery
 │   ├── service/discovery/search/    # QueryParamParser
 │   ├── service/discovery/recommendation/model/  # RecQuery, WidgetInfo
 │   ├── service/discovery/recommendation/        # DiscoveryWidgetService/Impl
-│   ├── service/discovery/config/    # DiscoveryConfigResolver, DiscoveryConfigProvider,
-│   │                                #   CachingDiscoveryConfigProvider, DiscoveryConfigJcrListener
+│   ├── service/discovery/config/    # DiscoveryConfigProvider, CachingDiscoveryConfigProvider
 │   ├── service/discovery/pixel/     # DiscoveryPixelService (interface), DiscoveryPixelServiceImpl
 │   ├── service/discovery/sor/       # SoREnrichmentProvider (interface; integrators implement)
 │   ├── platform/                    # HstDiscoveryService, DiscoveryRequestCache
@@ -88,10 +87,10 @@ org.bloomreach.forge.discovery
 - **Picker REST endpoints**: `GET /search`, `/items`, `/categories`, `/browse`, `/widgets`, `/category-products` — all at `{cms}/ws/discovery/picker/`; `/category-products` reads `brxdis:categoryId` from the handle's variant child (not the handle itself); also accepts direct `categoryId` param to bypass JCR for live pre-save preview
 - **postMessage cross-field sync**: `picker-field.js` fires `cfg.onValueChange(value, documentId)` on pick/clear; `category-picker.html` broadcasts `{type:"brxdis:categoryChanged", documentId, categoryId}` to all same-origin sibling frames via `window.parent.frames`; `category-product-preview.html` listens and re-fetches immediately — no polling, no JCR save required
 - **Config resolution** (single global node): all channels share one `brxdis:discoveryConfig` node at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`; credentials use env→sys→JCR value; structural config uses JCR→coded default; no `discoveryConfigPath` mount parameter
-- **Global JCR config node**: fixed path `ConfigDefaults.CONFIG_NODE_PATH`; `DiscoveryConfigProvider.get(session)` resolves it; `DiscoveryConfigJcrListener` invalidates cache on node changes; `DiscoveryChannelInfo` carries pixel fields only
+- **Global JCR config node**: fixed path `ConfigDefaults.CONFIG_NODE_PATH`; `DiscoveryConfigProvider.get(session)` resolves it; `CachingDiscoveryConfigProvider` implements `EventListener` directly and invalidates cache on node changes; `DiscoveryChannelInfo` carries pixel fields only
 - **Graceful degradation**: missing or absent JCR config node falls back to env/sys + coded defaults — no crash
 - **v1/v2 auto-selection**: if `authKey` present → v2 Pathways API (`discoveryPathwaysAPI`); otherwise → v1 (`discoverySearchAPI`)
-- **Request-scoped caching**: `DiscoveryRequestCache` deduplicates API calls within a single page render; config served from `CachingDiscoveryConfigProvider` (JVM-lifetime cache, JCR-observation-invalidated via `DiscoveryConfigJcrListener` — no per-request JCR reads)
+- **Request-scoped caching**: `DiscoveryRequestCache` deduplicates API calls within a single page render; config served from `CachingDiscoveryConfigProvider` (JVM-lifetime cache, JCR-observation-invalidated directly via `EventListener` — no per-request JCR reads)
 - **Page Model API**: all components call `request.setModel()` for headless/SPA consumption and `request.setAttribute()` for FTL
 - **HST component lookup**: `HstServices.getComponentManager().getComponent(ClassName.class.getName())`
 - **CRISP broker lookup**: always lazy via `HippoServiceRegistry.getService(ResourceServiceBroker.class)` — never eagerly in constructors

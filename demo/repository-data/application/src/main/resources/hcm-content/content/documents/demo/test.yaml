@@ -44,9 +44,9 @@
       brxdis:displayName: PDP Similar Items
       brxdis:widgetId: 4le608d9
       hippo:availability: []
-      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
+      hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
       hippostdpubwf:lastModificationDate: 2026-03-09T14:02:29.154Z
@@ -55,7 +55,7 @@
     jcr:primaryType: hippo:handle
     jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
     jcr:uuid: b09ad4f7-b4fc-4ca8-b529-25429ae6b898
-    hippo:versionHistory: 96b86417-0125-4aea-8a33-318c2bb6b9b1
+    hippo:versionHistory: 10d99a0a-3b81-42f6-9a25-72ad5a4614cd
     /cat[1]:
       jcr:primaryType: brxdis:categoryDocument
       jcr:mixinTypes: ['mix:referenceable']
@@ -69,7 +69,7 @@
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-20T18:24:56.013Z
+      hippostdpubwf:lastModificationDate: 2026-04-08T20:04:06.145+01:00
       hippostdpubwf:lastModifiedBy: admin
     /cat[2]:
       jcr:primaryType: brxdis:categoryDocument
@@ -90,17 +90,18 @@
       jcr:primaryType: brxdis:categoryDocument
       jcr:mixinTypes: ['mix:referenceable']
       jcr:uuid: a9a1543b-3625-4087-9ecb-5e26aa53fc87
-      brxdis:categoryId: '116791'
+      brxdis:categoryId: '116728'
       brxdis:displayName: Demo Category
+      brxdis:productPreviewCount: '3'
       hippo:availability: [live]
       hippostd:retainable: false
       hippostd:state: published
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-03-06T11:45:37.101Z
+      hippostdpubwf:lastModificationDate: 2026-03-20T18:24:55.933Z
       hippostdpubwf:lastModifiedBy: admin
-      hippostdpubwf:publicationDate: 2026-03-06T11:45:40.395Z
+      hippostdpubwf:publicationDate: 2026-03-27T21:56:22.373Z
       hippostdpubwf:publishedBy: admin
   /product:
     jcr:primaryType: hippo:handle
@@ -165,12 +166,12 @@
       brxdis:displayName: The other one
       brxdis:widgetId: r92vw2lv
       hippo:availability: []
-      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
+      hippostd:transferable: false
       hippostdpubwf:createdBy: admin
       hippostdpubwf:creationDate: 2026-03-09T14:23:27.450Z
-      hippostdpubwf:lastModificationDate: 2026-03-12T17:30:30.170Z
+      hippostdpubwf:lastModificationDate: 2026-04-08T20:04:02.721+01:00
       hippostdpubwf:lastModifiedBy: admin
     /other-recommendation[2]:
       jcr:primaryType: brxdis:recommendationDocument

@@ -14,18 +14,17 @@ public record SearchRequestOptions(
         int pageSize,
         String sort,
         String catalogName,
-        String label,
         List<String> statsFields,
         String segment,
         String efq
 ) {
-    /** Default options: component page-size of 0 (→ falls through to URL param or coded default), no label override. */
+    /** Default options: component page-size of 0 (→ falls through to URL param or coded default). */
     public static SearchRequestOptions defaults() {
-        return new SearchRequestOptions(0, null, null, "default", List.of(), null, null);
+        return new SearchRequestOptions(0, null, null, List.of(), null, null);
     }
 
-    /** Convenience constructor for label + pageSize — the most common override pair. */
-    public static SearchRequestOptions of(String label, int pageSize) {
-        return new SearchRequestOptions(pageSize, null, null, label, List.of(), null, null);
+    /** Convenience constructor for a custom page-size with all other fields defaulted. */
+    public static SearchRequestOptions of(int pageSize) {
+        return new SearchRequestOptions(pageSize, null, null, List.of(), null, null);
     }
 }

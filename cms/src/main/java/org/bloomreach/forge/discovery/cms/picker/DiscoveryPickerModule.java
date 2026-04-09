@@ -2,12 +2,11 @@ package org.bloomreach.forge.discovery.cms.picker;
 
 import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import org.apache.cxf.jaxrs.JAXRSInvoker;
+import org.bloomreach.forge.discovery.cms.crisp.CrispEnvironmentSynchronizer;
 import org.bloomreach.forge.discovery.cms.rest.DiscoveryHttpGateway;
 import org.bloomreach.forge.discovery.cms.rest.DiscoveryPickerResource;
 import org.bloomreach.forge.discovery.config.CachingDiscoveryConfigProvider;
-import org.bloomreach.forge.discovery.config.DiscoveryConfigJcrListener;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigReader;
-import org.bloomreach.forge.discovery.config.DiscoveryConfigResolver;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.onehippo.cms7.services.HippoServiceRegistry;
 import org.onehippo.repository.jaxrs.CXFRepositoryJaxrsEndpoint;
@@ -45,7 +44,7 @@ public class DiscoveryPickerModule implements DaemonModule {
     private final Function<String, String> envLookup;
     private HttpClient httpClient;
     private DiscoveryConfigProvider configProvider;
-    private DiscoveryConfigJcrListener configListener;
+    private CrispEnvironmentSynchronizer crispSync;
 
     public DiscoveryPickerModule() {
         this.envLookup = System::getenv;
@@ -58,8 +57,14 @@ public class DiscoveryPickerModule implements DaemonModule {
 
     @Override
     public void initialize(Session session) throws RepositoryException {
-        DiscoveryConfigResolver configResolver = new DiscoveryConfigResolver(new DiscoveryConfigReader());
-        if (applyPixelBaseUriOverride(session)) {
+        boolean dirty = applyPixelBaseUriOverride(session);
+
+        DiscoveryConfigReader configReader = new DiscoveryConfigReader();
+        crispSync = new CrispEnvironmentSynchronizer(configReader);
+        if (crispSync.sync(session)) {
+            dirty = true;
+        }
+        if (dirty) {
             session.save();
         }
 
@@ -70,11 +75,11 @@ public class DiscoveryPickerModule implements DaemonModule {
         Function<String, String> httpGateway = new DiscoveryHttpGateway(httpClient);
 
         CachingDiscoveryConfigProvider localConfigProvider =
-                new CachingDiscoveryConfigProvider(configResolver);
+                new CachingDiscoveryConfigProvider(configReader);
+        localConfigProvider.start();
         configProvider = localConfigProvider;
         registerConfigProvider(configProvider);
-        configListener = new DiscoveryConfigJcrListener(localConfigProvider);
-        configListener.start();
+        crispSync.start();
 
         DiscoveryPickerResource resource = new DiscoveryPickerResource(
                 session, configProvider, httpGateway);
@@ -115,9 +120,12 @@ public class DiscoveryPickerModule implements DaemonModule {
     @Override
     public void shutdown() {
         RepositoryJaxrsService.removeEndpoint(ENDPOINT_ADDRESS);
-        if (configListener != null) {
-            configListener.close();
-            configListener = null;
+        if (crispSync != null) {
+            crispSync.close();
+            crispSync = null;
+        }
+        if (configProvider instanceof CachingDiscoveryConfigProvider cachingProvider) {
+            cachingProvider.close();
         }
         if (configProvider != null) {
             unregisterConfigProvider(configProvider);

@@ -136,6 +136,30 @@ class DiscoveryCategoryHighlightComponentTest {
         assertEquals(List.of(p2), map.get("cat2"));
     }
 
+    @Test
+    void browseThrows_previewEmptyButCategoriesStillSet() {
+        DiscoveryCategoryBean bean = mock(DiscoveryCategoryBean.class);
+        when(bean.getCategoryId()).thenReturn("cat1");
+        when(bean.getDisplayName()).thenReturn("Shoes");
+        when(bean.getProductPreviewCount()).thenReturn(3);
+
+        HstDiscoveryService svc = mock(HstDiscoveryService.class);
+        when(svc.browse(eq(request), eq("cat1"), any(SearchRequestOptions.class)))
+                .thenThrow(new RuntimeException("API unavailable"));
+
+        new TestableCategoryHighlightComponent(svc, bean).doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<CategoryHighlight>> catCaptor = ArgumentCaptor.forClass(List.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.CATEGORIES), catCaptor.capture());
+        assertEquals(1, catCaptor.getValue().size());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, List<ProductSummary>>> previewCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.PREVIEW_PRODUCTS), previewCaptor.capture());
+        assertTrue(previewCaptor.getValue().isEmpty());
+    }
+
     // ── cache integration tests ────────────────────────────────────────────────
 
     @Test
