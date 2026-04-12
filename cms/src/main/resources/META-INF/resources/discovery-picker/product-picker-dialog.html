@@ -17,63 +17,108 @@
 
     /* ── Sidebar ─────────────────────────────────────────────────────────── */
     .picker-sidebar {
-      width: 188px;
+      width: 220px;
       flex-shrink: 0;
       border-right: 1px solid var(--border);
       background: var(--surface);
-      overflow-y: auto;
-      padding: 10px 0 16px;
       display: flex;
       flex-direction: column;
-      gap: 0;
+      overflow: hidden;
     }
 
-    .sidebar-label {
+    .sidebar-header {
+      padding: 9px 14px 8px;
+      border-bottom: 1px solid var(--border-soft);
+      flex-shrink: 0;
+    }
+    .sidebar-panel-label {
       font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .12em;
       color: var(--text-faint);
-      padding: 0 14px 8px;
+      margin-bottom: 7px;
+    }
+    .sidebar-filter {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .sidebar-filter::placeholder { color: var(--text-faint); }
+    .sidebar-filter:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-ring);
+    }
+
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0 8px;
     }
 
     .cat-item {
       display: flex;
-      align-items: center;
-      padding: 7px 14px 7px 16px;
-      font-size: 12px;
-      font-weight: 500;
+      flex-direction: column;
+      padding: 8px 14px 8px 16px;
       cursor: pointer;
-      color: var(--text-muted);
       border-left: 2px solid transparent;
-      transition: background .12s, border-color .12s, color .12s;
+      transition: background .1s, border-color .1s;
+      animation: catIn 0.2s ease-out both;
+    }
+    .cat-item:hover { background: var(--row-hover); }
+    .cat-item.active {
+      border-left-color: var(--accent);
+      background: var(--accent-subtle);
+    }
+    .cat-item-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       line-height: 1.3;
-      animation: catIn 0.22s ease-out both;
     }
-    .cat-item:hover  { background: var(--row-hover); color: var(--text); }
-    .cat-item.active {
-      border-left-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
-      background: var(--accent-subtle);
+    .cat-item.active .cat-item-name { color: var(--accent); }
+    .cat-item-id {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+      font-variant-ligatures: none;
     }
+    .cat-item.active .cat-item-id { color: var(--text-muted); }
+
+    .cat-empty {
+      padding: 20px 14px;
+      font-size: 12px;
+      color: var(--text-faint);
+      text-align: center;
+    }
+
     /* Stagger category items */
-    .cat-item:nth-child(1)  { animation-delay:  10ms; }
-    .cat-item:nth-child(2)  { animation-delay:  30ms; }
-    .cat-item:nth-child(3)  { animation-delay:  50ms; }
-    .cat-item:nth-child(4)  { animation-delay:  70ms; }
-    .cat-item:nth-child(5)  { animation-delay:  90ms; }
-    .cat-item:nth-child(6)  { animation-delay: 110ms; }
-    .cat-item:nth-child(7)  { animation-delay: 130ms; }
-    .cat-item:nth-child(8)  { animation-delay: 150ms; }
-    .cat-item:nth-child(9)  { animation-delay: 170ms; }
-    .cat-item:nth-child(10) { animation-delay: 190ms; }
-    .cat-item:nth-child(11) { animation-delay: 210ms; }
-    .cat-item:nth-child(12) { animation-delay: 230ms; }
-    .cat-item:nth-child(n+13) { animation-delay: 250ms; }
+    .cat-item:nth-child(1)  { animation-delay:   0ms; }
+    .cat-item:nth-child(2)  { animation-delay:  18ms; }
+    .cat-item:nth-child(3)  { animation-delay:  36ms; }
+    .cat-item:nth-child(4)  { animation-delay:  54ms; }
+    .cat-item:nth-child(5)  { animation-delay:  72ms; }
+    .cat-item:nth-child(6)  { animation-delay:  90ms; }
+    .cat-item:nth-child(7)  { animation-delay: 108ms; }
+    .cat-item:nth-child(8)  { animation-delay: 126ms; }
+    .cat-item:nth-child(9)  { animation-delay: 144ms; }
+    .cat-item:nth-child(10) { animation-delay: 162ms; }
+    .cat-item:nth-child(n+11) { animation-delay: 180ms; }
 
     @keyframes catIn {
       from { opacity: 0; transform: translateX(-4px); }
@@ -133,7 +178,7 @@
       z-index: 2;
     }
 
-    /* Card image wrap — holds dot-grid placeholder + gradient overlay */
+    /* Card image wrap - holds dot-grid placeholder + gradient overlay */
     .card-image-wrap {
       position: relative;
       width: 100%;
@@ -212,20 +257,20 @@
     .product-card:nth-child(12) { animation-delay: 385ms; }
 
     /* ── Footer overrides ────────────────────────────────────────────────── */
-    #footer              { justify-content: space-between; gap: 12px; }
-    #status              { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
-    #status.error        { color: var(--error); }
-    .cat-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 1px 7px;
-      border-radius: 100px;
-      background: var(--accent-subtle);
-      color: var(--accent);
-      font-size: 10.5px;
-      font-weight: 700;
-    }
+    #footer         { justify-content: space-between; gap: 8px; }
+    .footer-left    { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    #status         { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+    #status.error   { color: var(--error); }
+    .footer-info    { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+                      overflow: hidden; justify-content: center; }
+    .footer-id      { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint);
+                      background: var(--surface-lift); border: 1px solid var(--border);
+                      border-radius: var(--radius-sm); padding: 2px 7px; white-space: nowrap;
+                      font-variant-ligatures: none; flex-shrink: 0; }
+    .footer-name    { font-size: 12px; font-weight: 600; color: var(--text-muted);
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .footer-placeholder { font-size: 12px; color: var(--text-faint); font-style: italic; }
+    .footer-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -237,7 +282,11 @@
 
 <div id="body" class="picker-body">
   <div id="sidebar" class="picker-sidebar">
-    <div class="sidebar-label">Categories</div>
+    <div class="sidebar-header">
+      <div class="sidebar-panel-label">Categories</div>
+      <input id="sidebar-filter" class="sidebar-filter" type="search" placeholder="Filter categories&hellip;" autocomplete="off"/>
+    </div>
+    <div id="sidebar-list" class="sidebar-list"></div>
   </div>
   <div id="grid-scroll">
     <div id="grid"></div>
@@ -245,8 +294,19 @@
 </div>
 
 <div id="footer" class="footer">
-  <div id="pagination" class="pagination" style="display:none"></div>
-  <div id="status"></div>
+  <div class="footer-left">
+    <div id="pagination" class="pagination" style="display:none"></div>
+    <div id="status"></div>
+  </div>
+  <div class="footer-info">
+    <span id="footer-id"   class="footer-id"          style="display:none"></span>
+    <span id="footer-name" class="footer-name"         style="display:none"></span>
+    <span id="footer-ph"   class="footer-placeholder">No product selected</span>
+  </div>
+  <div class="footer-actions">
+    <button id="cancel-btn" class="btn">Cancel</button>
+    <button id="select-btn" class="btn btn-primary" disabled>Select &#x2192;</button>
+  </div>
 </div>
 
 <script src="ui-extension.min.js"></script>
@@ -258,23 +318,31 @@
   (function () {
     "use strict";
 
-    var PAGE_SIZE     = 12;
-    var ui            = null;
-    var documentId    = "";
-    var currentValue  = "";
-    var channelId     = "";
-    var currentPage   = 0;
-    var lastQuery     = "*";
-    var activeCatId   = "";
-    var activeCatName = "";
-    var mode          = "search"; // "search" | "browse"
+    var PAGE_SIZE      = 12;
+    var ui             = null;
+    var documentId     = "";
+    var currentValue   = "";
+    var channelId      = "";
+    var currentPage    = 0;
+    var lastQuery      = "*";
+    var activeCatId    = "";
+    var activeCatName  = "";
+    var mode           = "search"; // "search" | "browse"
+    var categoriesAll  = [];
 
-    var searchInput = document.getElementById("search-input");
-    var searchBtn   = document.getElementById("search-btn");
-    var sidebar     = document.getElementById("sidebar");
-    var grid        = document.getElementById("grid");
+    var searchInput    = document.getElementById("search-input");
+    var searchBtn      = document.getElementById("search-btn");
+    var sidebar        = document.getElementById("sidebar");
+    var sidebarFilter  = document.getElementById("sidebar-filter");
+    var sidebarList    = document.getElementById("sidebar-list");
+    var grid           = document.getElementById("grid");
     var pagination  = document.getElementById("pagination");
     var status      = document.getElementById("status");
+    var footerId    = document.getElementById("footer-id");
+    var footerName  = document.getElementById("footer-name");
+    var footerPh    = document.getElementById("footer-ph");
+    var cancelBtn   = document.getElementById("cancel-btn");
+    var selectBtn   = document.getElementById("select-btn");
 
     /* ── Bootstrap ─────────────────────────────────────────────────────── */
     UiExtension.register().then(function (registeredUi) {
@@ -287,6 +355,12 @@
       documentId   = data.documentId   || "";
       currentValue = data.currentValue || "";
       channelId    = data.channelId    || "";
+      if (currentValue) {
+        footerId.textContent   = currentValue;
+        footerId.style.display = "";
+        footerPh.style.display = "none";
+        selectBtn.disabled     = false;
+      }
       loadCategories();
       doSearch("*", 0);
       searchInput.focus();
@@ -296,6 +370,11 @@
     });
 
     /* ── Events ────────────────────────────────────────────────────────── */
+    cancelBtn.addEventListener("click", function () { ui.dialog.close(null); });
+    selectBtn.addEventListener("click", function () {
+      if (currentValue) ui.dialog.close(currentValue);
+    });
+
     searchBtn.addEventListener("click", function () {
       lastQuery     = searchInput.value.trim() || "*";
       currentPage   = 0;
@@ -309,6 +388,9 @@
     });
     searchInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") searchBtn.click();
+    });
+    sidebarFilter.addEventListener("input", function () {
+      applySidebarFilter(sidebarFilter.value);
     });
 
     /* ── Categories sidebar ────────────────────────────────────────────── */
@@ -324,31 +406,66 @@
           return res.json();
         })
         .then(function (categories) {
-          renderSidebar(categories || []);
+          categoriesAll = categories || [];
+          renderSidebarItems(categoriesAll);
         })
         .catch(function () {
-          /* sidebar failure is non-fatal — product search still works */
+          /* sidebar failure is non-fatal - product search still works */
         });
     }
 
-    function renderSidebar(categories) {
+    function applySidebarFilter(q) {
+      var lower = q.toLowerCase();
+      var filtered = lower
+        ? categoriesAll.filter(function (c) {
+            return (c.name || "").toLowerCase().indexOf(lower) >= 0 ||
+                   (c.id   || "").toLowerCase().indexOf(lower) >= 0;
+          })
+        : categoriesAll;
+      renderSidebarItems(filtered);
+    }
+
+    function renderSidebarItems(categories) {
+      sidebarList.replaceChildren();
+
       var allItem = document.createElement("div");
-      allItem.className      = "cat-item active";
-      allItem.textContent    = "All Products";
-      allItem.dataset.catId  = "";
+      allItem.className     = "cat-item" + (activeCatId === "" ? " active" : "");
+      allItem.dataset.catId = "";
       allItem.addEventListener("click", function () { selectCategory("", ""); });
-      sidebar.appendChild(allItem);
+      var allName = document.createElement("div");
+      allName.className   = "cat-item-name";
+      allName.textContent = "All Products";
+      allItem.appendChild(allName);
+      sidebarList.appendChild(allItem);
+
+      if (!categories.length) {
+        var empty = document.createElement("div");
+        empty.className   = "cat-empty";
+        empty.textContent = "No categories found.";
+        sidebarList.appendChild(empty);
+        return;
+      }
 
       categories.forEach(function (cat) {
         var item = document.createElement("div");
-        item.className     = "cat-item";
-        item.textContent   = cat.name || cat.id;
-        item.title         = cat.name || cat.id;
+        item.className     = "cat-item" + (activeCatId === cat.id ? " active" : "");
         item.dataset.catId = cat.id;
+        item.title         = cat.name || cat.id;
         item.addEventListener("click", function () {
           selectCategory(cat.id, cat.name || cat.id);
         });
-        sidebar.appendChild(item);
+
+        var name = document.createElement("div");
+        name.className   = "cat-item-name";
+        name.textContent = cat.name || cat.id;
+
+        var id = document.createElement("div");
+        id.className   = "cat-item-id";
+        id.textContent = cat.id;
+
+        item.appendChild(name);
+        item.appendChild(id);
+        sidebarList.appendChild(item);
       });
     }
 
@@ -397,7 +514,7 @@
           currentPage = page;
           renderGrid(data.items || []);
           renderPagination(data.total || 0);
-          renderStatus(data.total || 0);
+          setStatusEl(status, "", "");
         })
         .catch(function (err) {
           setStatusEl(status, "error", "Browse failed: " + err.message);
@@ -437,7 +554,7 @@
           currentPage = page;
           renderGrid(data.items || []);
           renderPagination(data.total || 0);
-          renderStatus(data.total || 0);
+          setStatusEl(status, "", "");
         })
         .catch(function (err) {
           setStatusEl(status, "error", "Search failed: " + err.message);
@@ -445,22 +562,6 @@
         .finally(function () {
           searchBtn.disabled = false;
         });
-    }
-
-    function renderStatus(total) {
-      status.className = "";
-      status.replaceChildren();
-
-      var count = document.createElement("span");
-      count.textContent = total.toLocaleString() + " product" + (total !== 1 ? "s" : "");
-      status.appendChild(count);
-
-      if (activeCatName) {
-        var badge = document.createElement("span");
-        badge.className   = "cat-badge";
-        badge.textContent = activeCatName;
-        status.appendChild(badge);
-      }
     }
 
     /* ── Render grid ───────────────────────────────────────────────────── */
@@ -507,7 +608,18 @@
         }
 
         card.appendChild(body);
-        card.addEventListener("click", function () { ui.dialog.close(item.id); });
+        card.addEventListener("click", function () {
+          currentValue = item.id;
+          grid.querySelectorAll(".product-card").forEach(function (c) {
+            c.classList.toggle("selected", c === card);
+          });
+          footerId.textContent   = item.id;
+          footerName.textContent = item.title || item.id;
+          footerId.style.display   = "";
+          footerName.style.display = "";
+          footerPh.style.display   = "none";
+          selectBtn.disabled       = false;
+        });
         grid.appendChild(card);
       });
     }

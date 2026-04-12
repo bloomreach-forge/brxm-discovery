@@ -45,11 +45,12 @@
   (function () {
     "use strict";
 
-    var ui           = null;
-    var documentId   = "";
-    var currentValue = "";
-    var channelId    = "";
-    var widgetsAll   = [];
+    var ui                = null;
+    var documentId        = "";
+    var currentValue      = "";
+    var channelId         = "";
+    var widgetsAll        = [];
+    var widgetTypesFilter = null;
 
     var filterInput = document.getElementById("filter-input");
     var resultCount = document.getElementById("result-count");
@@ -64,9 +65,12 @@
     .then(function (opts) {
       var data = {};
       try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
-      documentId   = data.documentId   || "";
-      currentValue = data.currentValue || "";
-      channelId    = data.channelId    || "";
+      documentId        = data.documentId   || "";
+      currentValue      = data.currentValue || "";
+      channelId         = data.channelId    || "";
+      widgetTypesFilter = (data.config && Array.isArray(data.config.widgetTypes) && data.config.widgetTypes.length > 0)
+                        ? data.config.widgetTypes.map(function (t) { return t.toLowerCase(); })
+                        : null;
       loadWidgets();
     })
     .catch(function (err) {
@@ -96,7 +100,7 @@
     /* ---- Load ---------------------------------------------------------- */
     function loadWidgets() {
       if (!documentId) {
-        setStatusEl(footer, "error", "No documentId available — cannot resolve Discovery config.");
+        setStatusEl(footer, "error", "No documentId available - cannot resolve Discovery config.");
         return;
       }
       setStatusEl(footer, "", "Loading\u2026", true);
@@ -108,7 +112,13 @@
           return res.json();
         })
         .then(function (widgets) {
-          widgetsAll = widgets || [];
+          var all = widgets || [];
+          if (widgetTypesFilter) {
+            all = all.filter(function (w) {
+              return widgetTypesFilter.indexOf((w.type || "").toLowerCase()) >= 0;
+            });
+          }
+          widgetsAll = all;
           renderTable(widgetsAll);
           resultCount.textContent = widgetsAll.length + " widget(s)";
           setStatusEl(footer, "", "Click a row to select.");

@@ -31,7 +31,7 @@ import static org.bloomreach.forge.discovery.request.DiscoveryRequestFactory.toV
  * HST-aware façade that absorbs config resolution, query building, and request-cache logic.
  * Components become thin: they extract raw HST params, delegate here, and set model/attributes.
  * <p>
- * Config is resolved via {@link DiscoveryConfigProvider} — JVM-lifetime cache with JCR
+ * Config is resolved via {@link DiscoveryConfigProvider} - JVM-lifetime cache with JCR
  * observation-driven invalidation. No per-request JCR reads.
  * <p>
  * Pixel events are fired asynchronously on cache-miss only (prevents double-firing when
@@ -120,7 +120,8 @@ public class HstDiscoveryService {
 
     public RecommendationResult recommend(HstRequest request,
                                            String widgetId, String widgetType,
-                                           String contextProductId, String contextPageType,
+                                           String contextProductId, String catId,
+                                           String contextPageType,
                                            int limit, String fields, String filter) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         String effectiveWidgetId = widgetId != null ? widgetId : "";
@@ -132,7 +133,7 @@ public class HstDiscoveryService {
             return RecommendationResult.of(List.of());
         }
 
-        RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, contextPageType,
+        RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, catId, contextPageType,
                 limit, fields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(),
                 runtimeContext.brUid2(), runtimeContext.origRefUrl());
         RecommendationResult fresh = client.recommend(query, runtimeContext.credentials(), runtimeContext.clientContext());

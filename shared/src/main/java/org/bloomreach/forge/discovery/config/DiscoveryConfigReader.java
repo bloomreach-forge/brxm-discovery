@@ -38,7 +38,7 @@ public class DiscoveryConfigReader {
         this(System::getenv);
     }
 
-    /** Package-private for testing — pass {@code ignored -> null} to suppress env var lookup. */
+    /** Package-private for testing - pass {@code ignored -> null} to suppress env var lookup. */
     DiscoveryConfigReader(Function<String, String> envLookup) {
         this.envLookup = envLookup;
     }
@@ -91,9 +91,9 @@ public class DiscoveryConfigReader {
                 log.debug("[credential] {} set (from JCR)", jcrProp);
                 return fromJcr;
             }
-            log.debug("[credential] {} JCR value is blank — skipping", jcrProp);
+            log.debug("[credential] {} JCR value is blank - skipping", jcrProp);
         }
-        log.debug("[credential] {} not found in env/sys/JCR — returning null", jcrProp);
+        log.debug("[credential] {} not found in env/sys/JCR - returning null", jcrProp);
         return null;
     }
 
@@ -103,7 +103,7 @@ public class DiscoveryConfigReader {
 
     /**
      * Returns raw env/sys credential values; {@code null} for any field not found.
-     * No JCR, no coded defaults — structural fields are always {@code null}/{@code 0}.
+     * No JCR, no coded defaults - structural fields are always {@code null}/{@code 0}.
      */
     public DiscoveryConfig credentialsFromEnvSys() {
         return DiscoveryConfig.of(credentialsFromEnvSysOnly(), new DiscoverySettings(null, null, null, 0, null));
@@ -198,7 +198,7 @@ public class DiscoveryConfigReader {
             Node configNode = session.getNode(ConfigDefaults.CONFIG_NODE_PATH);
             return read(configNode);
         } catch (PathNotFoundException e) {
-            log.warn("Discovery config node not found at '{}' — falling back to env/sys and defaults",
+            log.warn("Discovery config node not found at '{}' - falling back to env/sys and defaults",
                     ConfigDefaults.CONFIG_NODE_PATH);
             return readWithDefaults();
         } catch (RepositoryException e) {

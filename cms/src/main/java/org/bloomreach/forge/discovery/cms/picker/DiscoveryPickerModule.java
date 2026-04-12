@@ -105,7 +105,7 @@ public class DiscoveryPickerModule implements DaemonModule {
 
         try {
             if (!session.nodeExists(PIXEL_CRISP_NODE)) {
-                log.warn("brxm-discovery: discoveryPixelAPI CRISP node not found — pixel base URI override skipped");
+                log.warn("brxm-discovery: discoveryPixelAPI CRISP node not found - pixel base URI override skipped");
                 return false;
             }
             session.getNode(PIXEL_CRISP_NODE).setProperty("crisp:propvalues", new String[]{override});

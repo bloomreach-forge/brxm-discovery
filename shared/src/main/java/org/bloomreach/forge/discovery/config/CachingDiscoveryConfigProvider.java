@@ -53,7 +53,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
         });
     }
 
-    /** Seam for tests — allows injecting a custom session supplier without HippoServiceRegistry. */
+    /** Seam for tests - allows injecting a custom session supplier without HippoServiceRegistry. */
     CachingDiscoveryConfigProvider(DiscoveryConfigReader configReader, SessionSupplier defaultSessionSupplier) {
         this.configReader = configReader;
         this.defaultSessionSupplier = defaultSessionSupplier;
@@ -74,7 +74,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
         try {
             return currentConfig(() -> configReader.resolve(session));
         } catch (Exception e) {
-            log.warn("brxm-discovery: Cannot read config via provided JCR session — falling back to env/sys. Cause: {}",
+            log.warn("brxm-discovery: Cannot read config via provided JCR session - falling back to env/sys. Cause: {}",
                     e.getMessage());
             return configReader.readWithDefaults();
         }
@@ -93,7 +93,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
         try {
             return currentBaseConfig(() -> configReader.resolve(session)).settings();
         } catch (Exception e) {
-            log.warn("brxm-discovery: Cannot read settings via provided JCR session — falling back to defaults. Cause: {}",
+            log.warn("brxm-discovery: Cannot read settings via provided JCR session - falling back to defaults. Cause: {}",
                     e.getMessage());
             return configReader.readWithDefaults().settings();
         }
@@ -131,7 +131,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
             log.info("brxm-discovery: Registered JCR observation listener on '{}' (nodeType=brxdis:discoveryConfig)",
                     OBSERVE_PATH);
         } catch (Exception e) {
-            log.warn("brxm-discovery: Cannot register JCR config observation listener — config changes will require a JVM restart. Cause: {}",
+            log.warn("brxm-discovery: Cannot register JCR config observation listener - config changes will require a JVM restart. Cause: {}",
                     e.getMessage());
             observationSession = null;
             observationManager = null;
@@ -161,7 +161,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
             changed = true;
         }
         if (changed) {
-            log.debug("brxm-discovery: Config change detected — invalidating cache");
+            log.debug("brxm-discovery: Config change detected - invalidating cache");
             invalidate();
         }
     }
@@ -177,7 +177,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
         try {
             session = sessionSupplier.get();
         } catch (Exception e) {
-            log.warn("brxm-discovery: Cannot open JCR session for config — falling back to environment/system properties. Cause: {}",
+            log.warn("brxm-discovery: Cannot open JCR session for config - falling back to environment/system properties. Cause: {}",
                     e.getMessage());
             return configReader.readWithDefaults();
         }
@@ -202,7 +202,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
         try {
             session = sessionSupplier.get();
         } catch (Exception e) {
-            log.warn("brxm-discovery: Cannot open JCR session for settings — falling back to defaults. Cause: {}",
+            log.warn("brxm-discovery: Cannot open JCR session for settings - falling back to defaults. Cause: {}",
                     e.getMessage());
             return configReader.readWithDefaults().settings();
         }

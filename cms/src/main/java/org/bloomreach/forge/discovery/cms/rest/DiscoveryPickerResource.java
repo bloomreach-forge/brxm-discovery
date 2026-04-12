@@ -1,5 +1,7 @@
 package org.bloomreach.forge.discovery.cms.rest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -24,6 +26,7 @@ import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
 import org.bloomreach.forge.discovery.request.DiscoveryRequestSpec;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
@@ -47,10 +50,10 @@ import java.util.function.Function;
  *
  * <p>Endpoints:
  * <ul>
- *   <li>{@code GET /search}     — full-text product search</li>
- *   <li>{@code GET /items}      — look up specific products by PID</li>
- *   <li>{@code GET /categories} — list browsable categories</li>
- *   <li>{@code GET /widgets}    — list available recommendation widgets</li>
+ *   <li>{@code GET /search}     - full-text product search</li>
+ *   <li>{@code GET /items}      - look up specific products by PID</li>
+ *   <li>{@code GET /categories} - list browsable categories</li>
+ *   <li>{@code GET /widgets}    - list available recommendation widgets</li>
  * </ul>
  *
  * <p>All configuration is read from the global Discovery config node at
@@ -62,8 +65,12 @@ public class DiscoveryPickerResource {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPickerResource.class);
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int MAX_PREVIEW_SIZE = 12;
     private static final String CATEGORY_ID_PROP = "brxdis:categoryId";
+    private static final String CONFIG_PROP = "brxdis:config";
+    private static final String PRODUCT_ID_PROP = "brxdis:productId";
     private static final DiscoveryRequestFactory REQUEST_FACTORY = new DiscoveryRequestFactory();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // CXF injects a per-request proxy into this field even though the resource is a singleton.
     @Context
@@ -87,7 +94,7 @@ public class DiscoveryPickerResource {
         this(moduleSession, configProvider, httpGateway, responseMapper, System::getenv);
     }
 
-    /** Package-private seam for tests — allows injecting a custom env resolver. */
+    /** Package-private seam for tests - allows injecting a custom env resolver. */
     DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
                             Function<String, String> httpGateway,
                             DiscoveryPickerResponseMapper responseMapper,
@@ -150,7 +157,7 @@ public class DiscoveryPickerResource {
 
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         DiscoveryCredentials credentials = config.credentials();
-        // fq=pid:"id1"&fq=pid:"id2" — multiple values produce OR within same field
+        // fq=pid:"id1"&fq=pid:"id2" - multiple values produce OR within same field
         SearchQuery query = new SearchQuery("*", 0, pidList.size(), null,
                 Map.of("pid", pidList), brUid2(), null, requestUrl());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, credentials));
@@ -234,7 +241,7 @@ public class DiscoveryPickerResource {
      * Returns browsable categories for the channel.
      *
      * <p>Uses {@code search_type=category&rows=0} against the core API so only
-     * the {@code category_map} is returned — no product rows are fetched.
+     * the {@code category_map} is returned - no product rows are fetched.
      */
     @GET
     @Path("/categories")
@@ -246,6 +253,103 @@ public class DiscoveryPickerResource {
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toCategories(json);
+    }
+
+    /**
+     * Returns a thumbnail preview of products a recommendation widget will return.
+     *
+     * <p>{@code configJson} may be supplied directly by the browser (live, pre-save value from the
+     * recommendation wizard); falls back to reading {@code brxdis:config} from the JCR draft when absent.
+     *
+     * <p>Guards:
+     * <ul>
+     *   <li>{@code item} / {@code mlt} / {@code recs} type without a {@code contextProductId} → empty</li>
+     *   <li>{@code category} type without a {@code contextCategoryId} → empty</li>
+     * </ul>
+     */
+    @GET
+    @Path("/recommendation-products")
+    public List<PickerItemDto> recommendationProducts(
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("configJson") @DefaultValue("") String configJson,
+            @QueryParam("count") @DefaultValue("4") int count,
+            @QueryParam("channelId") @DefaultValue("") String channelId) {
+
+        String resolvedJson = !configJson.isBlank()
+                ? configJson : resolveConfigJsonFromDocument(documentId);
+        if (resolvedJson == null || resolvedJson.isBlank()) {
+            return List.of();
+        }
+
+        JsonNode cfg;
+        try {
+            cfg = MAPPER.readTree(resolvedJson);
+        } catch (Exception e) {
+            return List.of();
+        }
+
+        String widgetId   = cfg.path("widgetId").asText(null);
+        String widgetType = cfg.path("widgetType").asText(null);
+        String productId  = cfg.path("contextProductId").isNull() ? null : cfg.path("contextProductId").asText(null);
+        String catId      = cfg.path("contextCategoryId").isNull() ? null : cfg.path("contextCategoryId").asText(null);
+
+        if (isBlank(widgetId)) {
+            return List.of();
+        }
+
+        String mappedType = DiscoveryRequestFactory.toV2WidgetType(widgetType);
+        if ("item".equals(mappedType) && isBlank(productId)) {
+            return List.of();
+        }
+        if ("category".equals(mappedType) && isBlank(catId)) {
+            return List.of();
+        }
+
+        int safeCount = Math.min(Math.max(count, 0), MAX_PREVIEW_SIZE);
+        if (safeCount == 0) {
+            return List.of();
+        }
+
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        RecQuery query = new RecQuery(widgetType, widgetId, productId, catId, null,
+                safeCount, null, null, requestUrl(), null, brUid2(), null);
+
+        boolean useV2 = !isBlank(config.credentials().authKey());
+        DiscoveryRequestSpec spec = useV2
+                ? REQUEST_FACTORY.recommendationV2(query, config.credentials())
+                : REQUEST_FACTORY.recommendationV1(query, config.credentials());
+        String baseUri = useV2 ? config.settings().pathwaysBaseUri() : config.settings().baseUri();
+        String url = buildUrlFromBase(baseUri, spec);
+
+        String json = httpGateway.apply(url);
+        return responseMapper.toSearchResponse(json, 0, safeCount).items();
+    }
+
+    /**
+     * Returns a thumbnail preview for the product selected in a product-detail document.
+     *
+     * <p>{@code productId} may be supplied directly by the browser (live, pre-save value from the
+     * product picker); falls back to reading {@code brxdis:productId} from the JCR draft when absent.
+     */
+    @GET
+    @Path("/product-detail")
+    public List<PickerItemDto> productDetail(
+            @QueryParam("documentId") @DefaultValue("") String documentId,
+            @QueryParam("productId") @DefaultValue("") String productId,
+            @QueryParam("channelId") @DefaultValue("") String channelId) {
+
+        String resolvedProductId = !productId.isBlank()
+                ? productId : resolveProductIdFromDocument(documentId);
+        if (resolvedProductId == null || resolvedProductId.isBlank()) {
+            return List.of();
+        }
+
+        DiscoveryConfig config = resolveConfig(channelId, documentId);
+        SearchQuery query = new SearchQuery("*", 0, 1, null,
+                Map.of("pid", List.of(resolvedProductId)), brUid2(), null, requestUrl());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, config.credentials()));
+        String json = httpGateway.apply(url);
+        return responseMapper.toSearchResponse(json, 0, 1).items();
     }
 
     /**
@@ -272,6 +376,58 @@ public class DiscoveryPickerResource {
             log.warn("[resolveCategoryIdFromDocument] documentId='{}': {}", documentId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Reads {@code brxdis:config} JSON from the document identified by {@code documentId}.
+     *
+     * <p>Same variant-child traversal pattern as {@link #resolveCategoryIdFromDocument}.
+     */
+    private String resolveConfigJsonFromDocument(String documentId) {
+        if (documentId == null || documentId.isBlank()) return null;
+        try {
+            Node handle = moduleSession.getNodeByIdentifier(documentId);
+            NodeIterator variants = handle.getNodes();
+            while (variants.hasNext()) {
+                Node variant = variants.nextNode();
+                if (variant.hasProperty(CONFIG_PROP)) {
+                    return variant.getProperty(CONFIG_PROP).getString();
+                }
+            }
+            return null;
+        } catch (RepositoryException e) {
+            log.warn("[resolveConfigJsonFromDocument] documentId='{}': {}", documentId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Reads {@code brxdis:productId} from the document identified by {@code documentId}.
+     *
+     * <p>Same variant-child traversal pattern as {@link #resolveCategoryIdFromDocument}.
+     */
+    private String resolveProductIdFromDocument(String documentId) {
+        if (documentId == null || documentId.isBlank()) return null;
+        try {
+            Node handle = moduleSession.getNodeByIdentifier(documentId);
+            NodeIterator variants = handle.getNodes();
+            while (variants.hasNext()) {
+                Node variant = variants.nextNode();
+                if (variant.hasProperty(PRODUCT_ID_PROP)) {
+                    return variant.getProperty(PRODUCT_ID_PROP).getString();
+                }
+            }
+            return null;
+        } catch (RepositoryException e) {
+            log.warn("[resolveProductIdFromDocument] documentId='{}': {}", documentId, e.getMessage());
+            return null;
+        }
+    }
+
+    private static String buildUrlFromBase(String baseUri, DiscoveryRequestSpec request) {
+        UriBuilder builder = UriBuilder.fromUri(baseUri).path(request.path());
+        request.forEachQueryParameter((name, value) -> builder.queryParam(name, value));
+        return builder.build().toString();
     }
 
     private static String buildAbsoluteUrl(DiscoverySettings settings, DiscoveryRequestSpec request) {
@@ -325,7 +481,7 @@ public class DiscoveryPickerResource {
             // Expected: /content/documents/{siteName}/...  →  parts[3] = siteName
             if (parts.length < 4 || !"content".equals(parts[1]) || !"documents".equals(parts[2])) {
                 log.warn("[resolveChannelFromDocument] Unexpected document path '{}'; " +
-                        "cannot resolve channel — falling back to global config", path);
+                        "cannot resolve channel - falling back to global config", path);
                 return "";
             }
             return parts[3];

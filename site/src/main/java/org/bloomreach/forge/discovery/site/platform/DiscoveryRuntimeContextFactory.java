@@ -37,7 +37,7 @@ public final class DiscoveryRuntimeContextFactory {
         this(configProvider, brUid2Service, System::getenv);
     }
 
-    /** Seam for tests — allows injecting a custom env resolver. */
+    /** Seam for tests - allows injecting a custom env resolver. */
     public DiscoveryRuntimeContextFactory(DiscoveryConfigProvider configProvider,
                                           Function<String, String> envResolver) {
         this(configProvider, new DiscoveryBrUid2Service(), envResolver);
@@ -123,15 +123,15 @@ public final class DiscoveryRuntimeContextFactory {
     private static void validateCredentials(DiscoveryCredentials credentials) {
         if (isBlank(credentials.accountId())) {
             throw new ConfigurationException(
-                    "Discovery accountId is required — set BRXDIS_ACCOUNT_ID env var, -Dbrxdis.accountId, or brxdis:accountId JCR property");
+                    "Discovery accountId is required - set BRXDIS_ACCOUNT_ID env var, -Dbrxdis.accountId, or brxdis:accountId JCR property");
         }
         if (isBlank(credentials.domainKey())) {
             throw new ConfigurationException(
-                    "Discovery domainKey is required — set BRXDIS_DOMAIN_KEY env var, -Dbrxdis.domainKey, or brxdis:domainKey JCR property");
+                    "Discovery domainKey is required - set BRXDIS_DOMAIN_KEY env var, -Dbrxdis.domainKey, or brxdis:domainKey JCR property");
         }
         if (isBlank(credentials.apiKey())) {
             throw new ConfigurationException(
-                    "Discovery apiKey is required — set brxdis:apiKey in the config node, BRXDIS_API_KEY env var, or -Dbrxdis.apiKey");
+                    "Discovery apiKey is required - set brxdis:apiKey in the config node, BRXDIS_API_KEY env var, or -Dbrxdis.apiKey");
         }
     }
 

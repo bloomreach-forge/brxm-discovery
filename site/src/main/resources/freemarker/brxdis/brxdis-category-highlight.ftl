@@ -13,6 +13,7 @@
 .brxdis-cathighlight__icon{font-size:2rem;margin-bottom:.5rem;line-height:1}
 .brxdis-cathighlight__name{font-size:.9375rem;font-weight:600;line-height:1.3}
 .brxdis-cathighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:1px dashed #e5e7eb;border-radius:8px}
+.brxdis-cathighlight__slot{display:flex;align-items:center;justify-content:center;min-height:110px;border:2px dashed #d1d5db;border-radius:12px;color:#9ca3af;font-size:.875rem;background:#f9fafb}
 .brxdis-cat-products{display:flex;align-items:flex-end;justify-content:center;margin-top:.75rem;padding:4px 4px 2px;overflow:visible}
 .brxdis-cat-product-thumb{position:relative;flex-shrink:0;margin-left:-14px;transition:transform .2s}
 .brxdis-cat-product-thumb:first-child{margin-left:0}
@@ -25,6 +26,12 @@
 </style>
 </@hst.headContribution>
 
+<#-- @ftlvariable name="categoryBeans" type="java.util.List" -->
+<#-- @ftlvariable name="categories" type="java.util.List" -->
+<#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
+<#-- @ftlvariable name="previewProducts" type="java.util.Map" -->
+<#assign inEditMode = editMode?? && editMode>
+
 <section class="brxdis-cathighlight">
   <h2 class="brxdis-cathighlight__title">Shop by Category</h2>
 
@@ -34,10 +41,42 @@
     </div>
   </#if>
 
-  <#-- @ftlvariable name="categories" type="java.util.List" -->
-  <#if categories?? && categories?has_content>
+  <#if inEditMode>
     <div class="brxdis-cathighlight__grid">
-      <#-- @ftlvariable name="previewProducts" type="java.util.Map" -->
+      <#list categoryBeans as bean>
+        <#assign slotNum = bean?index + 1>
+        <#if bean??>
+          <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
+              rootPath="brxdis/categories"/>
+          <a class="brxdis-cathighlight__tile"
+             href="${resolvedCategoryPage}?category=${(bean.categoryId!"")?url('UTF-8')}"
+             aria-label="${bean.displayName!"Category"}">
+            <span class="brxdis-cathighlight__icon">&#128722;</span>
+            <span class="brxdis-cathighlight__name">${bean.displayName!"Unnamed"}</span>
+            <#assign catProds = (previewProducts!{})[bean.categoryId!""]![]>
+            <#if catProds?has_content>
+              <div class="brxdis-cat-products">
+                <#list catProds as p>
+                  <div class="brxdis-cat-product-thumb">
+                    <#if (p.imageUrl()!"") != "">
+                      <img src="${p.imageUrl()}" alt="${(p.title()!"")?html}" loading="lazy">
+                    <#else>
+                      <div class="brxdis-thumb-placeholder">&#128795;</div>
+                    </#if>
+                  </div>
+                </#list>
+              </div>
+            </#if>
+          </a>
+        <#else>
+          <@hst.manageContent parameterName="document${slotNum}"
+              rootPath="brxdis/categories" documentTemplateQuery="new-brxdis-categoryDocument"/>
+          <div class="brxdis-cathighlight__slot">&#43; Category ${slotNum}</div>
+        </#if>
+      </#list>
+    </div>
+  <#elseif categories?? && categories?has_content>
+    <div class="brxdis-cathighlight__grid">
       <#list categories as cat>
         <a class="brxdis-cathighlight__tile"
            href="${resolvedCategoryPage}?category=${(cat.categoryId()!"")?url('UTF-8')}"
@@ -61,9 +100,6 @@
         </a>
       </#list>
     </div>
-  <#-- @ftlvariable name="editMode" type="java.lang.Boolean" -->
-  <#elseif (editMode!false)>
-    <div class="brxdis-cathighlight__empty">&#128736; Select <strong>Category Documents</strong> in component properties to show category tiles.</div>
   <#else>
     <div class="brxdis-cathighlight__empty">No categories available.</div>
   </#if>

@@ -174,7 +174,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void pid_urlParam_preservedWhenDocumentHasBlankProductId() {
-        // document IS attached (documentPid = "") but has no productId set — must not override "url-pid"
+        // document IS attached (documentPid = "") but has no productId set - must not override "url-pid"
         ProductSummary product = new ProductSummary("url-pid", "T", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("url-pid"))).thenReturn(Optional.of(product));
 

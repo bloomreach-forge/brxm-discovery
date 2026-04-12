@@ -4,7 +4,7 @@
  * Two container environments are supported:
  *
  *  Angular Material (Experience Manager / cdk-overlay-*)
- *    We prefer mat-mdc-dialog-content — the content area that excludes the
+ *    We prefer mat-mdc-dialog-content - the content area that excludes the
  *    title bar brXM renders outside the iframe.  Using the full container
  *    (mat-mdc-dialog-container) makes the iframe ~50 px taller than the
  *    visible area, which produces double scrollbars.
@@ -31,27 +31,27 @@ function stretchDialogIframe() {
       // Walk up the parent chain to find the best host to measure height from.
       //
       // The key insight: mat-dialog-content auto-sizes to its content (the
-      // iframe at 150 px default) — measuring it produces a circular result.
+      // iframe at 150 px default) - measuring it produces a circular result.
       // We must keep walking up to the element that brXM explicitly sizes.
       //
       // Priority (highest → lowest):
-      //   1. openui-dialog-content  (brie-dialog-content — brXM's properly-sized
+      //   1. openui-dialog-content  (brie-dialog-content - brXM's properly-sized
       //      content wrapper; the title bar is a sibling, not inside this element)
       //   2. mat-mdc-dialog-container / cdk-dialog-container / mat-dialog-container
-      //      (Angular Material full container — fallback for non-brXM embeddings)
+      //      (Angular Material full container - fallback for non-brXM embeddings)
       //   3. w_content_1 / w_content  (Wicket modal content area)
       //
       // mat-mdc-dialog-content / mat-dialog-content is recorded as innerScrollEl
       // so we can back-propagate height:100% from the host down to it.
       var host          = null;  // element whose clientHeight drives the iframe
-      var innerScrollEl = null;  // mat-dialog-content — stretched to fill host
+      var innerScrollEl = null;  // mat-dialog-content - stretched to fill host
       var el = f.parentElement;
       var depth = 0;
 
       while (el && depth < 15) {
         var cls = (typeof el.className === "string") ? el.className : "";
 
-        // Record mat-dialog-content but do NOT stop — it auto-sizes to content.
+        // Record mat-dialog-content but do NOT stop - it auto-sizes to content.
         if (!innerScrollEl &&
             (cls.indexOf("mat-mdc-dialog-content") >= 0 ||
              cls.indexOf("mat-dialog-content")     >= 0)) {
@@ -65,7 +65,7 @@ function stretchDialogIframe() {
           break;
         }
 
-        // Angular Material full container (fallback — includes title bar height).
+        // Angular Material full container (fallback - includes title bar height).
         if (cls.indexOf("mat-mdc-dialog-container") >= 0 ||
             cls.indexOf("cdk-dialog-container")     >= 0 ||
             cls.indexOf("mat-dialog-container")     >= 0) {
@@ -84,7 +84,7 @@ function stretchDialogIframe() {
         depth++;
       }
 
-      // Depth exhausted without finding a known container — use innerScrollEl as
+      // Depth exhausted without finding a known container - use innerScrollEl as
       // last resort (better than nothing, even if height may be under-counted).
       if (!host) host = innerScrollEl;
 
@@ -101,7 +101,7 @@ function stretchDialogIframe() {
 
         // Stretch innerScrollEl (mat-dialog-content) to fill the host.
         // height:100% does NOT work when the parent fills its space via flexbox
-        // rather than an explicit CSS height — so we use the same pixel value.
+        // rather than an explicit CSS height - so we use the same pixel value.
         // max-height:none removes Angular Material's built-in 65 vh cap.
         if (innerScrollEl && innerScrollEl !== host) {
           innerScrollEl.style.height    = h > 50 ? h + "px" : "100%";
@@ -131,7 +131,7 @@ function stretchDialogIframe() {
 
       break;
     }
-  } catch (e) { /* cross-origin or sandboxed — silently ignored */ }
+  } catch (e) { /* cross-origin or sandboxed - silently ignored */ }
 }
 
 /**

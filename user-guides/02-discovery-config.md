@@ -11,7 +11,7 @@ Global credentials resolve with `env -> sys -> JCR` precedence. Channel-level ov
 
 ## Field reference
 
-### Channel identifiers — `accountId` and `domainKey`
+### Channel identifiers - `accountId` and `domainKey`
 
 Resolved per-request in this order (highest wins):
 
@@ -21,7 +21,7 @@ Resolved per-request in this order (highest wins):
 | 2 | JVM system property | `brxdis.accountId`, `brxdis.domainKey` |
 | 3 (lowest) | JCR global node | `brxdis:accountId`, `brxdis:domainKey` |
 
-### API secrets — `apiKey` and `authKey`
+### API secrets - `apiKey` and `authKey`
 
 Resolved per-request in this order:
 
@@ -33,7 +33,7 @@ Resolved per-request in this order:
 
 `authKey` is only required for v2 Pathways recommendations; when absent the plugin uses the v1 API automatically.
 
-### Channel-level overrides — `hst:channelinfo`
+### Channel-level overrides - `hst:channelinfo`
 
 Optional per-channel overrides are resolved after the global config:
 
@@ -118,10 +118,10 @@ If your project uses `DiscoveryChannelInfo` or a composite interface that extend
 
 The recommended production setup:
 
-- Set `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` as env vars or sys props — or in the JCR global node as fallback.
+- Set `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` as env vars or sys props - or in the JCR global node as fallback.
 - Set `BRXDIS_API_KEY` and `BRXDIS_AUTH_KEY` as env vars (never store secrets in JCR).
 - If channels need different account/domain values or different secret env-var names, set `discoveryAccountId`, `discoveryDomainKey`, `discoveryApiKeyEnvVar`, and `discoveryAuthKeyEnvVar` on `hst:channelinfo`.
-- Leave the JCR node fields blank for secrets — env var resolution takes precedence automatically.
+- Leave the JCR node fields blank for secrets - env var resolution takes precedence automatically.
 
 See [06-credential-injection.md](06-credential-injection.md) for deployment-specific patterns.
 
@@ -129,7 +129,7 @@ See [06-credential-injection.md](06-credential-injection.md) for deployment-spec
 
 ## JCR-less operation
 
-If the global config node is missing, the plugin builds `DiscoveryConfig` entirely from environment variables / system properties + coded defaults. No JCR node is required to run the plugin — credentials must come from the environment in that case.
+If the global config node is missing, the plugin builds `DiscoveryConfig` entirely from environment variables / system properties + coded defaults. No JCR node is required to run the plugin - credentials must come from the environment in that case.
 
 ---
 

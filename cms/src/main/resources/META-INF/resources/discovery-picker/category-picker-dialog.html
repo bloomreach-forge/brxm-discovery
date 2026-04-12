@@ -174,7 +174,7 @@
       padding: 12px;
     }
 
-    /* Product card (preview — informational only, not selectable) */
+    /* Product card (preview - informational only, not selectable) */
     .preview-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -433,7 +433,7 @@
     /* ── Load categories ───────────────────────────────────────────────── */
     function loadCategories() {
       if (!documentId) {
-        showPreviewError("No documentId available — cannot resolve Discovery config.");
+        showPreviewError("No documentId available - cannot resolve Discovery config.");
         return;
       }
       var url = buildApiUrl(ui, "/discovery/picker/categories", {
@@ -451,10 +451,10 @@
           resultCount.textContent = categoriesAll.length + " categor" +
             (categoriesAll.length === 1 ? "y" : "ies");
 
-          /* Auto-select current value if it exists */
+          /* Auto-select current value and load its product preview */
           if (currentValue) {
             var match = categoriesAll.filter(function (c) { return c.id === currentValue; })[0];
-            if (match) selectCat(match, true);
+            if (match) selectCat(match, false);
           }
         })
         .catch(function (err) {
@@ -552,7 +552,7 @@
       previewContent.replaceChildren();
 
       if (!documentId) {
-        showPreviewError("No documentId — cannot load products.");
+        showPreviewError("No documentId - cannot load products.");
         return;
       }
 

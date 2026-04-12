@@ -2,15 +2,33 @@ definitions:
   config:
     /hst:hst/hst:configurations/hst:default/hst:catalog/brxm-discovery-catalog:
       jcr:primaryType: hst:containeritempackage
-      /recommendations:
+      /product-recommendations:
         jcr:primaryType: hst:containeritemcomponent
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
         hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-recommendations.svg
-        hst:label: Discovery Recommendations
-        hst:template: brxdis-recommendations
+        hst:label: Discovery Product Recommendations
+        hst:template: brxdis-recommendations-product
         hst:xtype: hst.Item
-        hst:parameternames: [document, contextProductId, contextProductPidProperty, limit]
-        hst:parametervalues: ['', '', 'brxdis:pid', '8']
+        hst:parameternames: [document, limit, showPrice, showDescription]
+        hst:parametervalues: ['', '8', 'true', 'false']
+      /category-recommendations:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryRecommendationComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-recommendations.svg
+        hst:label: Discovery Category Recommendations
+        hst:template: brxdis-recommendations-category
+        hst:xtype: hst.Item
+        hst:parameternames: [document, limit, showPrice, showDescription]
+        hst:parametervalues: ['', '8', 'true', 'false']
+      /global-recommendations:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryGlobalRecommendationComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-recommendations.svg
+        hst:label: Discovery Recommendations - Trending / Personalized
+        hst:template: brxdis-recommendations-global
+        hst:xtype: hst.Item
+        hst:parameternames: [document, limit, showPrice, showDescription]
+        hst:parametervalues: ['', '8', 'true', 'false']
       /product-detail:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent
@@ -36,30 +54,30 @@ definitions:
         hst:xtype: hst.Item
         hst:parameternames: [document1, document2, document3, document4]
         hst:parametervalues: ['', '', '', '']
-      /search-results:
+      /product-grid-search:
         jcr:primaryType: hst:containeritemcomponent
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchGridComponent
         hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-search.svg
-        hst:label: Discovery Search Results
+        hst:label: Discovery Product Grid - Search
         hst:template: brxdis-results
         hst:xtype: hst.Item
-        hst:parameternames: [dataSource, document, pageSize, defaultSort, catalogName,
+        hst:parameternames: [pageSize, defaultSort, catalogName,
                               statsFields, segment, exclusionFilter,
                               showFacets, showPagination, showSort, showDidYouMean, autoRedirect]
-        hst:parametervalues: ['search', '', '12', '', '', '', '', '',
+        hst:parametervalues: ['12', '', '', '', '', '',
                                'true', 'true', 'true', 'true', 'false']
-      /category-browse:
+      /product-grid-category:
         jcr:primaryType: hst:containeritemcomponent
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryGridComponent
         hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-category.svg
-        hst:label: Discovery Category Browse
+        hst:label: Discovery Product Grid - Category
         hst:template: brxdis-results
         hst:xtype: hst.Item
-        hst:parameternames: [dataSource, document, pageSize, defaultSort,
+        hst:parameternames: [document, pageSize, defaultSort,
                               statsFields, segment, exclusionFilter,
-                              showFacets, showPagination, showSort, showDidYouMean, autoRedirect]
-        hst:parametervalues: ['category', '', '12', '', '', '', '',
-                               'true', 'true', 'true', 'false', 'false']
+                              showFacets, showPagination, showSort]
+        hst:parametervalues: ['', '12', '', '', '', '',
+                               'true', 'true', 'true']
       /search-input:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchInputComponent

@@ -51,7 +51,7 @@ Add `brxm-discovery-cms` to your CMS dependencies POM (the `pom`-packaged module
 
 This JAR provides:
 - `brxdis:discoveryConfig` JCR node type and CMS editor template
-- `DiscoveryPickerModule` daemon — registers the picker REST endpoint at `{cms}/ws/discovery/picker`
+- `DiscoveryPickerModule` daemon - registers the picker REST endpoint at `{cms}/ws/discovery/picker`
 - Open UI extension node `discoveryProductPicker` (pre-wired; you link your document fields to it)
 - Static web resource: `{cms}/discovery-picker/index.html` (the picker iframe)
 - CRISP resource space bootstrap via `brxdis-crisp.yaml` (HCM config)
@@ -94,12 +94,12 @@ This JAR provides its core site wiring through an addon module assembly (`META-I
 | `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on an injected executor |
 
 **HST components** (reference by fully-qualified class name in your HST config):
-- `DiscoveryResultsComponent` — search results and category browse (single component for both modes; includes facets, pagination, sort)
-- `DiscoverySearchInputComponent` — standalone search bar with autosuggest
-- `DiscoveryRecommendationComponent` — recommendation widgets (v1 and v2 Pathways API)
-- `DiscoveryProductDetailComponent` — product detail page
-- `DiscoveryProductHighlightComponent` — up to 4 curated product slots
-- `DiscoveryCategoryHighlightComponent` — up to 4 curated category tiles with optional product previews
+- `DiscoveryResultsComponent` - search results and category browse (single component for both modes; includes facets, pagination, sort)
+- `DiscoverySearchInputComponent` - standalone search bar with autosuggest
+- `DiscoveryRecommendationComponent` - recommendation widgets (v1 and v2 Pathways API)
+- `DiscoveryProductDetailComponent` - product detail page
+- `DiscoveryProductHighlightComponent` - up to 4 curated product slots
+- `DiscoveryCategoryHighlightComponent` - up to 4 curated category tiles with optional product previews
 
 All components expose data via `request.setModel()` (Page Model API / headless) and `request.setAttribute()` (FTL).
 
@@ -149,7 +149,7 @@ You still need to:
 2. Set credentials via env vars / system properties, via the global JCR config node, or via optional channel-level overrides in `hst:channelinfo` (see [06-credential-injection.md](06-credential-injection.md))
 3. Wire HST components into your HST page configuration (see [00-quick-start.md](00-quick-start.md))
 
-> **Troubleshooting — templates not found:** If your site's HST configuration chain does not inherit from `hst:default` (e.g. a project using a deep custom inheritance hierarchy that bypasses `hst:default`), templates will not be resolved automatically. In that case, add the missing `brxdis-*` entries to your own site's `hst:templates` YAML pointing at `classpath:/freemarker/brxdis/brxdis-*.ftl`.
+> **Troubleshooting - templates not found:** If your site's HST configuration chain does not inherit from `hst:default` (e.g. a project using a deep custom inheritance hierarchy that bypasses `hst:default`), templates will not be resolved automatically. In that case, add the missing `brxdis-*` entries to your own site's `hst:templates` YAML pointing at `classpath:/freemarker/brxdis/brxdis-*.ftl`.
 
 ---
 
@@ -162,7 +162,7 @@ brxm-discovery: registered picker endpoint at /discovery/picker
 brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 ```
 
-And navigate to `http://localhost:8080/cms/ws/discovery/picker/search` — a JSON response (not a 404) confirms the endpoint is live.
+And navigate to `http://localhost:8080/cms/ws/discovery/picker/search` - a JSON response (not a 404) confirms the endpoint is live.
 
 ## Troubleshooting
 
@@ -198,4 +198,4 @@ mvn clean install
 mvn -P cargo.run cargo:run
 ```
 
-Then open `http://localhost:8080/site/search?q=shirt` — you should see a product grid populated from the Discovery API (once credentials are configured).
+Then open `http://localhost:8080/site/search?q=shirt` - you should see a product grid populated from the Discovery API (once credentials are configured).

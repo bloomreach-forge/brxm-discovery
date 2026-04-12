@@ -51,7 +51,7 @@ class DiscoverySearchInputComponentTest {
         verify(request).setModel("query", "");
     }
 
-    // ── Suggestions — enabled with query ──────────────────────────────────
+    // ── Suggestions - enabled with query ──────────────────────────────────
 
     @Test
     void suggestionsEnabled_withQuery_callsAutosuggestAndSetsResult() {
@@ -74,7 +74,7 @@ class DiscoverySearchInputComponentTest {
         verify(discoveryService).autosuggest(request, "hat", 10);
     }
 
-    // ── Suggestions — disabled or no query ────────────────────────────────
+    // ── Suggestions - disabled or no query ────────────────────────────────
 
     @Test
     void suggestionsDisabled_noAutosuggestCall() {

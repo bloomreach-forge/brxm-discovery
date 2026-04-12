@@ -214,7 +214,7 @@ class AbstractDiscoveryComponentTest {
 
         @Override
         public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-            // no-op — only testing base-class helpers
+            // no-op - only testing base-class helpers
         }
     }
 
@@ -222,7 +222,7 @@ class AbstractDiscoveryComponentTest {
 
         @Override
         public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-            // no-op — exercising base lookupService implementation
+            // no-op - exercising base lookupService implementation
         }
     }
 

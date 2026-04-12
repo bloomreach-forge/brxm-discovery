@@ -16,7 +16,7 @@ import java.util.Set;
  * All methods are pure functions that take the current request parameter map and return
  * pre-computed URL strings for use in templates.
  *
- * <p>Actor: UX / Editor — owns the navigation URL shape for search/category result pages.
+ * <p>Actor: UX / Editor - owns the navigation URL shape for search/category result pages.
  */
 final class DiscoveryUrlBuilder {
 

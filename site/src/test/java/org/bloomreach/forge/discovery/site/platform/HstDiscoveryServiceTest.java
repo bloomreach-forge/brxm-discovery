@@ -184,7 +184,7 @@ class HstDiscoveryServiceTest {
     void recommend_withWidgetIdAndType_passesBothToClient() {
         when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
 
-        service.recommend(request, "w-123", "keyword", null, null, 8, null, null);
+        service.recommend(request, "w-123", "keyword", null, null, null, 8, null, null);
 
         ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
         verify(client).recommend(captor.capture(), any(), any());
@@ -196,7 +196,7 @@ class HstDiscoveryServiceTest {
     void recommend_nullWidgetId_usesEmptyString() {
         when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
 
-        service.recommend(request, null, "keyword", null, null, 8, null, null);
+        service.recommend(request, null, "keyword", null, null, null, 8, null, null);
 
         ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
         verify(client).recommend(captor.capture(), any(), any());
@@ -205,7 +205,7 @@ class HstDiscoveryServiceTest {
 
     @Test
     void recommend_itemWidget_withoutContextPid_returnsEmpty() {
-        RecommendationResult result = service.recommend(request, "w-item", "item", null, null, 8, null, null);
+        RecommendationResult result = service.recommend(request, "w-item", "item", null, null, null, 8, null, null);
 
         assertTrue(result.products().isEmpty());
         verify(client, never()).recommend(any(), any(), any());
@@ -216,7 +216,7 @@ class HstDiscoveryServiceTest {
         var products = List.of(new ProductSummary("p1", "Shoe", null, null, null, null, null));
         when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(new RecommendationResult("rid-1", products));
 
-        RecommendationResult result = service.recommend(request, "w-123", null, null, null, 8, null, null);
+        RecommendationResult result = service.recommend(request, "w-123", null, null, null, null, 8, null, null);
 
         assertNotNull(result);
         assertEquals("rid-1", result.widgetResultId());
@@ -399,7 +399,7 @@ class HstDiscoveryServiceTest {
         service.search(request);
         service.search(request);
 
-        // No request-level caching — pixel fires on every search call
+        // No request-level caching - pixel fires on every search call
         verify(pixelService, times(2)).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
                 any(ClientContext.class), any());
     }
@@ -600,7 +600,7 @@ class HstDiscoveryServiceTest {
         assertEquals("chan-acct", credsCaptor.getValue().accountId());
         assertEquals("chan-domain", credsCaptor.getValue().domainKey());
         assertEquals("chan-api-key", credsCaptor.getValue().apiKey());
-        // global domain/key are NOT used — channel credentials replace entirely
+        // global domain/key are NOT used - channel credentials replace entirely
         assertNull(credsCaptor.getValue().authKey());
     }
 

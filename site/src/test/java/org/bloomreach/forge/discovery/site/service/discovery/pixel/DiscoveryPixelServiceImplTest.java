@@ -34,7 +34,7 @@ class DiscoveryPixelServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Synchronous executor so pixel fires inline — no async race in tests
+        // Synchronous executor so pixel fires inline - no async race in tests
         service = new DiscoveryPixelServiceImpl(client, Runnable::run);
         credentials = new DiscoveryCredentials("acct", "domain", "key", null, "PRODUCTION");
     }
@@ -119,7 +119,7 @@ class DiscoveryPixelServiceImplTest {
     @Test
     void firePixelEvent_jsonParseError_doesNotPropagate() {
         // CRISP throws ResourceException("JSON processing error.") for image/gif responses on HTTP 200.
-        // The service must not propagate this — the pixel was recorded successfully.
+        // The service must not propagate this - the pixel was recorded successfully.
         SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
         SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
         when(client.buildSearchPixelPath(any(), any(), any(), nullable(String.class), nullable(String.class), any(PixelFlags.class)))

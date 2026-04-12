@@ -93,7 +93,7 @@ final class DiscoveryRecommendationClient {
             log.warn("Unable to resolve widget type for widget '{}'; falling back to default Pathways route", widgetId);
             return query;
         }
-        return new RecQuery(resolvedType, widgetId, query.contextProductId(), query.contextPageType(),
+        return new RecQuery(resolvedType, widgetId, query.contextProductId(), query.catId(), query.contextPageType(),
                 query.limit(), query.fields(), query.filters(), query.url(), query.refUrl(),
                 query.brUid2(), query.origRefUrl());
     }

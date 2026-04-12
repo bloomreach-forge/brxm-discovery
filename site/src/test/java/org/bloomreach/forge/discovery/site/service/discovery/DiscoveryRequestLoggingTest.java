@@ -43,7 +43,7 @@ class DiscoveryRequestLoggingTest {
 
     @Test
     void redactPath_partialMatch_notRedacted() {
-        // "auth_keys" is not "auth_key" — must not match
+        // "auth_keys" is not "auth_key" - must not match
         String path = "https://example.com/api?auth_keys=should-not-redact&q=test";
         assertEquals(path, DiscoveryRequestLogging.redactPath(path));
     }

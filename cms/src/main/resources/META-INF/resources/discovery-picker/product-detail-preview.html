@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discovery Product Detail Preview</title>
+  <link rel="stylesheet" href="picker-field.css"/>
+  <style>
+    body { margin: 0; padding: 0; }
+
+    #status-row { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+    #status-label { color: var(--text-faint); font-size: 12px; }
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-left: 4px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #thumb-grid { display: flex; gap: 8px; margin-top: 10px; flex-wrap: nowrap; overflow: hidden; }
+
+    .preview-card {
+      flex: 0 0 90px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: cardIn 0.28s ease-out both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-image-wrap {
+      position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+      background-size: 10px 10px;
+    }
+    .card-image-wrap img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; display: block;
+    }
+    .card-image-wrap::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px;
+      background: linear-gradient(to bottom, transparent, var(--surface));
+      pointer-events: none;
+    }
+    .card-body { padding: 4px 6px 6px; }
+    .card-title {
+      font-size: 10px; font-weight: 500; line-height: 1.3; color: var(--text-muted);
+      overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .card-price {
+      font-size: 10px; font-weight: 700; color: var(--accent);
+      margin-top: 2px; font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+
+<div id="status-row">
+  <span id="status-label"></span>
+  <span id="loading" style="display:none"><span class="spinner"></span></span>
+</div>
+<div id="thumb-grid" style="display:none"></div>
+
+<script src="ui-extension.min.js"></script>
+<script src="picker-utils.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var HEIGHT_BASE  = 20;
+  var HEIGHT_THUMB = 150;
+
+  var ui           = null;
+  var documentId   = "";
+  var fetchTimer   = null;
+
+  var statusLabel = document.getElementById("status-label");
+  var loadingEl   = document.getElementById("loading");
+  var thumbGrid   = document.getElementById("thumb-grid");
+
+  // React immediately when the product picker in the same document selects a new product
+  // (pre-save live update - same pattern as category-product-preview).
+  window.addEventListener("message", function (evt) {
+    if (evt.origin !== window.location.origin) return;
+    var d = evt.data;
+    if (!d || d.type !== "brxdis:productChanged" || d.documentId !== documentId) return;
+    scheduleFetch(d.productId || "");
+  });
+
+  UiExtension.register().then(function (registeredUi) {
+    ui = registeredUi;
+
+    ui.document.get().then(function (doc) {
+      documentId = doc.id || "";
+      scheduleFetch("");   // server reads productId from JCR via documentId
+    });
+
+    ui.document.field.setHeight(HEIGHT_BASE);
+  }).catch(function () {
+    // CMS not available - silently degrade
+  });
+
+  function scheduleFetch(liveProductId) {
+    clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(function () { fetchPreview(liveProductId); }, 0);
+  }
+
+  function fetchPreview(liveProductId) {
+    if (!documentId) {
+      hideGrid("Not configured");
+      return;
+    }
+    loadingEl.style.display = "";
+    statusLabel.textContent = "";
+
+    var params = { documentId: documentId };
+    if (liveProductId) {
+      params.productId = liveProductId;
+    }
+
+    var url = buildApiUrl(ui, "/discovery/picker/product-detail", params);
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (items) {
+        loadingEl.style.display = "none";
+        if (!items || items.length === 0) {
+          hideGrid("No product found");
+        } else {
+          renderGrid(items);
+        }
+      })
+      .catch(function () {
+        loadingEl.style.display = "none";
+        hideGrid("");
+      });
+  }
+
+  function renderGrid(items) {
+    thumbGrid.replaceChildren();
+    items.forEach(function (item) {
+      var card = document.createElement("div");
+      card.className = "preview-card";
+
+      var imgWrap = document.createElement("div");
+      imgWrap.className = "card-image-wrap";
+      var img = document.createElement("img");
+      img.src     = item.imageUrl || "";
+      img.alt     = "";
+      img.loading = "lazy";
+      img.onerror = function () { this.style.display = "none"; };
+      imgWrap.appendChild(img);
+      card.appendChild(imgWrap);
+
+      var body = document.createElement("div");
+      body.className = "card-body";
+
+      var title = document.createElement("div");
+      title.className   = "card-title";
+      title.textContent = item.title || item.id || "";
+      body.appendChild(title);
+
+      if (item.price) {
+        var price = document.createElement("div");
+        price.className   = "card-price";
+        price.textContent = item.price;
+        body.appendChild(price);
+      }
+
+      card.appendChild(body);
+      thumbGrid.appendChild(card);
+    });
+
+    statusLabel.textContent = "";
+    thumbGrid.style.display = "flex";
+    if (ui) ui.document.field.setHeight(HEIGHT_BASE + HEIGHT_THUMB);
+  }
+
+  function hideGrid(msg) {
+    thumbGrid.replaceChildren();
+    thumbGrid.style.display = "none";
+    statusLabel.textContent = msg || "";
+    if (ui) ui.document.field.setHeight(HEIGHT_BASE);
+  }
+}());
+</script>
+</body>
+</html>

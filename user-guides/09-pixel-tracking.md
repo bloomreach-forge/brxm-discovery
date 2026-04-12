@@ -2,7 +2,7 @@
 
 ## Introduction
 
-After each search, category browse, recommendation, or product-detail page render, the plugin fires a server-side pixel event — a GET request to `p.brsrvr.com/pix.gif` — so Bloomreach Discovery can record impression data for analytics, ranking models, and A/B testing.
+After each search, category browse, recommendation, or product-detail page render, the plugin fires a server-side pixel event - a GET request to `p.brsrvr.com/pix.gif` - so Bloomreach Discovery can record impression data for analytics, ranking models, and A/B testing.
 
 The pixel call is non-blocking: it runs on a bounded thread pool (`brxdis-pixel-*`) and never propagates exceptions to the page render. Failed pixel calls are logged at WARN and silently discarded.
 
@@ -78,7 +78,7 @@ Three checkboxes under "Pixel Tracking" in Channel Manager let you override pixe
 ### Resolution summary
 
 ```
-brxdis.pixel.envEnabled=false  →  DISABLED (global — all channels)
+brxdis.pixel.envEnabled=false  →  DISABLED (global - all channels)
   │
   └─ DiscoveryChannelInfo.getDiscoveryPixelsEnabled() = false  →  DISABLED (this channel only)
   └─ DiscoveryChannelInfo.getDiscoveryPixelsEnabled() = true   →  ENABLED  (this channel only)
@@ -87,7 +87,7 @@ DiscoveryChannelInfo.getDiscoveryPixelTestData() = true  →  test_data=true on 
 DiscoveryChannelInfo.getDiscoveryPixelDebug()    = true  →  debug=true on this channel
 ```
 
-The env kill switch (`brxdis.pixel.envEnabled=false`) cannot be overridden by a channel setting — if it is false, no pixels fire anywhere.
+The env kill switch (`brxdis.pixel.envEnabled=false`) cannot be overridden by a channel setting - if it is false, no pixels fire anywhere.
 
 If the channel has no `DiscoveryChannelInfo` configured at all, the env/system property defaults apply (`envEnabled=true`, `testData=false`, `debug=false`).
 
@@ -95,7 +95,7 @@ If the channel has no `DiscoveryChannelInfo` configured at all, the env/system p
 
 ## Setting parameters without Channel Manager UI
 
-Pixel flags are managed by the typed `DiscoveryChannelInfo` interface and are stored by Channel Manager in the channel workspace — do not add them to `hst:parameternames`/`hst:parametervalues` manually, as that creates a second source of truth.
+Pixel flags are managed by the typed `DiscoveryChannelInfo` interface and are stored by Channel Manager in the channel workspace - do not add them to `hst:parameternames`/`hst:parametervalues` manually, as that creates a second source of truth.
 
 `hst:channelinfoclass` must be set on the `hst:channel` node (not the mount):
 
@@ -109,11 +109,11 @@ Pixel flags are managed by the typed `DiscoveryChannelInfo` interface and are st
 
 ## Wiring the Channel Manager UI
 
-`hst:channelinfoclass` belongs on the `hst:channel` node — not the mount. Channel Manager reads the interface from the channel node, writes values through the typed `ChannelInfo` proxy, and surfaces the three pixel fields as **checkboxes** under "Pixel Tracking" in the Channel Settings panel.
+`hst:channelinfoclass` belongs on the `hst:channel` node - not the mount. Channel Manager reads the interface from the channel node, writes values through the typed `ChannelInfo` proxy, and surfaces the three pixel fields as **checkboxes** under "Pixel Tracking" in the Channel Settings panel.
 
-### Case 1 — No existing ChannelInfo
+### Case 1 - No existing ChannelInfo
 
-**`hst:workspace/channel.yaml`** — set `hst:channelinfoclass` on the channel node:
+**`hst:workspace/channel.yaml`** - set `hst:channelinfoclass` on the channel node:
 
 ```yaml
 /hst:hst/hst:configurations/demo/hst:workspace/hst:channel:
@@ -123,17 +123,17 @@ Pixel flags are managed by the typed `DiscoveryChannelInfo` interface and are st
   hst:channelinfoclass: org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo
 ```
 
-**`hst:hosts/hosts.yaml`** — no Discovery-specific mount parameters are required:
+**`hst:hosts/hosts.yaml`** - no Discovery-specific mount parameters are required:
 
 ```yaml
 /hst:root:
   jcr:primaryType: hst:mount
-  # No discoveryConfigPath needed — plugin reads from the global JCR config node
+  # No discoveryConfigPath needed - plugin reads from the global JCR config node
 ```
 
-Do not add pixel parameters to `hst:parameternames`/`hst:parametervalues` — that creates a stale duplicate that Channel Manager cannot manage.
+Do not add pixel parameters to `hst:parameternames`/`hst:parametervalues` - that creates a stale duplicate that Channel Manager cannot manage.
 
-### Case 2 — Existing ChannelInfo in your project
+### Case 2 - Existing ChannelInfo in your project
 
 Create a composite interface that extends both and point `hst:channelinfoclass` at it:
 
@@ -151,7 +151,7 @@ public interface MyChannelInfo extends DiscoveryChannelInfo, ExistingChannelInfo
   hst:channelinfoclass: com.example.site.channel.MyChannelInfo
 ```
 
-No other changes are needed — HST discovers `@Parameter`-annotated getters from all interfaces in the hierarchy.
+No other changes are needed - HST discovers `@Parameter`-annotated getters from all interfaces in the hierarchy.
 
 ---
 

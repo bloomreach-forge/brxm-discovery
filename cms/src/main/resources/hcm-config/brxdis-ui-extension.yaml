@@ -16,7 +16,7 @@ definitions:
       # Targets the document field extension point.
       frontend:extensionPoint: 'document.field'
 
-      # No static config needed — the picker JS reads the document ID from ui.document.get()
+      # No static config needed - the picker JS reads the document ID from ui.document.get()
       # and resolves the channel's Discovery config path server-side.
       frontend:config: '{}'
 
@@ -28,6 +28,30 @@ definitions:
       frontend:extensionPoint: 'document.field'
       frontend:config: '{}'
 
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductWidgetPicker:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Widget Picker - Product'
+      frontend:url: 'discovery-picker/widget-picker.html'
+      frontend:initialHeightInPixels: 56
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["co_viewed","co_bought","rt_recs","mlt"]}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryWidgetPicker:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Widget Picker - Category'
+      frontend:url: 'discovery-picker/widget-picker.html'
+      frontend:initialHeightInPixels: 56
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["category"]}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryGlobalWidgetPicker:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Widget Picker - Global & Personalized'
+      frontend:url: 'discovery-picker/widget-picker.html'
+      frontend:initialHeightInPixels: 56
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["bestseller","trending_product","jfy","past_purchases","recently_viewed"]}'
+
     /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryPicker:
       jcr:primaryType: frontend:uiExtension
       frontend:displayName: 'Discovery Category Picker'
@@ -36,11 +60,51 @@ definitions:
       frontend:extensionPoint: 'document.field'
       frontend:config: '{}'
 
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductRecommendationWizard:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Product Recommendation Wizard'
+      frontend:url: 'discovery-picker/recommendation-wizard.html'
+      frontend:initialHeightInPixels: 52
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["co_viewed","co_bought","rt_recs","mlt"]}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryRecommendationWizard:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Category Recommendation Wizard'
+      frontend:url: 'discovery-picker/recommendation-wizard.html'
+      frontend:initialHeightInPixels: 52
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["category"]}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryGlobalRecommendationWizard:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Global & Personalized Recommendation Wizard'
+      frontend:url: 'discovery-picker/recommendation-wizard.html'
+      frontend:initialHeightInPixels: 52
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["bestseller","trending_product","jfy","past_purchases","recently_viewed"]}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryRecommendationPreview:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Recommendation Preview'
+      frontend:url: 'discovery-picker/recommendation-preview.html'
+      frontend:initialHeightInPixels: 20
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{}'
+
     /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryCategoryProductPreview:
       jcr:primaryType: frontend:uiExtension
       frontend:displayName: 'Discovery Category Product Preview'
       frontend:url: 'discovery-picker/category-product-preview.html'
       frontend:initialHeightInPixels: 60
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{}'
+
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductDetailPreview:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Product Detail Preview'
+      frontend:url: 'discovery-picker/product-detail-preview.html'
+      frontend:initialHeightInPixels: 20
       frontend:extensionPoint: 'document.field'
       frontend:config: '{}'
 

@@ -9,7 +9,7 @@
 - Exposes an `autosuggestResult` model for typeahead dropdown rendering
 - Submits the search form to a configurable results page (which uses `DiscoveryResultsComponent`)
 
-The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically. Autosuggest results are fetched live (not cached) — they reflect the query state at the moment of the request.
+The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically. Autosuggest results are fetched live (not cached) - they reflect the query state at the moment of the request.
 
 ---
 
@@ -24,7 +24,7 @@ All suggestion parameters are component parameters set in HST config:
 | `suggestionsEnabled` | boolean | `true` | Enable autosuggest dropdown. Set `false` to disable entirely. |
 | `suggestionsLimit` | int | `5` | Max suggestions shown per category (query, attribute, product). |
 | `minChars` | int | `2` | Minimum characters before the suggestion dropdown is triggered. |
-| `debounceMs` | int | `250` | Debounce delay in milliseconds — prevents API calls on every keystroke. |
+| `debounceMs` | int | `250` | Debounce delay in milliseconds - prevents API calls on every keystroke. |
 
 ```yaml
 /search-bar:
@@ -51,7 +51,7 @@ Search results page (/search):
   └── results: DiscoveryResultsComponent (dataSource=search)
 ```
 
-For pages where the search bar is on the same page as the results (e.g. a simple search page), set `resultsPage=""` — the form submits to the current page and `DiscoveryResultsComponent` picks up the `q` parameter.
+For pages where the search bar is on the same page as the results (e.g. a simple search page), set `resultsPage=""` - the form submits to the current page and `DiscoveryResultsComponent` picks up the `q` parameter.
 
 ---
 
@@ -85,12 +85,12 @@ Response includes `autosuggestResult` in the component models.
 
 ```
 AutosuggestResult
-├── String originalQuery              — the query as echoed by Discovery
-├── List<String> querySuggestions     — suggested search terms
+├── String originalQuery              - the query as echoed by Discovery
+├── List<String> querySuggestions     - suggested search terms
 ├── List<AttributeSuggestion> attributeSuggestions
-│   ├── String name                   — attribute name (e.g. "brand")
-│   ├── String value                  — attribute value (e.g. "Nike")
-│   └── String attributeType          — "text", "number", etc.
+│   ├── String name                   - attribute name (e.g. "brand")
+│   ├── String value                  - attribute value (e.g. "Nike")
+│   └── String attributeType          - "text", "number", etc.
 └── List<ProductSummary> productSuggestions
     ├── String id
     ├── String title
@@ -189,10 +189,10 @@ Response shape:
 
 ## Catalog views
 
-To restrict suggestions to a specific catalog view (e.g. a locale-specific product catalog), use the `catalogViews` parameter on `HstDiscoveryService.autosuggest()`. This is not exposed as a component parameter on `DiscoverySearchInputComponent` — wire it programmatically in a custom component subclass if needed.
+To restrict suggestions to a specific catalog view (e.g. a locale-specific product catalog), use the `catalogViews` parameter on `HstDiscoveryService.autosuggest()`. This is not exposed as a component parameter on `DiscoverySearchInputComponent` - wire it programmatically in a custom component subclass if needed.
 
 ---
 
 ## Error handling
 
-Discovery API errors are wrapped in `SearchException` (a `RuntimeException`). A blank or null query returns a null `autosuggestResult` without calling the API — templates should guard with `<#if autosuggestResult??>`. Autosuggest failures do not affect other components on the page.
+Discovery API errors are wrapped in `SearchException` (a `RuntimeException`). A blank or null query returns a null `autosuggestResult` without calling the API - templates should guard with `<#if autosuggestResult??>`. Autosuggest failures do not affect other components on the page.

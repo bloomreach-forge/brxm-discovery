@@ -9,7 +9,7 @@ public final class DiscoveryModelKeys {
 
     private DiscoveryModelKeys() {}
 
-    // Universal — set by AbstractDiscoveryComponent for every component
+    // Universal - set by AbstractDiscoveryComponent for every component
     public static final String EDIT_MODE          = "editMode";
 
     // Search Input (DiscoverySearchInputComponent)
@@ -27,11 +27,11 @@ public final class DiscoveryModelKeys {
     public static final String CAMPAIGN           = "campaign";
     public static final String AUTOSUGGEST_RESULT = "autosuggestResult";
 
-    // Results (DiscoveryResultsComponent — unified search + category)
+    // Product Grid - Category (DiscoveryCategoryGridComponent)
     public static final String CATEGORY_ID        = "categoryId";
     public static final String DISPLAY_NAME       = "displayName";
 
-    // Products, pagination, facets (DiscoveryResultsComponent)
+    // Product Grid - shared (DiscoverySearchGridComponent + DiscoveryCategoryGridComponent)
     public static final String PRODUCTS           = "products";
     public static final String PAGINATION         = "pagination";
     public static final String FACETS             = "facets";
@@ -40,7 +40,7 @@ public final class DiscoveryModelKeys {
     public static final String PRODUCT            = "product";
     public static final String PID                = "pid";
 
-    // Recommendations (DiscoveryRecommendationComponent)
+    // Recommendations (DiscoveryProductRecommendationComponent, DiscoveryCategoryRecommendationComponent, DiscoveryGlobalRecommendationComponent)
     public static final String WIDGET_ID          = "widgetId";
     public static final String WIDGET_TYPE        = "widgetType";
     public static final String WIDGET_RESULT_ID   = "widgetResultId";
@@ -50,9 +50,10 @@ public final class DiscoveryModelKeys {
 
     // Category Highlight (DiscoveryCategoryHighlightComponent)
     public static final String CATEGORIES         = "categories";
+    public static final String CATEGORY_BEANS     = "categoryBeans";
     public static final String PREVIEW_PRODUCTS   = "previewProducts";
 
-    // URL builders (DiscoveryResultsComponent)
+    // URL builders (AbstractDiscoveryGridComponent)
     public static final String DATA_SOURCE_MODE   = "dataSourceMode";
     public static final String FACET_URLS         = "facetUrls";
     public static final String ACTIVE_FACETS      = "activeFacets";

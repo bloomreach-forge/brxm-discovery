@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discovery Recommendation</title>
+  <link rel="stylesheet" href="picker-field.css"/>
+  <style>
+    #value-display { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+    .type-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #e8effd;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .context-hint { color: var(--text-muted); font-size: 12px; }
+    .sep { color: var(--text-faint); }
+  </style>
+</head>
+<body>
+
+<div id="field-row">
+  <div id="value-display" class="empty">Not configured</div>
+  <button id="clear-btn" class="btn btn-ghost" style="display:none">&#x2715; Clear</button>
+  <button id="configure-btn" class="btn btn-primary">Configure&hellip;</button>
+</div>
+
+<script src="ui-extension.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var ui              = null;
+  var currentValue    = "";
+  var documentId      = "";
+  var extensionConfig = {};
+
+  var valueDisplay  = document.getElementById("value-display");
+  var clearBtn      = document.getElementById("clear-btn");
+  var configureBtn  = document.getElementById("configure-btn");
+
+  UiExtension.register().then(function (registeredUi) {
+    ui = registeredUi;
+
+    try { extensionConfig = JSON.parse(ui.extension.config || "{}"); } catch (e) {}
+
+    ui.document.field.getValue().then(function (val) {
+      currentValue = val || "";
+      refreshDisplay(currentValue);
+    });
+
+    ui.document.get().then(function (doc) {
+      documentId = doc.id || "";
+      setEditMode(doc.mode === "edit");
+    });
+
+    ui.document.observe(function (doc) {
+      documentId = doc.id || "";
+      setEditMode(doc.mode === "edit");
+    });
+
+    ui.document.field.setHeight(52);
+  }).catch(function () {
+    valueDisplay.textContent = "Failed to connect to CMS";
+    valueDisplay.classList.add("empty");
+  });
+
+  configureBtn.addEventListener("click", function () {
+    if (!ui) return;
+    var dialogUrl = (ui.baseUrl || "").replace(/\/$/, "") +
+      "/discovery-picker/recommendation-wizard-dialog.html";
+
+    ui.dialog.open({
+      title: currentValue ? "Edit Recommendation" : "Configure Recommendation",
+      url:   dialogUrl,
+      size:  "large",
+      value: JSON.stringify({ documentId: documentId, currentValue: currentValue, config: extensionConfig })
+    })
+    .then(function (result) {
+      if (result) {
+        currentValue = String(result);
+        ui.document.field.setValue(currentValue);
+        refreshDisplay(currentValue);
+        // Notify sibling frames (e.g. recommendation-preview.html) of the new config
+        // so they can re-fetch immediately without waiting for a JCR save.
+        if (window.parent && window.parent.frames) {
+          var msg = { type: "brxdis:configChanged", documentId: documentId, configJson: currentValue };
+          for (var i = 0; i < window.parent.frames.length; i++) {
+            try { window.parent.frames[i].postMessage(msg, window.location.origin); } catch (e) {}
+          }
+        }
+      }
+    })
+    .catch(function (err) {
+      if (err && err.code !== "DialogCanceled") {
+        console.error("brxm-discovery recommendation wizard error:", err);
+      }
+    });
+  });
+
+  clearBtn.addEventListener("click", function () {
+    currentValue = "";
+    if (ui) ui.document.field.setValue("");
+    refreshDisplay("");
+  });
+
+  function setEditMode(editable) {
+    configureBtn.disabled = !editable;
+    clearBtn.disabled     = !editable;
+  }
+
+  function refreshDisplay(value) {
+    var cfg = tryParse(value);
+    // Clear existing children
+    while (valueDisplay.firstChild) {
+      valueDisplay.removeChild(valueDisplay.firstChild);
+    }
+
+    if (cfg && cfg.widgetId) {
+      buildSummaryNodes(cfg).forEach(function (node) {
+        valueDisplay.appendChild(node);
+      });
+      valueDisplay.classList.remove("empty");
+      clearBtn.style.display = "";
+      configureBtn.textContent = "Edit\u2026";
+    } else {
+      valueDisplay.textContent = "Not configured";
+      valueDisplay.classList.add("empty");
+      clearBtn.style.display = "none";
+      configureBtn.textContent = "Configure\u2026";
+    }
+  }
+
+  function buildSummaryNodes(cfg) {
+    var nodes = [];
+
+    // Widget name
+    var nameNode = document.createTextNode(cfg.widgetName || cfg.widgetId);
+    nodes.push(nameNode);
+
+    // Type badge
+    if (cfg.widgetType) {
+      var sep1 = document.createElement("span");
+      sep1.className = "sep";
+      sep1.textContent = "\u00b7";
+      nodes.push(sep1);
+
+      var badge = document.createElement("span");
+      badge.className = "type-badge";
+      badge.textContent = cfg.widgetType;
+      nodes.push(badge);
+    }
+
+    // Context hint
+    var hint = resolveContextHint(cfg);
+    if (hint) {
+      var sep2 = document.createElement("span");
+      sep2.className = "sep";
+      sep2.textContent = "\u00b7";
+      nodes.push(sep2);
+
+      var hintNode = document.createElement("span");
+      hintNode.className = "context-hint";
+      hintNode.textContent = hint;
+      nodes.push(hintNode);
+    }
+
+    return nodes;
+  }
+
+  function resolveContextHint(cfg) {
+    var type = (cfg.widgetType || "").toLowerCase();
+    if (type === "item" || type === "recs" || type === "mlt") {
+      return cfg.contextProductId
+        ? "Product: " + (cfg.contextProductName || cfg.contextProductId)
+        : "Product: auto from URL";
+    }
+    if (type === "category") {
+      return cfg.contextCategoryId
+        ? "Category: " + (cfg.contextCategoryName || cfg.contextCategoryId)
+        : "Category: auto from URL";
+    }
+    return null;
+  }
+
+  function tryParse(str) {
+    try { return JSON.parse(str || ""); } catch (e) { return null; }
+  }
+}());
+</script>
+</body>
+</html>

@@ -21,7 +21,15 @@
     dialogPath:  "product-picker-dialog.html",
     dialogTitle: "Select Product",
     placeholder: "No product selected",
-    errorLabel:  "product"
+    errorLabel:  "product",
+    onValueChange: function (productId, documentId) {
+      var msg    = { type: "brxdis:productChanged", documentId: documentId, productId: productId };
+      var origin = window.location.origin;
+      var frames = window.parent.frames;
+      for (var i = 0; i < frames.length; i++) {
+        try { frames[i].postMessage(msg, origin); } catch (e) {}
+      }
+    }
   });
 </script>
 </body>

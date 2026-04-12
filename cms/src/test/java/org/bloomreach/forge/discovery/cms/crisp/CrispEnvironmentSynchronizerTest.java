@@ -171,7 +171,7 @@ class CrispEnvironmentSynchronizerTest {
     @Test
     void onEvent_withChanges_opensFreshSessionAndSyncs() throws Exception {
         Session freshSession = mock(Session.class);
-        when(freshSession.nodeExists(anyString())).thenReturn(false); // no nodes — just verifies flow
+        when(freshSession.nodeExists(anyString())).thenReturn(false); // no nodes - just verifies flow
         when(freshSession.isLive()).thenReturn(true);
         when(configReader.resolve(freshSession)).thenReturn(DiscoveryConfig.of(
                 new DiscoveryCredentials(null, null, null, null, ConfigDefaults.ENVIRONMENT),

@@ -1,6 +1,6 @@
 # brxm-discovery
 
-> **⚠ Alpha — Early Development**
+> **⚠ Alpha - Early Development**
 > This plugin is in active early-phase development. APIs, configuration schemas, and component
 > interfaces are subject to change without notice between releases.
 

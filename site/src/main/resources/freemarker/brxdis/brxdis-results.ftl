@@ -295,7 +295,7 @@
       </div>
     </#if>
 
-    <#-- Pagination — uses pre-built pageUrls map (Map<Integer,String>, 0-indexed) -->
+    <#-- Pagination - uses pre-built pageUrls map (Map<Integer,String>, 0-indexed) -->
     <#if pageUrls?has_content && pagination?? && (pagination.totalPages() gt 1)>
       <#assign currentPage = pagination.page()>
       <#assign totalPages  = pagination.totalPages()>

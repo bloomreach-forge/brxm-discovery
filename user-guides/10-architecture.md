@@ -15,7 +15,7 @@ brxm-discovery/
 │
 ├── cms/       brxm-discovery-cms
 │   CMS daemon module (picker REST endpoints, Open UI extensions).
-│   Depends on shared only — never imports from site.
+│   Depends on shared only - never imports from site.
 │
 └── site/      brxm-discovery-site
     HST components, Discovery API clients, CRISP wiring, pixel tracking.
@@ -28,7 +28,7 @@ brxm-discovery/
 
 ## Layer architecture
 
-The plugin follows Clean Architecture principles. Dependencies flow inward — outer layers import inner layers, never the reverse.
+The plugin follows Clean Architecture principles. Dependencies flow inward - outer layers import inner layers, never the reverse.
 
 ```
 ┌─ PRESENTATION ──────────────────────────────────────────────┐
@@ -47,7 +47,7 @@ The plugin follows Clean Architecture principles. Dependencies flow inward — o
 │                                                              │
 ├─ PLATFORM / HST ADAPTER ────────────────────────────────────┤
 │                                                              │
-│  HstDiscoveryService             (facade — single entry pt)  │
+│  HstDiscoveryService             (facade - single entry pt)  │
 │  DiscoveryRuntimeContextFactory  (per-request context)       │
 │  DiscoveryRuntimeContext         (immutable request context)  │
 │  DiscoveryRequestCache           (request-scoped dedup)      │
@@ -88,20 +88,20 @@ All site-module beans are defined in a single XML file, loaded into a dedicated 
 
 **`site/src/main/resources/META-INF/hst-assembly/addon/brxm-discovery/brxm-discovery-site.xml`**
 
-The addon module descriptor at `META-INF/hst-assembly/addon/module.xml` declares the module name `org.bloomreach.forge.discovery.site` and two `classpath*:` config-locations (the plugin beans + an `overrides/` path for integrators). `ModuleDescriptorUtils.collectAllModuleDefinitions()` finds all `module.xml` files across JARs via `ClassLoader.getResources()` (plural), so the plugin beans are always loaded regardless of JAR order on the classpath — unlike the `overrides/` pattern, which only scans the first matching directory.
+The addon module descriptor at `META-INF/hst-assembly/addon/module.xml` declares the module name `org.bloomreach.forge.discovery.site` and two `classpath*:` config-locations (the plugin beans + an `overrides/` path for integrators). `ModuleDescriptorUtils.collectAllModuleDefinitions()` finds all `module.xml` files across JARs via `ClassLoader.getResources()` (plural), so the plugin beans are always loaded regardless of JAR order on the classpath - unlike the `overrides/` pattern, which only scans the first matching directory.
 
 | Bean ID | Class | Constructor args | Lifecycle | Lazy |
 |---------|-------|------------------|-----------|------|
-| `brxmdis.configReader` | `DiscoveryConfigReader` | — | — | no |
-| `brxmdis.responseMapper` | `DiscoveryResponseMapper` | `ObjectMapper` (inline bean) | — | no |
-| `brxmdis.discoveryClient` | `DiscoveryClientImpl` | responseMapper | — | yes |
+| `brxmdis.configReader` | `DiscoveryConfigReader` | - | - | no |
+| `brxmdis.responseMapper` | `DiscoveryResponseMapper` | `ObjectMapper` (inline bean) | - | no |
+| `brxmdis.discoveryClient` | `DiscoveryClientImpl` | responseMapper | - | yes |
 | `brxmdis.configProvider` | `CachingDiscoveryConfigProvider` | configReader | `start` / `close` | no |
-| `brxmdis.pixelExecutor` | `ThreadPoolTaskExecutor` | *(property injection)* | — | no |
-| `brxmdis.pixelService` | `DiscoveryPixelServiceImpl` | discoveryClient, pixelExecutor | — | yes |
-| `brxmdis.runtimeContextFactory` | `DiscoveryRuntimeContextFactory` | configProvider, brUid2Service | — | yes |
-| `o.b.f.d.s.platform.DiscoveryBrUid2Service` | `DiscoveryBrUid2Service` | — | — | yes |
-| `o.b.f.d.s.platform.CategoryPreviewCache` | `CategoryPreviewCache` | — | — | yes |
-| `o.b.f.d.s.platform.HstDiscoveryService` | `HstDiscoveryService` | discoveryClient, runtimeContextFactory, pixelService, `<null/>` | — | yes |
+| `brxmdis.pixelExecutor` | `ThreadPoolTaskExecutor` | *(property injection)* | - | no |
+| `brxmdis.pixelService` | `DiscoveryPixelServiceImpl` | discoveryClient, pixelExecutor | - | yes |
+| `brxmdis.runtimeContextFactory` | `DiscoveryRuntimeContextFactory` | configProvider, brUid2Service | - | yes |
+| `o.b.f.d.s.platform.DiscoveryBrUid2Service` | `DiscoveryBrUid2Service` | - | - | yes |
+| `o.b.f.d.s.platform.CategoryPreviewCache` | `CategoryPreviewCache` | - | - | yes |
+| `o.b.f.d.s.platform.HstDiscoveryService` | `HstDiscoveryService` | discoveryClient, runtimeContextFactory, pixelService, `<null/>` | - | yes |
 
 **Naming convention:** Internal beans use the `brxmdis.` prefix. Beans that must be discoverable via `HstServices.getComponentManager().getComponent(Class, MODULE_NAME)` use the fully-qualified class name as their bean ID.
 
@@ -142,7 +142,7 @@ Standalone utility beans:
 
 ## Service lookup chain
 
-HST instantiates component classes via reflection — they are not Spring beans, so constructor/field injection is impossible. Components obtain services at render-time via `AbstractDiscoveryComponent.lookupService(Class<T>)`:
+HST instantiates component classes via reflection - they are not Spring beans, so constructor/field injection is impossible. Components obtain services at render-time via `AbstractDiscoveryComponent.lookupService(Class<T>)`:
 
 ```
 lookupService(HstDiscoveryService.class)
@@ -159,7 +159,7 @@ Because beans live in the addon child context, the module name is required. `Spr
 
 ## CRISP broker resolution
 
-The CRISP `ResourceServiceBroker` is obtained via `CrispHstServices.getDefaultResourceServiceBroker(HstServices.getComponentManager())` — the standard CRISP pattern. No custom factory is needed; CRISP handles lifecycle internally.
+The CRISP `ResourceServiceBroker` is obtained via `CrispHstServices.getDefaultResourceServiceBroker(HstServices.getComponentManager())` - the standard CRISP pattern. No custom factory is needed; CRISP handles lifecycle internally.
 
 ```xml
 <bean id="brxmdis.resourceServiceBroker"
@@ -189,7 +189,7 @@ shutdown()
   └── Unregisters from HippoServiceRegistry
 ```
 
-The site Spring XML creates its own `CachingDiscoveryConfigProvider` bean (`brxmdis.configProvider`) independently — it does not share the CMS instance. CRISP resource resolvers in the site webapp use hardcoded default base URIs via `crisp:propvalues` in `brxdis-crisp.yaml`; no `HippoServiceRegistry` bridge is required.
+The site Spring XML creates its own `CachingDiscoveryConfigProvider` bean (`brxmdis.configProvider`) independently - it does not share the CMS instance. CRISP resource resolvers in the site webapp use hardcoded default base URIs via `crisp:propvalues` in `brxdis-crisp.yaml`; no `HippoServiceRegistry` bridge is required.
 
 ---
 
@@ -197,7 +197,7 @@ The site Spring XML creates its own `CachingDiscoveryConfigProvider` bean (`brxm
 
 The plugin uses three independent caching tiers:
 
-### Tier 1 — Configuration cache (JVM lifetime, observation-invalidated)
+### Tier 1 - Configuration cache (JVM lifetime, observation-invalidated)
 
 **Class:** `CachingDiscoveryConfigProvider`
 
@@ -206,7 +206,7 @@ The plugin uses three independent caching tiers:
 - Environment variable and system property overrides are applied on every read (not cached), so env changes take effect without restart.
 - Thread-safe via double-checked locking on a `volatile` field.
 
-### Tier 2 — Request-scoped cache (single page render)
+### Tier 2 - Request-scoped cache (single page render)
 
 **Class:** `DiscoveryRequestCache`
 
@@ -216,14 +216,14 @@ The plugin uses three independent caching tiers:
 - Recommendation cache key includes `widgetId + query.hashCode()` for per-widget dedup.
 - Also stores the resolved product (PDP component) so sibling recommendation components can read the PID.
 
-### Tier 3 — Category preview cache (JVM-level, TTL-based)
+### Tier 3 - Category preview cache (JVM-level, TTL-based)
 
 **Class:** `CategoryPreviewCache`
 
 - `ConcurrentHashMap<Key, Entry>` with 5-minute TTL + 20% jitter.
 - Key: `(categoryId, count)`.
 - Prevents per-request Discovery API calls for category highlight product thumbnails.
-- Passive eviction on `put()` — no background thread.
+- Passive eviction on `put()` - no background thread.
 - Jitter prevents synchronized cache stampede across a cluster.
 
 ---
@@ -246,7 +246,7 @@ shutdown()
   └── Unregisters DiscoveryConfigProvider from HippoServiceRegistry
 ```
 
-The CMS module depends only on `shared` — it never imports from `site`. It creates its own config provider instance because it runs in a different classloader.
+The CMS module depends only on `shared` - it never imports from `site`. It creates its own config provider instance because it runs in a different classloader.
 
 ---
 
@@ -266,7 +266,7 @@ Five CRISP resource spaces are bootstrapped automatically by the plugin via:
 
 All five use CRISP's standard `SimpleJacksonRestTemplateResourceResolver` with `crisp:propnames` / `crisp:propvalues` for the base URI. The default value is the production endpoint; override via system property or the JCR `crisp:propvalues` node if needed.
 
-**CRISP caching is disabled** (`cacheEnabled=false`) on all resolvers because every Discovery API URL includes a unique `request_id` UUID — the CRISP cache would never produce a hit.
+**CRISP caching is disabled** (`cacheEnabled=false`) on all resolvers because every Discovery API URL includes a unique `request_id` UUID - the CRISP cache would never produce a hit.
 
 ---
 

@@ -10,7 +10,7 @@ import org.bloomreach.forge.discovery.search.model.SearchResult;
 
 /**
  * Fires server-side Discovery pixel events asynchronously after each result is fetched.
- * Implementations must swallow all errors — pixel failure must never affect page rendering.
+ * Implementations must swallow all errors - pixel failure must never affect page rendering.
  * <p>
  * Callers must pass a resolved {@link PixelFlags} instance; passing {@link PixelFlags#DISABLED}
  * guarantees that no pixel traffic is produced regardless of env/channel configuration.

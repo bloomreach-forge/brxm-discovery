@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Renders a grid of category navigation tiles sourced from up to 4 JCR
@@ -38,28 +39,31 @@ public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryCompon
         DiscoveryCategoryHighlightComponentInfo info = getComponentParametersInfo(request);
 
         List<DiscoveryCategoryBean> categoryBeans = new ArrayList<>(MAX_SLOTS);
+        List<CategoryHighlight> categories = new ArrayList<>(MAX_SLOTS);
         for (String path : new String[]{
                 info.getDocument1(), info.getDocument2(),
                 info.getDocument3(), info.getDocument4()}) {
             if (path != null && !path.isBlank()) {
                 DiscoveryCategoryBean bean = getHippoBeanForPath(request, path, DiscoveryCategoryBean.class);
+                categoryBeans.add(bean); // null if path didn't resolve - slot preserved
                 if (bean != null) {
-                    categoryBeans.add(bean);
+                    categories.add(new CategoryHighlight(
+                            bean.getCategoryId(), bean.getDisplayName(), bean.getProductPreviewCount()));
                 }
+            } else {
+                categoryBeans.add(null); // empty slot
             }
         }
 
-        if (categoryBeans.isEmpty() && isEditMode(request)) {
+        List<DiscoveryCategoryBean> nonNullBeans = categoryBeans.stream().filter(Objects::nonNull).toList();
+        if (nonNullBeans.isEmpty() && isEditMode(request)) {
             request.setAttribute("brxdis_warning",
                     "No categories configured. Select Category Documents in component properties.");
         }
 
-        List<CategoryHighlight> categories = categoryBeans.stream()
-                .map(b -> new CategoryHighlight(b.getCategoryId(), b.getDisplayName(), b.getProductPreviewCount()))
-                .toList();
-
         request.setModel(DiscoveryModelKeys.CATEGORIES, categories);
-        request.setModel(DiscoveryModelKeys.PREVIEW_PRODUCTS, fetchPreviewProducts(request, categoryBeans));
+        request.setModel(DiscoveryModelKeys.CATEGORY_BEANS, categoryBeans);
+        request.setModel(DiscoveryModelKeys.PREVIEW_PRODUCTS, fetchPreviewProducts(request, nonNullBeans));
     }
 
     protected CategoryPreviewCache getCategoryPreviewCache() {

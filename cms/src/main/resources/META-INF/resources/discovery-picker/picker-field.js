@@ -1,9 +1,10 @@
 function initPickerField(cfg) {
   "use strict";
 
-  var ui           = null;
-  var documentId   = "";
-  var currentValue = "";
+  var ui              = null;
+  var documentId      = "";
+  var currentValue    = "";
+  var extensionConfig = {};
 
   var valueDisplay = document.getElementById("value-display");
   var clearBtn     = document.getElementById("clear-btn");
@@ -11,6 +12,8 @@ function initPickerField(cfg) {
 
   UiExtension.register().then(function (registeredUi) {
     ui = registeredUi;
+
+    try { extensionConfig = JSON.parse(ui.extension.config || "{}"); } catch (e) {}
 
     ui.document.field.getValue().then(function (val) {
       currentValue = val || "";
@@ -42,7 +45,7 @@ function initPickerField(cfg) {
       title: cfg.dialogTitle,
       url:   dialogUrl,
       size:  "large",
-      value: JSON.stringify({ documentId: documentId, currentValue: currentValue })
+      value: JSON.stringify({ documentId: documentId, currentValue: currentValue, config: extensionConfig })
     })
     .then(function (selectedId) {
       if (selectedId) {

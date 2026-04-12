@@ -1,6 +1,6 @@
 # Search and Category Pages
 
-> **New to the plugin?** See [00-quick-start.md](00-quick-start.md) for the end-to-end setup walkthrough — dependencies, credential setup, and a minimal working search page — before reading the detailed reference here.
+> **New to the plugin?** See [00-quick-start.md](00-quick-start.md) for the end-to-end setup walkthrough - dependencies, credential setup, and a minimal working search page - before reading the detailed reference here.
 
 ## Overview
 
@@ -13,7 +13,7 @@
 
 Set the **Data source** component parameter to `search` or `category` to switch modes.
 
-Credentials are resolved from the shared Discovery config (`env → sys → JCR`) — see [02-discovery-config.md](02-discovery-config.md).
+Credentials are resolved from the shared Discovery config (`env → sys → JCR`) - see [02-discovery-config.md](02-discovery-config.md).
 
 ---
 
@@ -23,7 +23,7 @@ Credentials are resolved from the shared Discovery config (`env → sys → JCR`
 
 The bundled `brxdis-results` template is auto-registered under `hst:default`. No manual `templates.yaml` entry is required unless you want to override the template.
 
-**`pages.yaml`** — search page:
+**`pages.yaml`** - search page:
 
 ```yaml
 definitions:
@@ -46,7 +46,7 @@ definitions:
               hst:parametervalues: [search, 12]
 ```
 
-**Category page** — same component class, different `dataSource`:
+**Category page** - same component class, different `dataSource`:
 
 ```yaml
               hst:parameternames: [dataSource, pageSize]
@@ -75,10 +75,10 @@ definitions:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `q` | String | — | Search query. Blank → empty state (no API call). |
+| `q` | String | - | Search query. Blank → empty state (no API call). |
 | `page` | int | `0` | 0-indexed page number. |
 | `sort` | String | component param | Sort expression, e.g. `price asc`. |
-| `filter.{attribute}` | String (repeatable) | — | Facet filter, e.g. `filter.brand=Nike`. Multiple values for same field are OR'd. |
+| `filter.{attribute}` | String (repeatable) | - | Facet filter, e.g. `filter.brand=Nike`. Multiple values for same field are OR'd. |
 
 Example: `GET /site/search?q=shirt&page=1&sort=price+asc&filter.brand=Nike`
 
@@ -86,10 +86,10 @@ Example: `GET /site/search?q=shirt&page=1&sort=price+asc&filter.brand=Nike`
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `category` | String | — | Discovery category ID. Falls back to this when no Category Document is configured on the component. |
+| `category` | String | - | Discovery category ID. Falls back to this when no Category Document is configured on the component. |
 | `page` | int | `0` | 0-indexed page number. |
 | `sort` | String | component param | Sort expression. |
-| `filter.{attribute}` | String (repeatable) | — | Facet filter. |
+| `filter.{attribute}` | String (repeatable) | - | Facet filter. |
 
 Example: `GET /site/category?category=sale&filter.brand=Adidas`
 
@@ -102,7 +102,7 @@ Set in HST config via `@ParametersInfo` (visible in the Channel Manager componen
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|
 | `dataSource` | Content | `search` \| `category` | `search` | Switches the component between search and category browse mode. |
-| `document` | Content | JCR path | — | Category Document picker. Only used in `category` mode. |
+| `document` | Content | JCR path | - | Category Document picker. Only used in `category` mode. |
 | `pageSize` | Content | int | `12` | Results per page. |
 | `showFacets` | Display | boolean | `true` | Render facet panel; includes `facetUrls`, `activeFacets`, `clearAllFiltersUrl` in models. |
 | `showPagination` | Display | boolean | `true` | Include `pageUrls` in models. |
@@ -157,16 +157,16 @@ Set in HST config via `@ParametersInfo` (visible in the Channel Manager componen
 ```
 SearchResult
 ├── long total
-├── int page                     — 0-based
+├── int page                     - 0-based
 ├── int pageSize
 ├── List<ProductSummary> products
-│   ├── String id                — product ID (PID)
+│   ├── String id                - product ID (PID)
 │   ├── String title
 │   ├── String url
 │   ├── String imageUrl
 │   ├── BigDecimal price
 │   ├── String currency
-│   └── Map<String,Object> attributes  — brand, description, sale_price (when present)
+│   └── Map<String,Object> attributes  - brand, description, sale_price (when present)
 └── Map<String,Facet> facets
     └── Facet
         ├── String name
@@ -187,7 +187,7 @@ ${product.attributes()["brand"]!""}
 
 ## Plugin FTL template
 
-`brxdis-results.ftl` is the bundled template for `DiscoveryResultsComponent`. It renders the full page in one template — search form, facet panel, product grid, pagination, sort bar, and did-you-mean — using the pre-built URL models. No `servletRequest` access is needed.
+`brxdis-results.ftl` is the bundled template for `DiscoveryResultsComponent`. It renders the full page in one template - search form, facet panel, product grid, pagination, sort bar, and did-you-mean - using the pre-built URL models. No `servletRequest` access is needed.
 
 ```yaml
 /brxdis-results:
@@ -195,7 +195,7 @@ ${product.attributes()["brand"]!""}
   hst:renderpath: webfile:/freemarker/brxdis/brxdis-results.ftl
 ```
 
-Scoped CSS is injected via `<@hst.headContribution>` — no external stylesheet required.
+Scoped CSS is injected via `<@hst.headContribution>` - no external stylesheet required.
 
 ---
 
@@ -217,7 +217,7 @@ All navigation URLs (facet toggles, pagination, sort) are built server-side and 
 <a href="${clearAllFiltersUrl!""}">Clear filters</a>
 ```
 
-In React/SPA mode, the same URL strings come through in the JSON models — no URL manipulation in the browser.
+In React/SPA mode, the same URL strings come through in the JSON models - no URL manipulation in the browser.
 
 ---
 

@@ -31,11 +31,30 @@ public final class DiscoveryRequestFactory {
     private static final String PAGE_TYPE_ITEM = "item";
 
     private static final java.util.Set<String> V2_WIDGET_TYPES = java.util.Set.of(
-            PAGE_TYPE_ITEM, SEARCH_TYPE_KEYWORD, SEARCH_TYPE_CATEGORY, "personalized", "global", "visual"
+            // Family types (v2 API path segments)
+            PAGE_TYPE_ITEM, SEARCH_TYPE_KEYWORD, SEARCH_TYPE_CATEGORY, "personalized", "global", "visual",
+            // Algorithm types returned by /api/v1/merchant/widgets
+            "mlt", "co_viewed", "co_bought", "rt_recs",
+            "bestseller", "trending_product",
+            "jfy", "past_purchases", "recently_viewed",
+            "search"
     );
 
     private static final java.util.Map<String, String> V2_TYPE_MAP = java.util.Map.of(
-            "mlt", PAGE_TYPE_ITEM
+            // item-family algorithm types
+            "mlt",              PAGE_TYPE_ITEM,
+            "co_viewed",        PAGE_TYPE_ITEM,
+            "co_bought",        PAGE_TYPE_ITEM,
+            "rt_recs",          PAGE_TYPE_ITEM,
+            // global-family algorithm types
+            "bestseller",       "global",
+            "trending_product", "global",
+            // personalized-family algorithm types
+            "jfy",              "personalized",
+            "past_purchases",   "personalized",
+            "recently_viewed",  "personalized",
+            // keyword-family algorithm type
+            "search",           SEARCH_TYPE_KEYWORD
     );
 
     private final Supplier<String> requestIdSupplier;
@@ -119,6 +138,7 @@ public final class DiscoveryRequestFactory {
         DiscoveryRequestSpec.Builder builder = baseStandardRequest(recommendationPath(query.widgetType(), query.widgetId()), credentials)
                 .queryParam("request_id", nextRequestId())
                 .queryParamIfNotBlank("item_ids", query.contextProductId())
+                .queryParamIfNotBlank("cat_id", query.catId())
                 .queryParamIfNotBlank("type", query.contextPageType())
                 .queryParam("rows", query.limit())
                 .queryParam("fl", defaultFields(query.fields()));
@@ -134,6 +154,7 @@ public final class DiscoveryRequestFactory {
                 .queryParamIfNotBlank("ref_url", query.refUrl())
                 .queryParamIfNotBlank("_br_uid_2", query.brUid2())
                 .queryParamIfNotBlank("item_ids", query.contextProductId())
+                .queryParamIfNotBlank("cat_id", query.catId())
                 .queryParamIfNotBlank("context.page_type", query.contextPageType())
                 .queryParam("rows", query.limit())
                 .queryParam("fields", defaultFields(query.fields()))
@@ -151,7 +172,7 @@ public final class DiscoveryRequestFactory {
         }
         String mapped = V2_TYPE_MAP.getOrDefault(rawType, rawType);
         if (!V2_WIDGET_TYPES.contains(mapped)) {
-            log.warn("Unknown widget type '{}' — defaulting to 'item' for v2 path", rawType);
+            log.warn("Unknown widget type '{}' - defaulting to 'item' for v2 path", rawType);
             return PAGE_TYPE_ITEM;
         }
         return mapped;

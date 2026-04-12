@@ -16,8 +16,9 @@ definitions:
             hst:label: Discovery Search Input
             hst:template: brxdis-search-input
             hst:xtype: hst.Item
-            hst:parameternames: [placeholder, resultsPage, suggestionsEnabled, suggestionsLimit, minChars, debounceMs]
-            hst:parametervalues: ['Search products...', 'search', 'true', '5', '2', '250']
+            hst:parameternames: [placeholder, resultsPage, suggestionsEnabled, suggestionsLimit,
+              minChars, debounceMs]
+            hst:parametervalues: [Search products..., search, 'true', '5', '2', '250']
           /home-content:
             jcr:primaryType: hst:containeritemcomponent
             hst:template: home-page
@@ -41,21 +42,22 @@ definitions:
               hst:xtype: hst.Item
               hst:parameternames: [placeholder, resultsPage, suggestionsEnabled, suggestionsLimit,
                 minChars, debounceMs]
-              hst:parametervalues: ['Search...', '', 'true', '5', '2', '250']
+              hst:parametervalues: [Search..., '', 'true', '5', '2', '250']
           /content:
             jcr:primaryType: hst:containercomponent
             hst:xtype: hst.nomarkup
             hippo:identifier: b4e9d3c2-8c5f-4b0a-96d4-3f2e0a1c7b5d
             /search-results:
               jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
-              hst:label: Discovery Search Results
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchGridComponent
+              hst:label: Discovery Product Grid - Search
               hst:template: brxdis-results
               hst:xtype: hst.Item
-              hst:parameternames: [dataSource, pageSize, defaultSort, catalogName, statsFields,
-                segment, exclusionFilter, showFacets, showPagination, showSort,
-                showDidYouMean, autoRedirect]
-              hst:parametervalues: ['search', '12', '', '', '', '', '', 'true', 'true', 'true', 'true', 'false']
+              hst:parameternames: [pageSize, defaultSort, catalogName, statsFields,
+                segment, exclusionFilter, showFacets, showPagination, showSort, showDidYouMean,
+                autoRedirect]
+              hst:parametervalues: ['12', '', '', '', '', '', 'true', 'true', 'true',
+                'true', 'false']
       /category-page:
         jcr:primaryType: hst:component
         hst:referencecomponent: hst:abstractpages/base
@@ -68,14 +70,13 @@ definitions:
             hippo:identifier: d6a1f5e4-0e7b-4d2c-b8f6-5b4a2c3d9e7f
             /category-results:
               jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
-              hst:label: Discovery Category Browse
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryGridComponent
+              hst:label: Discovery Product Grid - Category
               hst:template: brxdis-results
               hst:xtype: hst.Item
-              hst:parameternames: [dataSource, document, pageSize, defaultSort, statsFields,
-                segment, exclusionFilter, showFacets, showPagination, showSort,
-                showDidYouMean, autoRedirect]
-              hst:parametervalues: ['category', '', '12', '', '', '', '', 'true', 'true', 'true', 'false', 'false']
+              hst:parameternames: [document, pageSize, defaultSort, statsFields, segment,
+                exclusionFilter, showFacets, showPagination, showSort]
+              hst:parametervalues: ['', '12', '', '', '', '', 'true', 'true', 'true']
       /recommendations-page:
         jcr:primaryType: hst:component
         hst:referencecomponent: hst:abstractpages/base
@@ -83,22 +84,32 @@ definitions:
           jcr:primaryType: hst:containercomponent
           hst:xtype: hst.vBox
           hippo:identifier: 5cf4ab43-df4d-4362-b904-9b3437b6b8a6
-          hst:lastmodified: 2026-03-09T14:24:09.941Z
+          hst:lastmodified: 2026-04-10T15:04:40.861+01:00
           /recommendations:
             jcr:primaryType: hst:containeritemcomponent
-            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
-            hst:template: brxdis-recommendations
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
+            hst:label: Discovery Product Recommendations
+            hst:template: brxdis-recommendations-product
             hst:xtype: hst.Item
-            hst:parameternames: [contextProductId, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
-              document, limit, contextProductPidProperty]
-            hst:parametervalues: ['', 'off', homepage-recommendations, '8', 'brxdis:pid']
+            hst:parameternames: [com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              document, limit]
+            hst:parametervalues: ['off', homepage-recommendations, '8']
           /recommendations1:
             jcr:primaryType: hst:containeritemcomponent
-            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
-            hst:label: Discovery Recommendations
-            hst:parameternames: [contextProductId, document, limit, contextProductPidProperty]
-            hst:parametervalues: ['', test/other-recommendation, '8', 'brxdis:pid']
-            hst:template: brxdis-recommendations
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
+            hst:label: Discovery Product Recommendations
+            hst:parameternames: [document, limit]
+            hst:parametervalues: [test/other-recommendation, '8']
+            hst:template: brxdis-recommendations-product
+            hst:xtype: hst.Item
+          /category-recommendations:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryRecommendationComponent
+            hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-recommendations.svg
+            hst:label: Discovery Category Recommendations
+            hst:parameternames: [showDescription, showPrice, document, limit]
+            hst:parametervalues: ['false', 'true', test/category-rec, '8']
+            hst:template: brxdis-recommendations-category
             hst:xtype: hst.Item
       /specific-category-page:
         jcr:primaryType: hst:component
@@ -112,14 +123,14 @@ definitions:
             hippo:identifier: a9d4b5c3-6e0f-4a1b-d3c4-8e9f0a1b2c3d
             /category-results:
               jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
-              hst:label: Discovery Category Browse
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryGridComponent
+              hst:label: Discovery Product Grid - Category
               hst:template: brxdis-results
               hst:xtype: hst.Item
-              hst:parameternames: [dataSource, document, pageSize, defaultSort, statsFields,
-                segment, exclusionFilter, showFacets, showPagination, showSort,
-                showDidYouMean, autoRedirect]
-              hst:parametervalues: ['category', 'test/cat', '12', '', '', '', '', 'true', 'true', 'true', 'false', 'false']
+              hst:parameternames: [document, pageSize, defaultSort, statsFields, segment,
+                exclusionFilter, showFacets, showPagination, showSort]
+              hst:parametervalues: [test/cat, '12', '', '', '', '', 'true', 'true',
+                'true']
       /product-detail-page:
         jcr:primaryType: hst:component
         hst:referencecomponent: hst:abstractpages/base
@@ -127,21 +138,21 @@ definitions:
           jcr:primaryType: hst:containercomponent
           hst:xtype: hst.vBox
           hippo:identifier: 1c3af6b0-441b-47c4-b7cd-a7c763cbcdac
-          hst:lastmodified: 2026-03-09T14:01:21.846Z
+          hst:lastmodified: 2026-04-10T14:56:36.229+01:00
           /product-detail:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent
+            hst:label: Discovery Product Detail
             hst:template: brxdis-product-detail
             hst:xtype: hst.Item
           /recommendations:
             jcr:primaryType: hst:containeritemcomponent
-            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
-            hst:label: Discovery Recommendations
-            hst:parameternames: [contextProductId, showDescription, showPrice,
-              com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
-              document, limit, contextProductPidProperty, useProductDetailContext]
-            hst:parametervalues: ['', 'off', 'off', 'off', test/fee, '8', 'brxdis:pid', 'true']
-            hst:template: brxdis-recommendations
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
+            hst:label: Discovery Product Recommendations
+            hst:parameternames: [showDescription, showPrice, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              document, limit]
+            hst:parametervalues: ['false', 'false', 'off', test/fee, '8']
+            hst:template: brxdis-recommendations-product
             hst:xtype: hst.Item
           /product-detail1:
             jcr:primaryType: hst:containeritemcomponent
@@ -154,13 +165,13 @@ definitions:
             hst:xtype: hst.Item
           /recommendations1:
             jcr:primaryType: hst:containeritemcomponent
-            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
-            hst:label: Discovery Recommendations
-            hst:parameternames: [contextProductId, showDescription, showPrice,
-              com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
-              document, limit, contextProductPidProperty, useProductDetailContext]
-            hst:parametervalues: ['', 'off', 'on', 'off', test/fee, '8', 'brxdis:pid', 'true']
-            hst:template: brxdis-recommendations
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
+            hst:label: Discovery Product Recommendations
+            hst:parameternames: [showDescription, showPrice, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              document, limit]
+            hst:parametervalues: ['false', 'true', 'off', test/other-recommendation,
+              '8']
+            hst:template: brxdis-recommendations-product
             hst:xtype: hst.Item
       /category-highlight-page:
         jcr:primaryType: hst:component
@@ -172,6 +183,7 @@ definitions:
           /category-highlight:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryHighlightComponent
+            hst:label: Discovery Category Highlight
             hst:template: brxdis-category-highlight
             hst:xtype: hst.Item
             hst:parameternames: [document1, document2, document3, document4]
@@ -186,7 +198,38 @@ definitions:
           /product-highlight:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductHighlightComponent
+            hst:label: Discovery Product Highlight
             hst:template: brxdis-product-highlight
             hst:xtype: hst.Item
             hst:parameternames: [document1, document2, document3, document4]
             hst:parametervalues: [test/product, '', '', '']
+      /category-recommendations-page:
+        jcr:primaryType: hst:component
+        hst:referencecomponent: hst:abstractpages/base
+        /main:
+          jcr:primaryType: hst:containercomponent
+          hst:xtype: hst.vBox
+          hippo:identifier: c3d4e5f6-a7b8-9012-cdef-012345678902
+          /category-recommendations:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryRecommendationComponent
+            hst:label: Discovery Category Recommendations
+            hst:template: brxdis-recommendations-category
+            hst:xtype: hst.Item
+            hst:parameternames: [document, limit, showPrice, showDescription]
+            hst:parametervalues: [test/cat-rec, '8', 'true', 'false']
+      /global-recommendations-page:
+        jcr:primaryType: hst:component
+        hst:referencecomponent: hst:abstractpages/base
+        /main:
+          jcr:primaryType: hst:containercomponent
+          hst:xtype: hst.vBox
+          hippo:identifier: d4e5f6a7-b8c9-0123-def0-123456789013
+          /global-recommendations:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryGlobalRecommendationComponent
+            hst:label: Discovery Recommendations - Trending / Personalized
+            hst:template: brxdis-recommendations-global
+            hst:xtype: hst.Item
+            hst:parameternames: [document, limit, showPrice, showDescription]
+            hst:parametervalues: [test/trending, '8', 'true', 'false']

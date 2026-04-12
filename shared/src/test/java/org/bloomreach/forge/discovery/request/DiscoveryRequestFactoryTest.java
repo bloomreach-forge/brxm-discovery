@@ -114,6 +114,85 @@ class DiscoveryRequestFactoryTest {
         assertTrue(request.queryParameters().stream().noneMatch(parameter -> parameter.name().equals("auth_key")));
     }
 
+    // ---- toV2WidgetType: algorithm type → family type mapping -----------------
+
+    @Test
+    void toV2WidgetType_bestseller_mapsToGlobal() {
+        assertEquals("global", DiscoveryRequestFactory.toV2WidgetType("bestseller"));
+    }
+
+    @Test
+    void toV2WidgetType_trending_product_mapsToGlobal() {
+        assertEquals("global", DiscoveryRequestFactory.toV2WidgetType("trending_product"));
+    }
+
+    @Test
+    void toV2WidgetType_jfy_mapsToPersonalized() {
+        assertEquals("personalized", DiscoveryRequestFactory.toV2WidgetType("jfy"));
+    }
+
+    @Test
+    void toV2WidgetType_past_purchases_mapsToPersonalized() {
+        assertEquals("personalized", DiscoveryRequestFactory.toV2WidgetType("past_purchases"));
+    }
+
+    @Test
+    void toV2WidgetType_recently_viewed_mapsToPersonalized() {
+        assertEquals("personalized", DiscoveryRequestFactory.toV2WidgetType("recently_viewed"));
+    }
+
+    @Test
+    void toV2WidgetType_co_viewed_mapsToItem() {
+        assertEquals("item", DiscoveryRequestFactory.toV2WidgetType("co_viewed"));
+    }
+
+    @Test
+    void toV2WidgetType_co_bought_mapsToItem() {
+        assertEquals("item", DiscoveryRequestFactory.toV2WidgetType("co_bought"));
+    }
+
+    @Test
+    void toV2WidgetType_rt_recs_mapsToItem() {
+        assertEquals("item", DiscoveryRequestFactory.toV2WidgetType("rt_recs"));
+    }
+
+    @Test
+    void toV2WidgetType_mlt_mapsToItem() {
+        assertEquals("item", DiscoveryRequestFactory.toV2WidgetType("mlt"));
+    }
+
+    @Test
+    void toV2WidgetType_search_mapsToKeyword() {
+        assertEquals("keyword", DiscoveryRequestFactory.toV2WidgetType("search"));
+    }
+
+    @Test
+    void toV2WidgetType_category_isIdentity() {
+        assertEquals("category", DiscoveryRequestFactory.toV2WidgetType("category"));
+    }
+
+    @Test
+    void recommendationV2_bestsellerWidget_usesGlobalPath() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-bs");
+        RecQuery query = new RecQuery("bestseller", "widget-2", null, null, null, 8, null, null, "https://page", null, "uid", null);
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals("/api/v2/widgets/global/widget-2", request.path());
+    }
+
+    @Test
+    void recommendationV2_pastPurchasesWidget_usesPersonalizedPath() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-pp");
+        RecQuery query = new RecQuery("past_purchases", "widget-3", null, null, null, 8, null, null, "https://page", null, "uid", null);
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals("/api/v2/widgets/personalized/widget-3", request.path());
+    }
+
+    // ---- DiscoveryRequestSpec.toRelativePath -----------------------------------
+
     @Test
     void toRelativePath_noQueryParams_returnsPathOnly() {
         DiscoveryRequestSpec spec = DiscoveryRequestSpec.builder("/api/v1/core/").build();

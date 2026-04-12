@@ -6,9 +6,15 @@ definitions:
     /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-search-input:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-search-input.ftl
-    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-recommendations:
+    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-recommendations-product:
       jcr:primaryType: hst:template
-      hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations.ftl
+      hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations-product.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-recommendations-category:
+      jcr:primaryType: hst:template
+      hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations-category.ftl
+    /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-recommendations-global:
+      jcr:primaryType: hst:template
+      hst:renderpath: classpath:/freemarker/brxdis/brxdis-recommendations-global.ftl
     /hst:hst/hst:configurations/hst:default/hst:templates/brxdis-product-detail:
       jcr:primaryType: hst:template
       hst:renderpath: classpath:/freemarker/brxdis/brxdis-product-detail.ftl

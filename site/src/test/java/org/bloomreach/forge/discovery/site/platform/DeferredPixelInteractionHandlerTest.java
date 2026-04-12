@@ -72,7 +72,7 @@ class DeferredPixelInteractionHandlerTest {
                 BigDecimal.TEN, "USD", Map.of());
     }
 
-    // ── handleSearchInteraction — no event ────────────────────────────────
+    // ── handleSearchInteraction - no event ────────────────────────────────
 
     @Test
     void handleSearchInteraction_noEventParam_noPixelFired() {
@@ -101,7 +101,7 @@ class DeferredPixelInteractionHandlerTest {
         verifyNoInteractions(pixelService);
     }
 
-    // ── handleSearchInteraction — search-submit ───────────────────────────
+    // ── handleSearchInteraction - search-submit ───────────────────────────
 
     @Test
     void handleSearchInteraction_searchSubmit_firesSearchSubmitEvent() {
@@ -128,7 +128,7 @@ class DeferredPixelInteractionHandlerTest {
         verify(pixelService, times(1)).fireDeferredEvent(any(), any(), any(), any(), any());
     }
 
-    // ── handleSearchInteraction — suggest-click ───────────────────────────
+    // ── handleSearchInteraction - suggest-click ───────────────────────────
 
     @Test
     void handleSearchInteraction_suggestClick_missingAutoQuery_noFire() {
@@ -177,7 +177,7 @@ class DeferredPixelInteractionHandlerTest {
         verify(pixelService, times(1)).fireDeferredEvent(any(), any(), any(), any(), any());
     }
 
-    // ── handleProductInteraction — no / wrong event ───────────────────────
+    // ── handleProductInteraction - no / wrong event ───────────────────────
 
     @Test
     void handleProductInteraction_noEvent_noFire() {
@@ -197,7 +197,7 @@ class DeferredPixelInteractionHandlerTest {
         verifyNoInteractions(pixelService);
     }
 
-    // ── handleProductInteraction — widget-click validation ────────────────
+    // ── handleProductInteraction - widget-click validation ────────────────
 
     @Test
     void handleProductInteraction_widgetClick_missingWidgetId_noFire() {
@@ -235,7 +235,7 @@ class DeferredPixelInteractionHandlerTest {
         verifyNoInteractions(pixelService);
     }
 
-    // ── handleProductInteraction — widget-click fires ─────────────────────
+    // ── handleProductInteraction - widget-click fires ─────────────────────
 
     @Test
     void handleProductInteraction_widgetClick_allParams_firesEvent() {

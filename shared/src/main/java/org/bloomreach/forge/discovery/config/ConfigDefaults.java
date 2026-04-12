@@ -52,7 +52,7 @@ public final class ConfigDefaults {
     /**
      * Resolves the effective base URI for the given environment.
      * Null, or either known default (production or staging), defers to the active environment.
-     * A custom (non-default) URI is returned unchanged — enables private API endpoints.
+     * A custom (non-default) URI is returned unchanged - enables private API endpoints.
      */
     public static String resolveBaseUri(String uri, String environment) {
         if (uri == null || uri.equals(BASE_URI) || uri.equals(STAGING_BASE_URI)) {

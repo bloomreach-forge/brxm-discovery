@@ -7,7 +7,7 @@ import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchMetadata;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
-import org.bloomreach.forge.discovery.site.component.info.DiscoveryResultsComponentInfo;
+import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchGridComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DiscoveryResultsComponentTest {
+class DiscoverySearchGridComponentTest {
 
     @Mock HstRequest request;
     @Mock HstResponse response;
@@ -55,11 +55,11 @@ class DiscoveryResultsComponentTest {
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
     }
 
-    // ── Search mode — blank / null query ───────────────────────────────────
+    // ── Blank / null query ────────────────────────────────────────────────
 
     @Test
-    void searchMode_nullQuery_noServiceCall_setsEmptyState() {
-        buildSearch(null, 12, "").doBeforeRender(request, response);
+    void nullQuery_noServiceCall_setsEmptyState() {
+        build(null, 12, "").doBeforeRender(request, response);
 
         verifyNoInteractions(discoveryService);
         verify(request).setModel("query", "");
@@ -67,72 +67,72 @@ class DiscoveryResultsComponentTest {
     }
 
     @Test
-    void searchMode_blankQuery_noServiceCall() {
-        buildSearch("  ", 12, "").doBeforeRender(request, response);
+    void blankQuery_noServiceCall() {
+        build("  ", 12, "").doBeforeRender(request, response);
 
         verifyNoInteractions(discoveryService);
     }
 
-    // ── Search mode — with query ────────────────────────────────────────────
+    // ── Query with results ─────────────────────────────────────────────────
 
     @Test
-    void searchMode_withQuery_delegatesToServiceWithPageSizeAndSort() {
+    void withQuery_delegatesToServiceWithPageSizeAndSort() {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        buildSearch("shoes", 24, "price asc").doBeforeRender(request, response);
+        build("shoes", 24, "price asc").doBeforeRender(request, response);
 
         verify(discoveryService).search(eq(request),
                 argThat(o -> o.pageSize() == 24 && "price asc".equals(o.sort())));
     }
 
     @Test
-    void searchMode_withQuery_setsProductsModel() {
+    void withQuery_setsProductsModel() {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        buildSearch("shoes", 12, "").doBeforeRender(request, response);
+        build("shoes", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("products", singlePageResult.products());
     }
 
     @Test
-    void searchMode_withQuery_setsPaginationModel() {
+    void withQuery_setsPaginationModel() {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        buildSearch("shoes", 12, "").doBeforeRender(request, response);
+        build("shoes", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel(eq("pagination"), any(PaginationModel.class));
     }
 
     @Test
-    void searchMode_withQuery_setsQueryModel_trimmed() {
+    void withQuery_setsQueryModel_trimmed() {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        buildSearch("  boots  ", 12, "").doBeforeRender(request, response);
+        build("  boots  ", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("query", "boots");
     }
 
     @Test
-    void searchMode_withQuery_setsDataSourceMode() {
+    void withQuery_setsDataSourceModeToSearch() {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        buildSearch("shoes", 12, "").doBeforeRender(request, response);
+        build("shoes", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("dataSourceMode", "search");
     }
 
     @Test
-    void searchMode_withQuery_setsDidYouMean() {
+    void withQuery_setsDidYouMean() {
         var meta = new SearchMetadata(Map.of(), List.of("boot"), null, null, null);
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, meta));
 
-        buildSearch("bott", 12, "").doBeforeRender(request, response);
+        build("bott", 12, "").doBeforeRender(request, response);
 
         verify(request).setModel("didYouMean", List.of("boot"));
     }
@@ -144,7 +144,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(facetedResult, SearchMetadata.empty()));
 
-        buildSearchWith(null, true, false, false).doBeforeRender(request, response);
+        buildWith(null, true, false, false).doBeforeRender(request, response);
 
         verify(request).setModel(eq("facets"), any());
         verify(request).setModel(eq("facetUrls"), any());
@@ -156,7 +156,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(facetedResult, SearchMetadata.empty()));
 
-        buildSearchWith(null, false, false, false).doBeforeRender(request, response);
+        buildWith(null, false, false, false).doBeforeRender(request, response);
 
         verify(request, never()).setModel(eq("facets"), any());
         verify(request, never()).setModel(eq("facetUrls"), any());
@@ -173,7 +173,7 @@ class DiscoveryResultsComponentTest {
         params.put("q", new String[]{"shoes"});
         params.put("filter.color", new String[]{"red"});
 
-        buildSearchWithParams("shoes", params, true).doBeforeRender(request, response);
+        buildWithParams("shoes", params, true).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Map<String, String>>> captor = ArgumentCaptor.forClass(Map.class);
@@ -193,7 +193,7 @@ class DiscoveryResultsComponentTest {
         Map<String, String[]> params = new HashMap<>();
         params.put("q", new String[]{"shoes"});
 
-        buildSearchWithParams("shoes", params, true).doBeforeRender(request, response);
+        buildWithParams("shoes", params, true).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Map<String, String>>> captor = ArgumentCaptor.forClass(Map.class);
@@ -214,7 +214,7 @@ class DiscoveryResultsComponentTest {
         params.put("q", new String[]{"shoes"});
         params.put("page", new String[]{"3"});
 
-        buildSearchWithParams("shoes", params, true).doBeforeRender(request, response);
+        buildWithParams("shoes", params, true).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Map<String, String>>> captor = ArgumentCaptor.forClass(Map.class);
@@ -233,7 +233,7 @@ class DiscoveryResultsComponentTest {
         params.put("q", new String[]{"shoes"});
         params.put("filter.color", new String[]{"red"});
 
-        buildSearchWithParams("shoes", params, true).doBeforeRender(request, response);
+        buildWithParams("shoes", params, true).doBeforeRender(request, response);
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(request).setModel(eq("clearAllFiltersUrl"), captor.capture());
@@ -250,7 +250,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(multiPageResult, SearchMetadata.empty()));
 
-        buildSearchWith(null, false, true, false).doBeforeRender(request, response);
+        buildWith(null, false, true, false).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
@@ -265,7 +265,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(multiPageResult, SearchMetadata.empty()));
 
-        buildSearchWith(null, false, false, false).doBeforeRender(request, response);
+        buildWith(null, false, false, false).doBeforeRender(request, response);
 
         verify(request, never()).setModel(eq("pageUrls"), any());
     }
@@ -277,7 +277,7 @@ class DiscoveryResultsComponentTest {
 
         Map<String, String[]> params = new HashMap<>();
         params.put("q", new String[]{"shoes"});
-        buildSearchWithParams("shoes", params, false, true, false).doBeforeRender(request, response);
+        buildWithParams("shoes", params, false, true, false).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
@@ -293,7 +293,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(multiPageResult, SearchMetadata.empty()));
 
-        buildSearchWith(null, false, true, false).doBeforeRender(request, response);
+        buildWith(null, false, true, false).doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
@@ -310,7 +310,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        buildSearchWith(null, false, false, true).doBeforeRender(request, response);
+        buildWith(null, false, false, true).doBeforeRender(request, response);
 
         verify(request).setModel(eq("sortUrl"), any(String.class));
     }
@@ -323,64 +323,13 @@ class DiscoveryResultsComponentTest {
         Map<String, String[]> params = new HashMap<>();
         params.put("q", new String[]{"shoes"});
         params.put("sort", new String[]{"price+asc"});
-        buildSearchWithParams("shoes", params, false, false, true).doBeforeRender(request, response);
+        buildWithParams("shoes", params, false, false, true).doBeforeRender(request, response);
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(request).setModel(eq("sortUrl"), captor.capture());
 
         assertFalse(captor.getValue().contains("sort="), "Sort URL must strip sort param, got: " + captor.getValue());
         assertTrue(captor.getValue().contains("q=shoes"), "Sort URL must preserve query, got: " + captor.getValue());
-    }
-
-    // ── Category mode ──────────────────────────────────────────────────────
-
-    @Test
-    void categoryMode_withCategoryId_callsBrowse() {
-        when(discoveryService.browse(eq(request), eq("cat-123"), any(SearchRequestOptions.class)))
-                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
-
-        buildCategory("cat-123", 12, "").doBeforeRender(request, response);
-
-        verify(discoveryService).browse(eq(request), eq("cat-123"), any(SearchRequestOptions.class));
-    }
-
-    @Test
-    void categoryMode_noCategoryId_noServiceCall() {
-        buildCategory(null, 12, "").doBeforeRender(request, response);
-
-        verifyNoInteractions(discoveryService);
-        verify(request).setModel("categoryId", "");
-        verify(request).setModel("products", null);
-    }
-
-    @Test
-    void categoryMode_noCategoryId_editMode_setsWarning() {
-        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
-
-        buildCategory(null, 12, "").doBeforeRender(request, response);
-
-        verify(request).setAttribute(eq("brxdis_warning"), anyString());
-    }
-
-    @Test
-    void categoryMode_setsDataSourceMode() {
-        when(discoveryService.browse(eq(request), eq("cat-123"), any(SearchRequestOptions.class)))
-                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
-
-        buildCategory("cat-123", 12, "").doBeforeRender(request, response);
-
-        verify(request).setModel("dataSourceMode", "category");
-    }
-
-    @Test
-    void categoryMode_setsDisplayNameFromMetadata() {
-        var meta = new SearchMetadata(Map.of(), null, null, null, null, null, "Men's Shoes");
-        when(discoveryService.browse(eq(request), eq("cat-123"), any(SearchRequestOptions.class)))
-                .thenReturn(new SearchResponse(singlePageResult, meta));
-
-        buildCategory("cat-123", 12, "").doBeforeRender(request, response);
-
-        verify(request).setModel("displayName", "Men's Shoes");
     }
 
     // ── Auto-redirect ──────────────────────────────────────────────────────
@@ -391,7 +340,7 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, meta));
 
-        buildSearchWithAutoRedirect("shoes", true).doBeforeRender(request, response);
+        buildWithAutoRedirect("shoes", true).doBeforeRender(request, response);
 
         verify(response).sendRedirect("https://example.com/sale");
     }
@@ -402,59 +351,48 @@ class DiscoveryResultsComponentTest {
         when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, meta));
 
-        buildSearchWithAutoRedirect("shoes", false).doBeforeRender(request, response);
+        buildWithAutoRedirect("shoes", false).doBeforeRender(request, response);
 
         verify(response, never()).sendRedirect(any());
         verify(request).setModel("redirectUrl", "https://example.com/sale");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── Helpers ────────────────────────────────────────────────────────────
 
-    private TestableResultsComponent buildSearch(String query, int pageSize, String sort) {
-        return new TestableResultsComponent(discoveryService, "search", query, null,
-                pageSize, sort, true, true, true, false, Map.of());
+    private TestableSearchGridComponent build(String query, int pageSize, String sort) {
+        return new TestableSearchGridComponent(discoveryService, query, pageSize, sort,
+                true, true, true, false, Map.of());
     }
 
-    private TestableResultsComponent buildSearchWith(String query,
+    private TestableSearchGridComponent buildWith(String query,
             boolean showFacets, boolean showPagination, boolean showSort) {
-        return new TestableResultsComponent(discoveryService, "search",
-                query != null ? query : "shoes", null,
+        return new TestableSearchGridComponent(discoveryService,
+                query != null ? query : "shoes",
                 12, "", showFacets, showPagination, showSort, false, Map.of());
     }
 
-    private TestableResultsComponent buildSearchWithParams(String query,
+    private TestableSearchGridComponent buildWithParams(String query,
             Map<String, String[]> params, boolean showFacets) {
-        return buildSearchWithParams(query, params, showFacets, false, false);
+        return buildWithParams(query, params, showFacets, false, false);
     }
 
-    private TestableResultsComponent buildSearchWithParams(String query,
+    private TestableSearchGridComponent buildWithParams(String query,
             Map<String, String[]> params, boolean showFacets, boolean showPagination, boolean showSort) {
-        return new TestableResultsComponent(discoveryService, "search", query, null,
+        return new TestableSearchGridComponent(discoveryService, query,
                 12, "", showFacets, showPagination, showSort, false, params);
     }
 
-    private TestableResultsComponent buildSearchWithAutoRedirect(String query, boolean autoRedirect) {
-        return new TestableResultsComponent(discoveryService, "search", query, null,
+    private TestableSearchGridComponent buildWithAutoRedirect(String query, boolean autoRedirect) {
+        return new TestableSearchGridComponent(discoveryService, query,
                 12, "", true, true, true, autoRedirect, Map.of());
     }
 
-    private TestableResultsComponent buildCategory(String categoryId, int pageSize, String sort) {
-        return new TestableResultsComponent(discoveryService, "category", null, categoryId,
-                pageSize, sort, true, true, true, false, Map.of());
-    }
+    // ── Testable subclass ──────────────────────────────────────────────────
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Testable subclass
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private static class TestableResultsComponent extends DiscoveryResultsComponent {
+    private static class TestableSearchGridComponent extends DiscoverySearchGridComponent {
 
         private final HstDiscoveryService service;
-        private final String dataSource;
         private final String query;
-        private final String categoryId;
         private final int pageSize;
         private final String sort;
         private final boolean showFacets;
@@ -463,14 +401,11 @@ class DiscoveryResultsComponentTest {
         private final boolean autoRedirect;
         private final Map<String, String[]> servletParams;
 
-        TestableResultsComponent(HstDiscoveryService service, String dataSource,
-                String query, String categoryId, int pageSize, String sort,
-                boolean showFacets, boolean showPagination, boolean showSort,
-                boolean autoRedirect, Map<String, String[]> servletParams) {
+        TestableSearchGridComponent(HstDiscoveryService service, String query,
+                int pageSize, String sort, boolean showFacets, boolean showPagination,
+                boolean showSort, boolean autoRedirect, Map<String, String[]> servletParams) {
             this.service = service;
-            this.dataSource = dataSource;
             this.query = query;
-            this.categoryId = categoryId;
             this.pageSize = pageSize;
             this.sort = sort;
             this.showFacets = showFacets;
@@ -487,28 +422,25 @@ class DiscoveryResultsComponentTest {
         }
 
         @Override
-        protected DiscoveryResultsComponentInfo getComponentParametersInfo(HstRequest request) {
-            return new DiscoveryResultsComponentInfo() {
-                @Override public String getDataSource()        { return dataSource; }
-                @Override public String getDocument()         { return ""; }
-                @Override public int getPageSize()            { return pageSize; }
-                @Override public String getDefaultSort()      { return sort; }
-                @Override public String getCatalogName()      { return ""; }
-                @Override public String getStatsFields()      { return ""; }
-                @Override public String getSegment()          { return ""; }
-                @Override public String getExclusionFilter()  { return ""; }
-                @Override public boolean isShowFacets()       { return showFacets; }
-                @Override public boolean isShowPagination()   { return showPagination; }
-                @Override public boolean isShowSort()         { return showSort; }
-                @Override public boolean isShowDidYouMean()   { return true; }
-                @Override public boolean isAutoRedirect()     { return autoRedirect; }
+        protected DiscoverySearchGridComponentInfo getComponentParametersInfo(HstRequest request) {
+            return new DiscoverySearchGridComponentInfo() {
+                @Override public int getPageSize()           { return pageSize; }
+                @Override public String getDefaultSort()     { return sort; }
+                @Override public String getCatalogName()     { return ""; }
+                @Override public String getStatsFields()     { return ""; }
+                @Override public String getSegment()         { return ""; }
+                @Override public String getExclusionFilter() { return ""; }
+                @Override public boolean isShowFacets()      { return showFacets; }
+                @Override public boolean isShowPagination()  { return showPagination; }
+                @Override public boolean isShowSort()        { return showSort; }
+                @Override public boolean isShowDidYouMean()  { return true; }
+                @Override public boolean isAutoRedirect()    { return autoRedirect; }
             };
         }
 
         @Override
         public String getPublicRequestParameter(HstRequest request, String name) {
             if ("q".equals(name)) return query;
-            if ("category".equals(name)) return categoryId;
             return null;
         }
 

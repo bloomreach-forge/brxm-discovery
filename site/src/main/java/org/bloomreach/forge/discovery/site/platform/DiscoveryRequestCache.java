@@ -11,7 +11,7 @@ import java.util.Optional;
  * <p>
  * Uses {@link HstRequestContext#setAttribute} so attributes are shared across all sibling
  * HST components in a single page render. {@code HstRequest.setAttribute} is namespace-scoped
- * per component window and is NOT visible to siblings — making it unsuitable here.
+ * per component window and is NOT visible to siblings - making it unsuitable here.
  */
 public final class DiscoveryRequestCache {
 
@@ -54,7 +54,7 @@ public final class DiscoveryRequestCache {
         HstRequestContext ctx = request.getRequestContext();
         if (ctx == null) {
             throw new IllegalStateException(
-                    "HstRequestContext is null — cache methods must only be called within an active HST request");
+                    "HstRequestContext is null - cache methods must only be called within an active HST request");
         }
         return ctx;
     }

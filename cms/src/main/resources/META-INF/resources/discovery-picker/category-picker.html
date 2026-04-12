@@ -29,7 +29,7 @@
       var origin = window.location.origin;
       var frames = window.parent.frames;
       for (var i = 0; i < frames.length; i++) {
-        try { frames[i].postMessage(msg, origin); } catch (e) { /* cross-origin frame — skip */ }
+        try { frames[i].postMessage(msg, origin); } catch (e) { /* cross-origin frame - skip */ }
       }
     }
   });

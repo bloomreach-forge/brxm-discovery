@@ -81,6 +81,25 @@ class DiscoveryCategoryHighlightComponentTest {
         assertEquals(1, captor.getValue().size());
     }
 
+    @Test
+    void categoryBeans_isNullPaddedToFourSlots() {
+        DiscoveryCategoryBean bean = mock(DiscoveryCategoryBean.class);
+        when(bean.getCategoryId()).thenReturn("cat1");
+        when(bean.getDisplayName()).thenReturn("Cat");
+        when(bean.getProductPreviewCount()).thenReturn(0);
+        new TestableCategoryHighlightComponent(bean).doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<DiscoveryCategoryBean>> captor = ArgumentCaptor.forClass(List.class);
+        verify(request).setModel(eq(DiscoveryModelKeys.CATEGORY_BEANS), captor.capture());
+        List<DiscoveryCategoryBean> beans = captor.getValue();
+        assertEquals(4, beans.size());
+        assertNotNull(beans.get(0));
+        assertNull(beans.get(1));
+        assertNull(beans.get(2));
+        assertNull(beans.get(3));
+    }
+
     // ── previewProducts tests ─────────────────────────────────────────────────
 
     @Test

@@ -6,7 +6,7 @@ This guide walks through every step from an empty brXM 16.7.0 project to a worki
 
 ---
 
-## Step 1 — Add dependencies
+## Step 1 - Add dependencies
 
 In your root `pom.xml` `<dependencyManagement>`:
 
@@ -48,7 +48,7 @@ Bloomreach Maven repositories (add to `pom.xml` or `settings.xml` if not already
 
 ---
 
-## Step 2 — Enable the CRISP broker
+## Step 2 - Enable the CRISP broker
 
 In your **site** webapp `hst-config.properties`:
 
@@ -63,7 +63,7 @@ The plugin bootstraps the generic CRISP resource spaces (`discoverySearchAPI`, `
 
 ---
 
-## Step 3 — Configure credentials
+## Step 3 - Configure credentials
 
 For local development, the quickest path is JVM system properties passed to Cargo or your app server:
 
@@ -74,13 +74,13 @@ mvn -P cargo.run cargo:run \
   -Dbrxdis.apiKey=YOUR_API_KEY
 ```
 
-For production, use environment variables (`BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`) or the global Discovery config node. If different channels need different account/domain values or env-var names for secrets, use the channel-level `DiscoveryChannelInfo` fields in `hst:channelinfo` — see [06-credential-injection.md](06-credential-injection.md) for deployment patterns.
+For production, use environment variables (`BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY`, `BRXDIS_API_KEY`) or the global Discovery config node. If different channels need different account/domain values or env-var names for secrets, use the channel-level `DiscoveryChannelInfo` fields in `hst:channelinfo` - see [06-credential-injection.md](06-credential-injection.md) for deployment patterns.
 
 ---
 
-## Step 4 — Create the Discovery config node (optional)
+## Step 4 - Create the Discovery config node (optional)
 
-Skip this step if you supplied all credentials via env vars / system properties in Step 3 — the plugin will run without a JCR node.
+Skip this step if you supplied all credentials via env vars / system properties in Step 3 - the plugin will run without a JCR node.
 
 To store credentials or structural config in the CMS, create the global config node in your HCM config (place in your application or development module):
 
@@ -95,13 +95,13 @@ definitions:
       brxdis:defaultPageSize: 12
 ```
 
-Leave `brxdis:apiKey` / `brxdis:authKey` blank and inject secrets via env vars. The node path is fixed — all channels share it. No mount parameter is required.
+Leave `brxdis:apiKey` / `brxdis:authKey` blank and inject secrets via env vars. The node path is fixed - all channels share it. No mount parameter is required.
 
 ---
 
-## Step 5 — Wire a search page
+## Step 5 - Wire a search page
 
-`DiscoveryResultsComponent` is the single component for search results pages — it handles data fetching, facets, pagination, and sort all in one. No additional view components are needed.
+`DiscoveryResultsComponent` is the single component for search results pages - it handles data fetching, facets, pagination, and sort all in one. No additional view components are needed.
 
 ### `pages.yaml` (workspace page composition)
 
@@ -126,7 +126,7 @@ definitions:
               hst:parametervalues: [search, 12]
 ```
 
-That's it — one component, one template. The bundled `brxdis-results` template renders the search form, facet sidebar, product grid, and pagination in one pass.
+That's it - one component, one template. The bundled `brxdis-results` template renders the search form, facet sidebar, product grid, and pagination in one pass.
 
 ### Optional: add a standalone search bar to the header
 
@@ -144,7 +144,7 @@ Place `DiscoverySearchInputComponent` in any zone (header, sidebar) to provide a
               hst:parametervalues: [/search, 'Search products...']
 ```
 
-The search bar is independent — it submits to the `resultsPage` path where `DiscoveryResultsComponent` runs the actual search.
+The search bar is independent - it submits to the `resultsPage` path where `DiscoveryResultsComponent` runs the actual search.
 
 ### `sitemap.yaml`
 
@@ -159,7 +159,7 @@ definitions:
 
 ---
 
-## Step 6 — Verify
+## Step 6 - Verify
 
 Start the site webapp and open:
 
@@ -177,7 +177,7 @@ brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 ```
 
 **If the product grid is empty but no error is shown**, check:
-1. Credentials are set — add `-Dbrxdis.accountId=... -Dbrxdis.domainKey=... -Dbrxdis.apiKey=...` to your startup command.
+1. Credentials are set - add `-Dbrxdis.accountId=... -Dbrxdis.domainKey=... -Dbrxdis.apiKey=...` to your startup command.
 2. If using JCR-based config: verify the node exists at `/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig`.
 
 **If you see a `ConfigurationException: CRISP ResourceServiceBroker not found`**, `crisp.broker.registerService = true` is missing from the **site** webapp `hst-config.properties`.
@@ -186,7 +186,7 @@ brxm-discovery: Registered JCR observation listener on '/hippo:configuration'
 
 **If you see `No resource space for 'discoverySearchAPI'`**, the site webapp is still using stale CRISP resolver wiring from an older addon snapshot. Reinstall the addon locally, rebuild the host project, and restart the site webapp.
 
-**For the Page Model API** (headless delivery), call `http://localhost:8080/site/search?q=shirt` with `Accept: application/json` — the response will include `products`, `facets`, `pagination`, `facetUrls`, `pageUrls`, and `sortUrl` in the JSON model.
+**For the Page Model API** (headless delivery), call `http://localhost:8080/site/search?q=shirt` with `Accept: application/json` - the response will include `products`, `facets`, `pagination`, `facetUrls`, `pageUrls`, and `sortUrl` in the JSON model.
 
 ---
 

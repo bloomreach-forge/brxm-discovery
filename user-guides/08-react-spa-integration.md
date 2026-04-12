@@ -56,10 +56,10 @@ The plugin ships two data-fetching components for search and commerce pages:
 
 | Component class | Template | Purpose |
 |---|---|---|
-| `DiscoveryResultsComponent` | `brxdis-results` | Search results **and** category browse pages. One component handles both modes via the `Data source` parameter (`search` or `category`). Includes facets, pagination, and sort — all pre-built server-side. |
+| `DiscoveryResultsComponent` | `brxdis-results` | Search results **and** category browse pages. One component handles both modes via the `Data source` parameter (`search` or `category`). Includes facets, pagination, and sort - all pre-built server-side. |
 | `DiscoverySearchInputComponent` | `brxdis-search-input` | Standalone search bar placed in header, sidebar, or any zone. Handles autosuggest. Delegates actual search to a `DiscoveryResultsComponent` on the results page. |
 | `DiscoveryRecommendationComponent` | `brxdis-recommendations` | Recommendation widget (v1 or v2 Pathways API). |
-| `DiscoveryProductDetailComponent` | `brxdis-product-detail` | Product detail page — fetches one product by PID. |
+| `DiscoveryProductDetailComponent` | `brxdis-product-detail` | Product detail page - fetches one product by PID. |
 | `DiscoveryProductHighlightComponent` | `brxdis-product-highlight` | Up to 4 curated product slots (editorial, not algorithmic). |
 | `DiscoveryCategoryHighlightComponent` | `brxdis-category-highlight` | Up to 4 curated category tiles with optional product previews. |
 
@@ -137,7 +137,7 @@ export interface AutosuggestResult {
 // ── Component model shapes ────────────────────────────────────────────────────
 
 export interface ResultsComponentModels {
-  /** "search" or "category" — driven by the Data source component param */
+  /** "search" or "category" - driven by the Data source component param */
   dataSourceMode: 'search' | 'category';
 
   // ── Search mode fields ────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ export interface ResultsComponentModels {
    *  Page 0 URL omits the page param. Null when showPagination is disabled. */
   pageUrls: Record<number, string> | null;
 
-  /** Base URL for sort switching — strip existing sort, then append &sort=value.
+  /** Base URL for sort switching - strip existing sort, then append &sort=value.
    *  Null when showSort is disabled. */
   sortUrl: string | null;
 
@@ -204,13 +204,13 @@ export interface RecommendationModels {
 export interface ProductDetailModels {
   product: ProductSummary | null;
   pid: string;               // resolved PID (empty string when not found)
-  document: unknown | null;  // CMS-internal document bean — do not use in SPA code; use `pid` instead
+  document: unknown | null;  // CMS-internal document bean - do not use in SPA code; use `pid` instead
   editMode: boolean;
 }
 
 export interface ProductHighlightModels {
   products: (ProductSummary | null)[];  // up to 4 slots; null = slot not filled
-  productBeans: unknown[];              // CMS-internal document beans — do not use in SPA code
+  productBeans: unknown[];              // CMS-internal document beans - do not use in SPA code
   editMode: boolean;
 }
 
@@ -244,7 +244,7 @@ export interface CategoryHighlightModels {
 /site/search?q=shirt&page=1&sort=price+asc&filter.brand=Nike
 ```
 
-> **Note:** You rarely need to build these URLs manually — the server provides pre-built `facetUrls`, `pageUrls`, and `sortUrl` in the models. Just render `<a href={url}>`.
+> **Note:** You rarely need to build these URLs manually - the server provides pre-built `facetUrls`, `pageUrls`, and `sortUrl` in the models. Just render `<a href={url}>`.
 
 ### Category browse (`DiscoveryResultsComponent` with `dataSource=category`)
 
@@ -282,10 +282,10 @@ export interface CategoryHighlightModels {
 
 ### `DiscoveryResultsComponent` → `ResultsComponentModels`
 
-The main workhorse for both search and category pages. It fetches data from Discovery and pre-builds all navigation URLs server-side — your React code just renders `<a href={url}>`.
+The main workhorse for both search and category pages. It fetches data from Discovery and pre-builds all navigation URLs server-side - your React code just renders `<a href={url}>`.
 
 ```tsx
-// SearchResults.tsx — works for both search and category pages
+// SearchResults.tsx - works for both search and category pages
 import type { BrComponentContext } from '@bloomreach/react-sdk';
 import type { ResultsComponentModels } from './discovery.types';
 
@@ -362,12 +362,12 @@ export function SearchResults({ component }: BrComponentContext) {
 
 ---
 
-### Pre-built URLs — facets, pagination, sort
+### Pre-built URLs - facets, pagination, sort
 
 All navigation URLs are computed server-side and passed as ready-to-use strings. **No URL manipulation is needed in the browser.**
 
 ```tsx
-// FacetSidebar.tsx — facetUrls are ready to use as href
+// FacetSidebar.tsx - facetUrls are ready to use as href
 function FacetSidebar({ facets, facetUrls, activeFacets, clearAllUrl }: {
   facets: Record<string, Facet>;
   facetUrls: Record<string, Record<string, string>>;
@@ -405,7 +405,7 @@ function FacetSidebar({ facets, facetUrls, activeFacets, clearAllUrl }: {
 ```
 
 ```tsx
-// Pagination.tsx — pageUrls are ready to use
+// Pagination.tsx - pageUrls are ready to use
 function Pagination({ currentPage, totalPages, pageUrls }: {
   currentPage: number;
   totalPages: number;
@@ -428,7 +428,7 @@ function Pagination({ currentPage, totalPages, pageUrls }: {
 ```
 
 ```tsx
-// SortBar.tsx — sortUrl is the base; append &sort=value
+// SortBar.tsx - sortUrl is the base; append &sort=value
 const sortOptions = [
   { label: 'Relevance', value: '' },
   { label: 'Price: low to high', value: 'price asc' },
@@ -454,7 +454,7 @@ function SortBar({ sortUrl }: { sortUrl: string }) {
 
 ### `DiscoverySearchInputComponent` → `SearchInputModels`
 
-A standalone search bar placed in any page zone (header, sidebar). It handles autosuggest suggestions but **does not render search results itself** — it submits to the page containing `DiscoveryResultsComponent`.
+A standalone search bar placed in any page zone (header, sidebar). It handles autosuggest suggestions but **does not render search results itself** - it submits to the page containing `DiscoveryResultsComponent`.
 
 ```tsx
 // SearchBar.tsx
@@ -557,7 +557,7 @@ export function RecommendationsCarousel({ component }: BrComponentContext) {
 3. Product Detail component on the same page (when `Link to Product Detail on page` is checked)
 4. Page content bean `brxdis:pid` property
 
-For a PDP "Similar Items" carousel, check `Link to Product Detail on page` in the Channel Manager — the recommendation component will automatically use the PID from the Product Detail component on the same page.
+For a PDP "Similar Items" carousel, check `Link to Product Detail on page` in the Channel Manager - the recommendation component will automatically use the PID from the Product Detail component on the same page.
 
 ---
 
@@ -597,9 +597,9 @@ export function ProductDetail({ component }: BrComponentContext) {
 ```
 
 **PID resolution order (server-side):**
-1. `DiscoveryProductDetailDocument` configured on the component (document picker in Channel Manager) — wins over URL param
+1. `DiscoveryProductDetailDocument` configured on the component (document picker in Channel Manager) - wins over URL param
 2. `pid` URL param
-3. Page content bean property (advanced — requires `Product ID field name` component param)
+3. Page content bean property (advanced - requires `Product ID field name` component param)
 
 For a URL-driven PDP (most common), leave the document param empty and pass `?pid=<id>` in the URL.
 
@@ -634,7 +634,7 @@ export function ProductHighlight({ component }: BrComponentContext) {
 
 **Notes:**
 - `products` is always an array of up to 4 items. Unfilled slots are `null`.
-- Products are fetched individually at render time by PID — no search results involved.
+- Products are fetched individually at render time by PID - no search results involved.
 
 ---
 
@@ -675,7 +675,7 @@ export function CategoryHighlight({ component }: BrComponentContext) {
 **Notes:**
 - `displayName` is an optional editorial label; fall back to `categoryId` if blank.
 - `previewProducts` is keyed by `categoryId`. Empty when all `productPreviewCount` values are `0`.
-- Preview products are served from a JVM-level cache with a ~5-minute TTL — not fetched live on every request.
+- Preview products are served from a JVM-level cache with a ~5-minute TTL - not fetched live on every request.
 - Category page URL uses `?category=` (not `?categoryId=`).
 
 ---
@@ -688,7 +688,7 @@ When `Statistics fields` is set to `price` on a Results component, `stats.price`
 const priceStats = models.stats?.['price'] as FieldStats | undefined;
 ```
 
-Pass the selected range back as a filter. Discovery uses `fq=price:[min TO max]` syntax — the plugin handles the conversion automatically when you pass `filter.price=100:500` (colon-separated range):
+Pass the selected range back as a filter. Discovery uses `fq=price:[min TO max]` syntax - the plugin handles the conversion automatically when you pass `filter.price=100:500` (colon-separated range):
 
 ```ts
 params.set('filter.price', `${minPrice}:${maxPrice}`);
@@ -722,7 +722,7 @@ export function SearchPage() {
 }
 ```
 
-The `DiscoveryResultsComponent` is self-contained — it owns data fetching, facet rendering, pagination, and sort. No sibling components are required.
+The `DiscoveryResultsComponent` is self-contained - it owns data fetching, facet rendering, pagination, and sort. No sibling components are required.
 
 ---
 
@@ -752,18 +752,18 @@ const { campaign } = component.getModels<ResultsComponentModels>();
 )}
 ```
 
-`campaign.htmlText` may contain HTML — sanitize with DOMPurify before setting innerHTML.
+`campaign.htmlText` may contain HTML - sanitize with DOMPurify before setting innerHTML.
 
 ---
 
 ## Component parameter reference
 
-Set in Channel Manager. These drive server-side behaviour — they are **not** in `getModels()`.
+Set in Channel Manager. These drive server-side behaviour - they are **not** in `getModels()`.
 
 | Component | Parameter | Default | Effect |
 |---|---|---|---|
 | `DiscoveryResultsComponent` | `dataSource` | `search` | `search` or `category` mode |
-| | `document` | — | Category Document picker (category mode only) |
+| | `document` | - | Category Document picker (category mode only) |
 | | `pageSize` | `12` | Results per page |
 | | `defaultSort` | `""` | Default sort expression (URL `sort` overrides) |
 | | `catalogName` | `""` | Discovery catalog for non-product catalogs |
@@ -781,13 +781,13 @@ Set in Channel Manager. These drive server-side behaviour — they are **not** i
 | | `suggestionsLimit` | `5` | Max suggestions per group |
 | | `minChars` | `2` | Min characters before suggestions are fetched |
 | | `debounceMs` | `250` | Debounce delay for suggestion requests |
-| `DiscoveryRecommendationComponent` | `document` | — | Recommendation Document picker |
+| `DiscoveryRecommendationComponent` | `document` | - | Recommendation Document picker |
 | | `limit` | `8` | Max recommended products |
 | | `showPrice` | `true` | Template shows product price |
 | | `showDescription` | `false` | Template shows product description |
 | | `useProductDetailContext` | `false` | Read PID from the Product Detail component on the same page |
 | | `contextProductId` | `""` | Explicit PID override |
-| `DiscoveryProductDetailComponent` | `document` | — | Product Detail Document picker |
+| `DiscoveryProductDetailComponent` | `document` | - | Product Detail Document picker |
 | | `productUrlParam` | `pid` | URL param name for the product ID |
 | `DiscoveryProductHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Product Detail Document pickers |
 | `DiscoveryCategoryHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Category Document pickers |
@@ -802,7 +802,7 @@ Set in Channel Manager. These drive server-side behaviour — they are **not** i
 | No category configured (category mode) | `products: null`, `pagination: {total:0}` |
 | No widget configured on recommendations | `products: []`, `widgetId: ""` |
 | No PID resolved on product detail | `product: null`, `pid: ""` |
-| No documents on ProductHighlight | `products: [null, null, null, null]` — all slots empty |
+| No documents on ProductHighlight | `products: [null, null, null, null]` - all slots empty |
 | No documents on CategoryHighlight | `categories: []`, `previewProducts: {}` |
 | CategoryHighlight with `productPreviewCount=0` | `categories` populated, `previewProducts: {}` |
 | Discovery API unreachable | `SearchException` thrown server-side → component renders error page |

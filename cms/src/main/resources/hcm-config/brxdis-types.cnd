@@ -26,16 +26,32 @@
   - brxdis:defaultSort      (String)
 
 /**
- * brxdis:recommendationDocument
+ * Recommendation documents (wizard-driven).
  *
- * A Discovery Recommendation document.
- * brxdis:widgetId is populated by the Open UI widget picker.
- * brxdis:displayName is a human-readable label for editors.
+ * All configuration is stored as a JSON string in brxdis:config, authored by the
+ * type-specific recommendation wizard Open UI extension. Schema:
+ *   { widgetId, widgetName, widgetType,
+ *     contextProductId, contextProductName,   - product types only
+ *     contextCategoryId, contextCategoryName  - category type only }
+ * Null context fields mean "fall back to URL param at runtime" (?pid / ?category).
  */
-[brxdis:recommendationDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+[brxdis:productRecommendationDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
   orderable
   - brxdis:displayName (String)
-  - brxdis:widgetId    (String)
+  - brxdis:config      (String)
+  - brxdis:_preview    (String)
+
+[brxdis:categoryRecommendationDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+  orderable
+  - brxdis:displayName (String)
+  - brxdis:config      (String)
+  - brxdis:_preview    (String)
+
+[brxdis:globalRecommendationDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+  orderable
+  - brxdis:displayName (String)
+  - brxdis:config      (String)
+  - brxdis:_preview    (String)
 
 /**
  * brxdis:categoryDocument
@@ -61,3 +77,4 @@
   orderable
   - brxdis:displayName (String)
   - brxdis:productId   (String)
+  - brxdis:_preview    (String)

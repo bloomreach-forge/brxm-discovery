@@ -149,7 +149,7 @@ class DiscoveryRuntimeContextFactoryTest {
         Cookie brUid = new Cookie("_br_uid_2", "uid-abc");
         when(request.getCookies()).thenReturn(new Cookie[]{brUid});
 
-        // Two calls to get() on the same request — the second hits the HstRequestContext cache,
+        // Two calls to get() on the same request - the second hits the HstRequestContext cache,
         // so getCookies() should only be called once.
         factory.get(request);
         factory.get(request);

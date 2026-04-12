@@ -34,7 +34,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
 
         String pid = getPublicRequestParameter(request, info.getProductUrlParam());
 
-        // Stage 2 — Document bean (picker-driven; overrides only when the document has a non-blank productId)
+        // Stage 2 - Document bean (picker-driven; overrides only when the document has a non-blank productId)
         if (document != null) {
             String docPid = document.getProductId();
             if (docPid != null && !docPid.isBlank()) {
@@ -42,7 +42,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             }
         }
 
-        // Stage 3 — Page content bean property (auto-detection from document)
+        // Stage 3 - Page content bean property (auto-detection from document)
         if (pid == null || pid.isBlank()) {
             pid = resolvePidFromBean(request, info);
         }
@@ -76,7 +76,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
     }
 
     /**
-     * Hook for testability — extracts PID from the page content bean's JCR property.
+     * Hook for testability - extracts PID from the page content bean's JCR property.
      * Override in tests to avoid mocking HstRequestContext + HippoBean chains.
      */
     protected String resolvePidFromBean(HstRequest request, DiscoveryProductDetailComponentInfo info) {

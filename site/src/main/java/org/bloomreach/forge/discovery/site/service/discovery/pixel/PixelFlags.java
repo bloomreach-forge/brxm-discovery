@@ -10,22 +10,22 @@ public record PixelFlags(boolean enabled, boolean testData, boolean debug, Strin
 
     public static final PixelFlags DISABLED = new PixelFlags(false, false, false, "US");
 
-    /** Env/system kill switch — defaults to {@code true}. Set {@code brxdis.pixel.envEnabled=false} to disable globally. */
+    /** Env/system kill switch - defaults to {@code true}. Set {@code brxdis.pixel.envEnabled=false} to disable globally. */
     public static boolean envEnabled() {
         return Boolean.parseBoolean(System.getProperty("brxdis.pixel.envEnabled", "true"));
     }
 
-    /** Env/system test_data flag — defaults to {@code false}. Set {@code brxdis.pixel.testData=true} for non-production traffic. */
+    /** Env/system test_data flag - defaults to {@code false}. Set {@code brxdis.pixel.testData=true} for non-production traffic. */
     public static boolean envTestData() {
         return Boolean.parseBoolean(System.getProperty("brxdis.pixel.testData", "false"));
     }
 
-    /** Env/system debug flag — defaults to {@code false}. Set {@code brxdis.pixel.debug=true} to append debug param. */
+    /** Env/system debug flag - defaults to {@code false}. Set {@code brxdis.pixel.debug=true} to append debug param. */
     public static boolean envDebug() {
         return Boolean.parseBoolean(System.getProperty("brxdis.pixel.debug", "false"));
     }
 
-    /** Pixel region — returns {@code "EU"} or {@code "US"} (default). Set {@code brxdis.pixel.region=EU} for EU endpoint. */
+    /** Pixel region - returns {@code "EU"} or {@code "US"} (default). Set {@code brxdis.pixel.region=EU} for EU endpoint. */
     public static String pixelRegion() {
         return System.getProperty("brxdis.pixel.region", "US").toUpperCase();
     }

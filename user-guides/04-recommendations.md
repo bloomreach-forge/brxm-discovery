@@ -4,10 +4,42 @@
 
 `DiscoveryRecommendationComponent` calls the Discovery Recommendations API via CRISP and exposes a `products` list for your template. It supports both:
 
-- **v1 API** (`discoverySearchAPI`) — used when `authKey` is not configured
-- **v2 Pathways API** (`discoveryPathwaysAPI`) — used automatically when `authKey` is configured
+- **v1 API** (`discoverySearchAPI`) - used when `authKey` is not configured
+- **v2 Pathways API** (`discoveryPathwaysAPI`) - used automatically when `authKey` is configured
 
-Version selection is automatic — no configuration flag needed. Configure `authKey` through `BRXDIS_AUTH_KEY`, `-Dbrxdis.authKey`, `brxdis:authKey` in the global config node, or a channel-level `discoveryAuthKeyEnvVar` override to enable v2.
+Version selection is automatic - no configuration flag needed. Configure `authKey` through `BRXDIS_AUTH_KEY`, `-Dbrxdis.authKey`, `brxdis:authKey` in the global config node, or a channel-level `discoveryAuthKeyEnvVar` override to enable v2.
+
+---
+
+## Recommendation document types
+
+The plugin ships three JCR document types for managing recommendation configurations. Each is authored with a **3-step wizard** Open UI extension and stores all configuration as a JSON string in `brxdis:config`.
+
+| Document type | CND name | Wizard extension | Widget types |
+|---|---|---|---|
+| Discovery Product Recommendation | `brxdis:productRecommendationDocument` | `discoveryProductRecommendationWizard` | `co_viewed`, `co_bought`, `rt_recs`, `mlt` |
+| Discovery Category Recommendation | `brxdis:categoryRecommendationDocument` | `discoveryCategoryRecommendationWizard` | `category` |
+| Discovery Global/Personalized Recommendation | `brxdis:globalRecommendationDocument` | `discoveryGlobalRecommendationWizard` | `bestseller`, `trending_product`, `jfy`, `past_purchases`, `recently_viewed` |
+
+### `brxdis:config` JSON schema
+
+```json
+{
+  "widgetId":           "similar-items",
+  "widgetName":         "Similar Items",
+  "widgetType":         "item",
+  "contextProductId":   "SKU-123",
+  "contextProductName": "Classic T-Shirt",
+  "contextCategoryId":  null,
+  "contextCategoryName": null
+}
+```
+
+- `contextProductId` / `contextProductName` are present on product-type documents only. A `null` value means "fall back to the `?pid=` URL param at render time".
+- `contextCategoryId` / `contextCategoryName` are present on category-type documents only. A `null` value means "fall back to the `?category=` URL param".
+- Global/personalized documents carry neither context field.
+
+> **Migration note**: `brxdis:recommendationDocument` (which stored only `brxdis:widgetId`) is removed. Existing documents should be recreated using the appropriate typed document.
 
 ---
 
@@ -36,7 +68,7 @@ Set in HST config via `@ParametersInfo` (visible in the Channel Manager componen
 
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|
-| `document` | Recommendations | JCR path | — | `brxdis:recommendationDocument` picker. Stores the widget ID. When set, takes precedence over URL `widgetId`. |
+| `document` | Recommendations | JCR path | - | Picker for any `brxdis:productRecommendationDocument`, `brxdis:categoryRecommendationDocument`, or `brxdis:globalRecommendationDocument`. Stores the widget config as JSON. When set, takes precedence over URL `widgetId`. |
 | `limit` | Recommendations | int | `8` | Default number of recommendations. |
 | `showPrice` | Recommendations | boolean | `true` | Whether the template shows price. |
 | `showDescription` | Recommendations | boolean | `false` | Whether the template shows description. |
@@ -50,12 +82,12 @@ Set in HST config via `@ParametersInfo` (visible in the Channel Manager componen
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `widgetId` | String | — | Discovery widget ID. Overridden by `document` component param if set. |
-| `contextProductId` | String | — | PID of the product currently being viewed. |
-| `contextPageType` | String | — | Page context: `pdp`, `plp`, `home`, `cart`, or any custom value. |
+| `widgetId` | String | - | Discovery widget ID. Overridden by `document` component param if set. |
+| `contextProductId` | String | - | PID of the product currently being viewed. |
+| `contextPageType` | String | - | Page context: `pdp`, `plp`, `home`, `cart`, or any custom value. |
 | `limit` | int | component param | Maximum number of recommended products. |
-| `fields` | String | — | Comma-separated field list (`fl` param, v2 only). Example: `pid,title,price`. |
-| `filter` | String | — | Filter expression (`filter` param, v2 only). Example: `brand:"Nike"`. |
+| `fields` | String | - | Comma-separated field list (`fl` param, v2 only). Example: `pid,title,price`. |
+| `filter` | String | - | Filter expression (`filter` param, v2 only). Example: `brand:"Nike"`. |
 
 Example (v2): `GET /site/recommendations?widgetId=similar-items&contextProductId=SKU-123&contextPageType=pdp&limit=6`
 
@@ -70,7 +102,7 @@ Example (v2): `GET /site/recommendations?widgetId=similar-items&contextProductId
 
 ---
 
-## Product Detail page — "Similar Items" carousel
+## Product Detail page - "Similar Items" carousel
 
 To show a "Similar Items" carousel on a PDP that automatically uses the current product's PID, use `DiscoveryProductDetailComponent` alongside `DiscoveryRecommendationComponent` and check **Link to Product Detail on page** on the recommendations component.
 
@@ -183,6 +215,6 @@ Models set: `products` (`List<ProductSummary>`, may contain nulls for slots with
 
 ## Error handling
 
-`ConfigurationException` is thrown when required credentials are missing. Discovery API errors are wrapped in `RecommendationException`. An empty `products` list is returned when the API returns no results — the template should guard with `<#if products?has_content>`.
+`ConfigurationException` is thrown when required credentials are missing. Discovery API errors are wrapped in `RecommendationException`. An empty `products` list is returned when the API returns no results - the template should guard with `<#if products?has_content>`.
 
-When `authKey` is absent, v2 mode is silently skipped — the component calls v1 without error. When `useProductDetailContext=true` and no product is on the page, an empty products list is returned (with a `brxdis_warning` in Channel Manager preview).
+When `authKey` is absent, v2 mode is silently skipped - the component calls v1 without error. When `useProductDetailContext=true` and no product is on the page, an empty products list is returned (with a `brxdis_warning` in Channel Manager preview).

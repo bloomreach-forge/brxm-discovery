@@ -11,7 +11,7 @@ import org.hippoecm.hst.core.parameters.ParametersInfo;
 
 /**
  * Stateless search bar component for placement in any page zone (header, sidebar).
- * Handles autosuggest but delegates the actual search to {@link DiscoveryResultsComponent}
+ * Handles autosuggest but delegates the actual search to {@link DiscoverySearchGridComponent}
  * on the results page. There is no data sharing with other components.
  */
 @ParametersInfo(type = DiscoverySearchInputComponentInfo.class)

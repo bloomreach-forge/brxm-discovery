@@ -14,14 +14,14 @@ import java.util.function.Function;
  * Resolves per-channel Discovery credential overrides.
  *
  * <p>Non-secret fields (accountId, domainKey) are stored directly as channel params.
- * Secret fields (apiKey, authKey) are stored as env-var names — resolved at runtime.
+ * Secret fields (apiKey, authKey) are stored as env-var names - resolved at runtime.
  */
 public final class DiscoveryChannelConfigReader {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryChannelConfigReader.class);
 
     // Path suffix relative to the HST root node (e.g. /hst:myproject).
-    // The root node name varies by project — we discover it dynamically.
+    // The root node name varies by project - we discover it dynamically.
     private static final String CHANNEL_INFO_SUFFIX = "hst:configurations/%s/hst:workspace/hst:channel/hst:channelinfo";
 
     public static final String PARAM_ACCOUNT_ID       = "discoveryAccountId";
@@ -42,7 +42,7 @@ public final class DiscoveryChannelConfigReader {
     }
 
     /**
-     * Overload with explicit env resolver — use to control env resolution in tests or
+     * Overload with explicit env resolver - use to control env resolution in tests or
      * frameworks that manage environment variables differently.
      */
     public static DiscoveryCredentials resolveOverrides(
@@ -69,7 +69,7 @@ public final class DiscoveryChannelConfigReader {
     }
 
     /**
-     * Overload with explicit env resolver — use to control env resolution in tests or frameworks
+     * Overload with explicit env resolver - use to control env resolution in tests or frameworks
      * that manage environment variables differently.
      */
     public static DiscoveryCredentials resolveFromJcr(String channelId, Session session,

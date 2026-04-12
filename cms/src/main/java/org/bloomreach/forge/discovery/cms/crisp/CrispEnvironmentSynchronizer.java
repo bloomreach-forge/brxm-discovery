@@ -106,7 +106,7 @@ public class CrispEnvironmentSynchronizer implements EventListener, AutoCloseabl
             );
             log.info("brxm-discovery: CrispEnvironmentSynchronizer registered JCR listener on '{}'", OBSERVE_PATH);
         } catch (Exception e) {
-            log.warn("brxm-discovery: Cannot register CRISP environment sync listener — "
+            log.warn("brxm-discovery: Cannot register CRISP environment sync listener - "
                      + "environment changes require a JVM restart. Cause: {}", e.getMessage());
             observationSession = null;
             observationManager = null;
@@ -146,7 +146,7 @@ public class CrispEnvironmentSynchronizer implements EventListener, AutoCloseabl
         if (!hasEvents) {
             return;
         }
-        log.debug("brxm-discovery: Discovery config change detected — re-syncing CRISP environment URIs");
+        log.debug("brxm-discovery: Discovery config change detected - re-syncing CRISP environment URIs");
         Session session = null;
         try {
             session = systemSessionSupplier.get();
@@ -180,7 +180,7 @@ public class CrispEnvironmentSynchronizer implements EventListener, AutoCloseabl
     private boolean writeUri(Session session, String nodePath, String uri) {
         try {
             if (!session.nodeExists(nodePath)) {
-                log.debug("brxm-discovery: CRISP node '{}' not found — skipping URI sync", nodePath);
+                log.debug("brxm-discovery: CRISP node '{}' not found - skipping URI sync", nodePath);
                 return false;
             }
             Node node = session.getNode(nodePath);

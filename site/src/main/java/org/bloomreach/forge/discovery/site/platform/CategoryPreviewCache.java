@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * JVM-level TTL cache for category preview products.
  *
  * Keyed by (categoryId, count). TTL defaults to 5 minutes with ±20% jitter to
- * prevent multi-node cache stampede. Concurrent cache misses are benign — both
+ * prevent multi-node cache stampede. Concurrent cache misses are benign - both
  * callers populate the same entry with equivalent Discovery results.
  * Expired entries are evicted passively on each {@link #put}.
  */
@@ -27,7 +27,7 @@ public class CategoryPreviewCache {
         this(DEFAULT_TTL_MS);
     }
 
-    /** Package-private seam — lets tests inject a short TTL without Thread.sleep. */
+    /** Package-private seam - lets tests inject a short TTL without Thread.sleep. */
     CategoryPreviewCache(long ttlMs) {
         this.ttlMs = ttlMs;
     }

@@ -51,7 +51,7 @@
   <#if document??>
     <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/widgets"/>
   <#else>
-    <@hst.manageContent documentTemplateQuery="new-brxdis-recommendationDocument"
+    <@hst.manageContent documentTemplateQuery="new-brxdis-categoryRecommendationDocument"
         parameterName="document" rootPath="brxdis/widgets" defaultPath="widgets"/>
   </#if>
   <div class="brxdis-recs__header">

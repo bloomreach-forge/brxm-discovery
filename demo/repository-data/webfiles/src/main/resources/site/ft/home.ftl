@@ -31,12 +31,12 @@
 
     <a href="category-highlight" style="display:block;padding:1.25rem;border:1px solid #e5e7eb;border-radius:.5rem;text-decoration:none;color:inherit;transition:box-shadow .15s">
       <h3 style="margin:0 0 .5rem;font-size:1.125rem;color:#111827">Category Highlight</h3>
-      <p style="margin:0;font-size:.875rem;color:#6b7280">Editorial category showcase — curate featured categories via the document picker.</p>
+      <p style="margin:0;font-size:.875rem;color:#6b7280">Editorial category showcase - curate featured categories via the document picker.</p>
     </a>
 
     <a href="product-highlight" style="display:block;padding:1.25rem;border:1px solid #e5e7eb;border-radius:.5rem;text-decoration:none;color:inherit;transition:box-shadow .15s">
       <h3 style="margin:0 0 .5rem;font-size:1.125rem;color:#111827">Product Highlight</h3>
-      <p style="margin:0;font-size:.875rem;color:#6b7280">Editorial product spotlight — pin featured products via the document picker.</p>
+      <p style="margin:0;font-size:.875rem;color:#6b7280">Editorial product spotlight - pin featured products via the document picker.</p>
     </a>
 
   </div>

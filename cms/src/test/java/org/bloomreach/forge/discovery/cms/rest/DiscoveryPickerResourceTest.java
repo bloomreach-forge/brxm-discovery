@@ -374,7 +374,7 @@ class DiscoveryPickerResourceTest {
 
     @Test
     void categoryProducts_directCategoryId_skipJcrAndBrowses() throws RepositoryException {
-        // categoryId passed directly (live pre-save value from browser) — no JCR variant read needed
+        // categoryId passed directly (live pre-save value from browser) - no JCR variant read needed
         when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
 
         List<?> items = resource.categoryProducts("", "women", 2, "");
@@ -425,6 +425,217 @@ class DiscoveryPickerResourceTest {
 
         List<?> items = resource.categoryProducts("doc-uuid", "", 2, "");
 
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    // ---- recommendationProducts() ---------------------------------------
+
+    static final String REC_ONE_RESULT_JSON = """
+            {"response":{"numFound":1,"docs":[
+              {"pid":"p1","title":"Widget","thumb_image":"http://img","url":"http://url","price":9.99}
+            ]}}
+            """;
+    static final String GLOBAL_CONFIG_JSON =
+            "{\"widgetId\":\"w1\",\"widgetName\":\"Trending\",\"widgetType\":\"global\"," +
+            "\"contextProductId\":null,\"contextCategoryId\":null}";
+    static final String ITEM_WITH_PID_CONFIG_JSON =
+            "{\"widgetId\":\"w2\",\"widgetName\":\"PDP Recs\",\"widgetType\":\"item\"," +
+            "\"contextProductId\":\"pid123\",\"contextCategoryId\":null}";
+    static final String ITEM_NO_PID_CONFIG_JSON =
+            "{\"widgetId\":\"w3\",\"widgetName\":\"PDP Recs\",\"widgetType\":\"item\"," +
+            "\"contextProductId\":null,\"contextCategoryId\":null}";
+    static final String CATEGORY_WITH_CATID_CONFIG_JSON =
+            "{\"widgetId\":\"w4\",\"widgetName\":\"Cat Recs\",\"widgetType\":\"category\"," +
+            "\"contextProductId\":null,\"contextCategoryId\":\"cat1\"}";
+    static final String CATEGORY_NO_CATID_CONFIG_JSON =
+            "{\"widgetId\":\"w5\",\"widgetName\":\"Cat Recs\",\"widgetType\":\"category\"," +
+            "\"contextProductId\":null,\"contextCategoryId\":null}";
+
+    @Test
+    void recommendationProducts_blankConfigAndDocumentId_returnsEmpty() {
+        List<?> items = resource.recommendationProducts("", "", 4, "");
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void recommendationProducts_invalidJson_returnsEmpty() {
+        List<?> items = resource.recommendationProducts("", "not-json", 4, "");
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void recommendationProducts_blankWidgetId_returnsEmpty() {
+        String cfg = "{\"widgetId\":\"\",\"widgetType\":\"global\"}";
+        List<?> items = resource.recommendationProducts("", cfg, 4, "");
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void recommendationProducts_itemTypeNoPid_returnsEmpty() {
+        List<?> items = resource.recommendationProducts("", ITEM_NO_PID_CONFIG_JSON, 4, "");
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void recommendationProducts_categoryTypeNoCatId_returnsEmpty() {
+        List<?> items = resource.recommendationProducts("", CATEGORY_NO_CATID_CONFIG_JSON, 4, "");
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void recommendationProducts_globalType_callsApiAndReturnsItems() {
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+        List<?> items = resource.recommendationProducts("", GLOBAL_CONFIG_JSON, 4, "");
+        assertEquals(1, items.size());
+        verify(httpGateway).apply(argThat(url -> url.contains("/api/v2/widgets/global/w1")));
+    }
+
+    @Test
+    void recommendationProducts_itemTypeWithPid_includesItemIdsInUrl() {
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+        resource.recommendationProducts("", ITEM_WITH_PID_CONFIG_JSON, 4, "");
+        verify(httpGateway).apply(argThat(url ->
+                url.contains("/api/v2/widgets/item/w2") && url.contains("item_ids=pid123")));
+    }
+
+    @Test
+    void recommendationProducts_categoryType_includesCatIdInUrl() {
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+        resource.recommendationProducts("", CATEGORY_WITH_CATID_CONFIG_JSON, 4, "");
+        verify(httpGateway).apply(argThat(url ->
+                url.contains("/api/v2/widgets/category/w4") && url.contains("cat_id=cat1")));
+    }
+
+    @Test
+    void recommendationProducts_withoutAuthKey_usesCoreBaseUri() {
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+        resource.recommendationProducts("", GLOBAL_CONFIG_JSON, 4, "");
+        verify(httpGateway).apply(argThat(url -> url.startsWith(BASE_URI)));
+    }
+
+    @Test
+    void recommendationProducts_withAuthKey_usesPathwaysBaseUri() {
+        DiscoveryConfig v2Config = new DiscoveryConfig(
+                "acc1", "domain1", "key1", "authKey1",
+                BASE_URI, "https://pathways.dxpapi.com", "https://suggest.dxpapi.com", "PRODUCTION",
+                12, "");
+        when(configProvider.get(session)).thenReturn(v2Config);
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+
+        resource.recommendationProducts("", GLOBAL_CONFIG_JSON, 4, "");
+
+        verify(httpGateway).apply(argThat(url -> url.startsWith("https://pathways.dxpapi.com")));
+    }
+
+    @Test
+    void recommendationProducts_liveConfigJsonWinsOverJcr() throws RepositoryException {
+        // configJson is non-blank → resolveConfigJsonFromDocument is not called (handle.getNodes not stubbed).
+        // If the live config were ignored and JCR was consulted instead, getNodes() would throw NPE and fail.
+        Node handle = mock(Node.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getPath()).thenReturn("/apps/config/doc");
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+
+        List<?> items = resource.recommendationProducts("doc-uuid", GLOBAL_CONFIG_JSON, 4, "");
+
+        assertEquals(1, items.size()); // non-empty → live configJson was used, not JCR
+    }
+
+    @Test
+    void recommendationProducts_usesJcrWhenNoLiveConfigJson() throws RepositoryException {
+        Node handle = mock(Node.class);
+        Node variant = mock(Node.class);
+        NodeIterator variantIter = mock(NodeIterator.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getPath()).thenReturn("/apps/config/doc");
+        when(handle.getNodes()).thenReturn(variantIter);
+        when(variantIter.hasNext()).thenReturn(true, false);
+        when(variantIter.nextNode()).thenReturn(variant);
+        Property cfgProp = mock(Property.class);
+        when(variant.hasProperty("brxdis:config")).thenReturn(true);
+        when(variant.getProperty("brxdis:config")).thenReturn(cfgProp);
+        when(cfgProp.getString()).thenReturn(GLOBAL_CONFIG_JSON);
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+
+        List<?> items = resource.recommendationProducts("doc-uuid", "", 4, "");
+
+        assertEquals(1, items.size()); // config read from JCR → API called
+    }
+
+    // ---- productDetail() ------------------------------------------------
+
+    @Test
+    void productDetail_directProductId_skipJcrAndFetchesProduct() throws RepositoryException {
+        when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
+
+        List<?> items = resource.productDetail("", "pid1", "");
+
+        assertEquals(1, items.size());
+        verify(httpGateway).apply(argThat(url -> url.contains("fq=pid") && url.contains("pid1")));
+        verify(session, never()).getNodeByIdentifier(anyString());
+    }
+
+    @Test
+    void productDetail_fallsBackToJcrWhenNoProductIdParam() throws RepositoryException {
+        Node handle = mock(Node.class);
+        Node variant = mock(Node.class);
+        NodeIterator variantIter = mock(NodeIterator.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getPath()).thenReturn("/apps/config/doc");
+        when(handle.getNodes()).thenReturn(variantIter);
+        when(variantIter.hasNext()).thenReturn(true, false);
+        when(variantIter.nextNode()).thenReturn(variant);
+        Property pidProp = mock(Property.class);
+        when(variant.hasProperty("brxdis:productId")).thenReturn(true);
+        when(variant.getProperty("brxdis:productId")).thenReturn(pidProp);
+        when(pidProp.getString()).thenReturn("pid1");
+        when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
+
+        List<?> items = resource.productDetail("doc-uuid", "", "");
+
+        assertEquals(1, items.size());
+        verify(httpGateway).apply(argThat(url -> url.contains("fq=pid") && url.contains("pid1")));
+    }
+
+    @Test
+    void productDetail_missingProductId_returnsEmptyList() throws RepositoryException {
+        Node handle = mock(Node.class);
+        Node variant = mock(Node.class);
+        NodeIterator variantIter = mock(NodeIterator.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getNodes()).thenReturn(variantIter);
+        when(variantIter.hasNext()).thenReturn(true, false);
+        when(variantIter.nextNode()).thenReturn(variant);
+        when(variant.hasProperty("brxdis:productId")).thenReturn(false);
+
+        List<?> items = resource.productDetail("doc-uuid", "", "");
+
+        assertTrue(items.isEmpty());
+        verifyNoInteractions(httpGateway);
+    }
+
+    @Test
+    void productDetail_liveProductIdWinsOverJcr() throws RepositoryException {
+        // productId is non-blank → resolveProductIdFromDocument not called (handle.getNodes not stubbed)
+        Node handle = mock(Node.class);
+        when(session.getNodeByIdentifier("doc-uuid")).thenReturn(handle);
+        when(handle.getPath()).thenReturn("/apps/config/doc");
+        when(httpGateway.apply(anyString())).thenReturn(ONE_RESULT_JSON);
+
+        List<?> items = resource.productDetail("doc-uuid", "live-pid", "");
+
+        assertEquals(1, items.size());
+    }
+
+    @Test
+    void productDetail_blankDocumentIdAndProductId_returnsEmpty() {
+        List<?> items = resource.productDetail("", "", "");
         assertTrue(items.isEmpty());
         verifyNoInteractions(httpGateway);
     }

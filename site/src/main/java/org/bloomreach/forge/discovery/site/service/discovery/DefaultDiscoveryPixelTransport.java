@@ -169,7 +169,7 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
             if (e.getMessage() != null && e.getMessage().startsWith("JSON processing error")) {
                 log.debug("Discovery pixel event fired (non-JSON response treated as success)");
             } else {
-                log.warn("Discovery pixel event failed — path={}: {}", redactedPath(pixelPath), e.getMessage());
+                log.warn("Discovery pixel event failed - path={}: {}", redactedPath(pixelPath), e.getMessage());
             }
         }
     }

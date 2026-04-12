@@ -6,25 +6,26 @@ import org.hippoecm.hst.core.parameters.FieldGroupList;
 import org.hippoecm.hst.core.parameters.JcrPath;
 import org.hippoecm.hst.core.parameters.Parameter;
 
+/**
+ * Channel Manager parameters for the Discovery Product Grid - Category component.
+ * Contains only category-browse-relevant parameters; search-specific fields
+ * (catalog name, did-you-mean, auto-redirect) are intentionally absent.
+ */
 @FieldGroupList({
     @FieldGroup(
-        value = {"dataSource", "document", "pageSize"},
+        value = {"document", "pageSize"},
         titleKey = "results.content.group"
     ),
     @FieldGroup(
-        value = {"showFacets", "showPagination", "showSort", "showDidYouMean", "autoRedirect"},
+        value = {"showFacets", "showPagination", "showSort"},
         titleKey = "results.display.group"
     ),
     @FieldGroup(
-        value = {"defaultSort", "catalogName", "statsFields", "segment", "exclusionFilter"},
+        value = {"defaultSort", "statsFields", "segment", "exclusionFilter"},
         titleKey = "results.advanced.group"
     )
 })
-public interface DiscoveryResultsComponentInfo {
-
-    @Parameter(name = "dataSource", displayName = "Data source", defaultValue = "search")
-    @DropDownList({"search", "category"})
-    String getDataSource();
+public interface DiscoveryCategoryGridComponentInfo {
 
     @Parameter(name = "document", displayName = "Category Document")
     @JcrPath(
@@ -41,9 +42,6 @@ public interface DiscoveryResultsComponentInfo {
     @Parameter(name = "defaultSort", displayName = "Default sort", defaultValue = "")
     @DropDownList({"", "price asc", "price desc", "name asc", "name desc", "sale_price asc", "sale_price desc"})
     String getDefaultSort();
-
-    @Parameter(name = "catalogName", displayName = "Catalog", defaultValue = "")
-    String getCatalogName();
 
     @Parameter(name = "statsFields", displayName = "Statistics fields", defaultValue = "")
     String getStatsFields();
@@ -62,10 +60,4 @@ public interface DiscoveryResultsComponentInfo {
 
     @Parameter(name = "showSort", displayName = "Show sort options", defaultValue = "true")
     boolean isShowSort();
-
-    @Parameter(name = "showDidYouMean", displayName = "Show did-you-mean suggestions", defaultValue = "true")
-    boolean isShowDidYouMean();
-
-    @Parameter(name = "autoRedirect", displayName = "Auto-redirect on corrections", defaultValue = "false")
-    boolean isAutoRedirect();
 }
