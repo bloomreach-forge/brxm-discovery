@@ -12,16 +12,12 @@ import org.hippoecm.hst.core.parameters.Parameter;
  */
 @FieldGroupList({
     @FieldGroup(
-        value = {"pageSize"},
+        value = {"pageSize", "defaultSort"},
         titleKey = "results.content.group"
     ),
     @FieldGroup(
         value = {"showFacets", "showPagination", "showSort", "showDidYouMean", "autoRedirect"},
         titleKey = "results.display.group"
-    ),
-    @FieldGroup(
-        value = {"defaultSort", "catalogName", "statsFields", "segment", "exclusionFilter"},
-        titleKey = "results.advanced.group"
     )
 })
 public interface DiscoverySearchGridComponentInfo {
@@ -32,18 +28,6 @@ public interface DiscoverySearchGridComponentInfo {
     @Parameter(name = "defaultSort", displayName = "Default sort", defaultValue = "")
     @DropDownList({"", "price asc", "price desc", "name asc", "name desc", "sale_price asc", "sale_price desc"})
     String getDefaultSort();
-
-    @Parameter(name = "catalogName", displayName = "Catalog", defaultValue = "")
-    String getCatalogName();
-
-    @Parameter(name = "statsFields", displayName = "Statistics fields", defaultValue = "")
-    String getStatsFields();
-
-    @Parameter(name = "segment", displayName = "Visitor segment", defaultValue = "")
-    String getSegment();
-
-    @Parameter(name = "exclusionFilter", displayName = "Exclusion filter", defaultValue = "")
-    String getExclusionFilter();
 
     @Parameter(name = "showFacets", displayName = "Show facets panel", defaultValue = "true")
     boolean isShowFacets();

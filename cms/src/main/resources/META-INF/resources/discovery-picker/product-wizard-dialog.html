@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configure Product</title>
+  <link rel="stylesheet" href="picker-dialog.css"/>
+  <style>
+    html, body { width: 100%; height: 100%; min-width: 680px; min-height: 420px; }
+
+    /* ── Step indicator ────────────────────────────────────────────────────── */
+    #step-indicator {
+      display: flex; align-items: center; justify-content: center; gap: 0;
+      padding: 14px 24px 10px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .step-node { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .step-circle {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid var(--border); background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--text-faint);
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .step-label {
+      font-size: 9.5px; font-weight: 600; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
+    }
+    .step-node.active .step-circle { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .step-node.active .step-label  { color: var(--accent); }
+    .step-node.done   .step-circle { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+    .step-node.done   .step-label  { color: var(--text-muted); }
+    .step-connector {
+      height: 2px; width: 48px; background: var(--border);
+      margin: 0 8px; margin-bottom: 20px; transition: background 0.2s;
+    }
+    .step-connector.done { background: var(--accent); }
+
+    /* ── Step sections ─────────────────────────────────────────────────────── */
+    .step-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .step-section[hidden] { display: none; }
+    .step-header {
+      padding: 16px 20px 10px; border-bottom: 1px solid var(--border-soft);
+      flex-shrink: 0; background: var(--surface);
+    }
+    .step-header h2 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .step-header p  { font-size: 12px; color: var(--text-muted); }
+
+    /* ── Navigation bar ────────────────────────────────────────────────────── */
+    #nav-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: var(--surface); border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #nav-status { flex: 1; font-size: 11.5px; color: var(--text-muted); padding: 0 12px; }
+    #nav-status.error { color: var(--error); }
+
+    /* ── Step 1: mode + picker ─────────────────────────────────────────────── */
+    #step1-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .radio-group {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 12px 20px 10px; flex-shrink: 0;
+    }
+    .radio-option {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
+      cursor: pointer; background: var(--surface);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .radio-option:hover    { border-color: var(--accent); background: var(--accent-subtle); }
+    .radio-option.selected { border-color: var(--accent); background: var(--accent-subtle); }
+    .radio-option input[type="radio"] { flex-shrink: 0; margin-top: 2px; accent-color: var(--accent); }
+    .radio-option-text { display: flex; flex-direction: column; gap: 2px; }
+    .radio-option-title { font-weight: 600; font-size: 13px; color: var(--text); }
+    .radio-option-hint  { font-size: 11.5px; color: var(--text-muted); }
+    .radio-option-hint code {
+      font-family: var(--font-mono); font-size: 11px;
+      background: var(--bg); border: 1px solid var(--border-soft);
+      border-radius: 3px; padding: 0 3px;
+    }
+
+    /* ── Inline product picker ─────────────────────────────────────────────── */
+    #inline-picker { display: none; }
+    #inline-picker.visible {
+      display: flex; flex-direction: column; flex: 1; min-height: 0;
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; margin: 0 20px 14px;
+    }
+    .inline-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px; flex-shrink: 0;
+      background: var(--surface); border-bottom: 1px solid var(--border-soft);
+    }
+    .inline-toolbar input {
+      flex: 1; padding: 5px 9px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-family: var(--font); font-size: 12px;
+      color: var(--text); background: var(--bg); outline: none;
+    }
+    .inline-toolbar input:focus { border-color: var(--accent); background: var(--surface); }
+    .inline-layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    .inline-sidebar {
+      width: 128px; flex-shrink: 0; border-right: 1px solid var(--border-soft);
+      overflow-y: auto; padding: 5px 0; background: var(--surface);
+    }
+    .inline-nav-item {
+      padding: 5px 10px; font-size: 10.5px; font-weight: 500; cursor: pointer;
+      color: var(--text-muted); border-left: 2px solid transparent;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: background .1s, border-color .1s, color .1s;
+    }
+    .inline-nav-item:hover  { background: var(--row-hover); color: var(--text); }
+    .inline-nav-item.active { border-left-color: var(--accent); color: var(--accent); font-weight: 600; background: var(--accent-subtle); }
+    .inline-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+    .inline-scroll { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; }
+    #inline-results { flex: 1; display: flex; flex-direction: column; }
+    .inline-product-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 9px; flex: 1; min-height: fit-content; grid-auto-rows: minmax(120px, 1fr);
+    }
+    .inline-foot {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 5px 8px; border-top: 1px solid var(--border-soft); background: var(--surface); flex-shrink: 0;
+    }
+    .inline-pg-btn {
+      padding: 2px 8px; font-size: 10.5px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); cursor: pointer; font-family: var(--font); color: var(--text);
+      transition: background .1s, border-color .1s, color .1s;
+    }
+    .inline-pg-btn:hover:not(:disabled) { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+    .inline-pg-btn:disabled { opacity: 0.35; cursor: default; }
+    .inline-pg-info { font-size: 10.5px; color: var(--text-muted); }
+    .inline-empty { padding: 18px 12px; text-align: center; color: var(--text-faint); font-style: italic; font-size: 11.5px; }
+    #selection-display {
+      display: none; align-items: center; gap: 8px; padding: 7px 12px;
+      background: var(--accent-subtle); border-top: 1.5px solid var(--accent);
+    }
+    #selection-display.visible { display: flex; }
+    #selection-label { flex: 1; font-size: 12px; font-weight: 500; color: var(--accent); }
+    #selection-clear-btn { flex-shrink: 0; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 14px; padding: 2px 6px; border-radius: var(--radius-sm); }
+    #selection-clear-btn:hover { color: var(--error); background: #fff4f4; }
+
+    /* ── Step 2: Review ────────────────────────────────────────────────────── */
+    #review-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .review-row { display: flex; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--border-soft); }
+    .review-row:last-child { border-bottom: none; }
+    .review-key { width: 90px; flex-shrink: 0; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
+    .review-val { font-size: 13px; color: var(--text); font-weight: 500; }
+    .review-val.mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
+    .review-mode-badge {
+      display: inline-block; padding: 1px 7px; border-radius: var(--radius-sm);
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .review-mode-badge.dynamic { background: #dcfce7; color: #15803d; }
+    .review-mode-badge.pinned  { background: var(--accent-subtle); color: var(--accent); }
+
+    /* ── Review live preview ───────────────────────────────────────────────── */
+    #review-preview { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .rp-header {
+      display: flex; align-items: center; padding: 9px 16px;
+      border-bottom: 1px solid var(--border-soft); background: var(--surface-lift);
+    }
+    .rp-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); }
+    .rp-title::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; margin-right: 6px; vertical-align: middle; margin-bottom: 1px; }
+    .rp-subtitle { font-size: 11px; color: var(--text-faint); margin-left: 10px; }
+    #rp-content { padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start; min-height: 60px; }
+    #rp-status { padding: 18px 16px; font-size: 11.5px; color: var(--text-faint); font-style: italic; text-align: center; display: none; }
+    .rp-product-meta { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .rp-meta-row { display: flex; flex-direction: column; gap: 2px; }
+    .rp-meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+    .rp-meta-value { font-size: 12px; color: var(--text); font-weight: 500; }
+    .rp-meta-value.mono { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+    .rp-dynamic-notice {
+      flex: 1; padding: 12px 14px; background: var(--bg);
+      border: 1.5px dashed var(--border); border-radius: var(--radius);
+      font-size: 12px; color: var(--text-muted); line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Step indicator -->
+<div id="step-indicator">
+  <div class="step-node active" id="node-1">
+    <div class="step-circle">1</div>
+    <div class="step-label">Product</div>
+  </div>
+  <div class="step-connector" id="conn-1"></div>
+  <div class="step-node" id="node-2">
+    <div class="step-circle">2</div>
+    <div class="step-label">Review</div>
+  </div>
+</div>
+
+<!-- Step 1: Mode + picker -->
+<section id="step-1" class="step-section">
+  <div class="step-header">
+    <h2>Product Source</h2>
+    <p>Choose how this component identifies the product to display.</p>
+  </div>
+  <div id="step1-body">
+    <div class="radio-group">
+      <label class="radio-option selected" id="radio-dynamic-label">
+        <input type="radio" name="mode" id="radio-dynamic" value="dynamic" checked/>
+        <div class="radio-option-text">
+          <span class="radio-option-title">Dynamic &mdash; URL parameter (default)</span>
+          <span class="radio-option-hint">At runtime, reads the <code>?pid=</code> parameter from the page URL. Recommended for product detail pages driven by navigation.</span>
+        </div>
+      </label>
+      <label class="radio-option" id="radio-pinned-label">
+        <input type="radio" name="mode" id="radio-pinned" value="pinned"/>
+        <div class="radio-option-text">
+          <span class="radio-option-title">Pinned &mdash; always show a specific product</span>
+          <span class="radio-option-hint">Always use a fixed product regardless of the current page URL. Best for featured or promotional placements.</span>
+        </div>
+      </label>
+    </div>
+
+    <!-- Inline product picker (shown when "pinned" is selected) -->
+    <div id="inline-picker">
+      <div class="inline-toolbar">
+        <input id="inline-search" type="search" placeholder="Search products&hellip;" autocomplete="off"/>
+      </div>
+      <div class="inline-layout">
+        <div id="inline-sidebar" class="inline-sidebar"></div>
+        <div class="inline-main">
+          <div class="inline-scroll">
+            <div id="inline-results"></div>
+          </div>
+          <div id="inline-foot" class="inline-foot" style="display:none"></div>
+        </div>
+      </div>
+      <div id="selection-display">
+        <span id="selection-label"></span>
+        <button id="selection-clear-btn" title="Remove selection">&#x2715;</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Step 2: Review -->
+<section id="step-2" class="step-section" hidden>
+  <div class="step-header">
+    <h2>Review &amp; Save</h2>
+    <p>Confirm the configuration below, then click Save.</p>
+  </div>
+  <div id="review-body">
+    <div class="review-card" id="review-card"></div>
+    <div id="review-preview">
+      <div class="rp-header">
+        <span class="rp-title">Live Preview</span>
+        <span class="rp-subtitle" id="rp-subtitle">Loading&hellip;</span>
+      </div>
+      <div id="rp-content"></div>
+      <div id="rp-status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Navigation bar -->
+<div id="nav-bar">
+  <button id="back-btn" class="btn" disabled>&#x2190; Back</button>
+  <span id="nav-status"></span>
+  <button id="next-btn" class="btn btn-primary">Next &#x2192;</button>
+  <button id="save-btn" class="btn btn-primary" style="display:none">Save</button>
+</div>
+
+<script src="ui-extension.min.js"></script>
+<script src="picker-utils.js"></script>
+<script>
+stretchDialogIframe();
+syncBodyToViewport();
+
+(function () {
+  "use strict";
+
+  /* ── State ──────────────────────────────────────────────────────────────── */
+  var ui           = null;
+  var documentId   = "";
+  var channelId    = "";
+  var currentStep  = 1;
+  var searchTimer  = null;
+
+  var state = {
+    mode:        "dynamic",
+    productId:   null,
+    productName: null
+  };
+
+  var INLINE_PAGE_SIZE = 18;
+  var inlinePage       = 0;
+  var inlineLastQ      = "";
+  var inlineCatId      = "";
+
+  /* ── DOM refs ───────────────────────────────────────────────────────────── */
+  var radioDynamic   = document.getElementById("radio-dynamic");
+  var radioDynLabel  = document.getElementById("radio-dynamic-label");
+  var radioPinned    = document.getElementById("radio-pinned");
+  var radioPinLabel  = document.getElementById("radio-pinned-label");
+  var inlinePicker   = document.getElementById("inline-picker");
+  var inlineSearch   = document.getElementById("inline-search");
+  var inlineResults  = document.getElementById("inline-results");
+  var inlineSidebar  = document.getElementById("inline-sidebar");
+  var inlineFootEl   = document.getElementById("inline-foot");
+  var selectionDisp  = document.getElementById("selection-display");
+  var selectionLabel = document.getElementById("selection-label");
+  var selectionClear = document.getElementById("selection-clear-btn");
+  var reviewCard     = document.getElementById("review-card");
+  var rpContent      = document.getElementById("rp-content");
+  var rpStatus       = document.getElementById("rp-status");
+  var rpSubtitle     = document.getElementById("rp-subtitle");
+  var backBtn        = document.getElementById("back-btn");
+  var nextBtn        = document.getElementById("next-btn");
+  var saveBtn        = document.getElementById("save-btn");
+  var navStatus      = document.getElementById("nav-status");
+
+  /* ── Bootstrap ──────────────────────────────────────────────────────────── */
+  UiExtension.register().then(function (registeredUi) {
+    ui = registeredUi;
+    return ui.dialog.options();
+  })
+  .then(function (opts) {
+    var data = {};
+    try { data = JSON.parse(opts.value || "{}"); } catch (e) {}
+    documentId = data.documentId || "";
+    channelId  = data.channelId  || "";
+
+    var existing = data.currentValue || "";
+    if (existing) {
+      state.mode      = "pinned";
+      state.productId = existing;
+      setMode("pinned");
+      loadInlineProducts("");
+      selectionLabel.textContent = existing;
+      selectionDisp.classList.add("visible");
+    } else {
+      setMode("dynamic");
+    }
+    goToStep(1);
+  })
+  .catch(function (err) {
+    setNavStatus("error", "Failed to initialise: " + (err && err.message || err));
+  });
+
+  /* ── Mode selection ─────────────────────────────────────────────────────── */
+  radioDynamic.addEventListener("change", function () {
+    if (radioDynamic.checked) { setMode("dynamic"); clearProductState(); }
+  });
+  radioPinned.addEventListener("change", function () {
+    if (radioPinned.checked) {
+      setMode("pinned");
+      if (!inlineSidebar.childElementCount) loadInlineSidebar();
+      loadInlineProducts(inlineSearch.value);
+    }
+  });
+  radioDynLabel.addEventListener("click", function () { radioDynamic.click(); });
+  radioPinLabel.addEventListener("click", function () { radioPinned.click(); });
+
+  function setMode(mode) {
+    state.mode = mode;
+    if (mode === "pinned") {
+      radioPinned.checked  = true;
+      radioDynamic.checked = false;
+      radioDynLabel.classList.remove("selected");
+      radioPinLabel.classList.add("selected");
+      inlinePicker.classList.add("visible");
+      nextBtn.disabled = !state.productId;
+    } else {
+      radioDynamic.checked = true;
+      radioPinned.checked  = false;
+      radioDynLabel.classList.add("selected");
+      radioPinLabel.classList.remove("selected");
+      inlinePicker.classList.remove("visible");
+      nextBtn.disabled = false;
+    }
+  }
+
+  function clearProductState() {
+    state.productId   = null;
+    state.productName = null;
+    selectionDisp.classList.remove("visible");
+    inlineResults.querySelectorAll(".inline-product-card").forEach(function (c) {
+      c.classList.remove("selected");
+    });
+    nextBtn.disabled = (state.mode === "pinned");
+  }
+
+  selectionClear.addEventListener("click", function () {
+    clearProductState();
+    loadInlineProducts(inlineSearch.value);
+  });
+
+  /* ── Inline product picker ─────────────────────────────────────────────── */
+  inlineSearch.addEventListener("input", function () {
+    clearTimeout(searchTimer);
+    var q = inlineSearch.value;
+    searchTimer = setTimeout(function () { loadInlineProducts(q); }, 300);
+  });
+
+  function loadInlineProducts(q) {
+    inlineLastQ = q;
+    inlinePage  = 0;
+    inlineCatId = "";
+    if (!inlineSidebar.childElementCount) loadInlineSidebar();
+    doProductFetch(q, "", 0);
+  }
+
+  function doProductFetch(q, catId, page) {
+    inlineLastQ = q;
+    inlineCatId = catId;
+    inlinePage  = page;
+    if (!catId) {
+      inlineSidebar.querySelectorAll(".inline-nav-item").forEach(function (n, i) {
+        n.classList.toggle("active", i === 0);
+      });
+    }
+    if (!documentId) return;
+    inlineResults.replaceChildren();
+    var loading = document.createElement("div"); loading.className = "inline-empty";
+    var sp = document.createElement("span"); sp.className = "spinner";
+    loading.appendChild(sp);
+    inlineResults.appendChild(loading);
+
+    var endpoint = catId ? "/discovery/picker/browse" : "/discovery/picker/search";
+    var params = { channelId: channelId, documentId: documentId, page: page, pageSize: INLINE_PAGE_SIZE };
+    if (catId) params.catId = catId; else params.q = q || "";
+    fetch(buildApiUrl(ui, endpoint, params), { credentials: "include" })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (data) { renderProducts(data.items || [], data.total || 0); })
+      .catch(function (err) {
+        inlineResults.replaceChildren();
+        var el = document.createElement("div"); el.className = "inline-empty";
+        el.textContent = "Load failed: " + err.message;
+        inlineResults.appendChild(el);
+        inlineFootEl.style.display = "none";
+      });
+  }
+
+  function loadInlineSidebar() {
+    if (!documentId) return;
+    fetch(buildApiUrl(ui, "/discovery/picker/categories", { channelId: channelId, documentId: documentId }), { credentials: "include" })
+      .then(function (res) { if (!res.ok) throw new Error(""); return res.json(); })
+      .then(function (cats) { renderSidebar(cats || []); })
+      .catch(function () {});
+  }
+
+  function renderSidebar(cats) {
+    inlineSidebar.replaceChildren();
+    var allItem = document.createElement("div");
+    allItem.className = "inline-nav-item active";
+    allItem.textContent = "All";
+    allItem.addEventListener("click", function () {
+      inlineSidebar.querySelectorAll(".inline-nav-item").forEach(function (n) { n.classList.toggle("active", n === allItem); });
+      doProductFetch(inlineLastQ, "", 0);
+    });
+    inlineSidebar.appendChild(allItem);
+    cats.forEach(function (cat) {
+      var item = document.createElement("div");
+      item.className = "inline-nav-item";
+      item.textContent = cat.name || cat.id;
+      item.title = cat.name || cat.id;
+      item.addEventListener("click", function () {
+        inlineSidebar.querySelectorAll(".inline-nav-item").forEach(function (n) { n.classList.toggle("active", n === item); });
+        doProductFetch("", cat.id, 0);
+      });
+      inlineSidebar.appendChild(item);
+    });
+  }
+
+  function renderProducts(items, total) {
+    inlineResults.replaceChildren();
+    inlineFootEl.style.display = "none";
+    if (!items.length) {
+      var empty = document.createElement("div"); empty.className = "inline-empty";
+      empty.textContent = "No products found.";
+      inlineResults.appendChild(empty);
+      return;
+    }
+    var grid = document.createElement("div"); grid.className = "inline-product-grid";
+    items.forEach(function (item) {
+      var card = document.createElement("div");
+      card.className = "inline-product-card" + (item.id === state.productId ? " selected" : "");
+
+      var imgWrap = document.createElement("div"); imgWrap.className = "inline-card-img";
+      var img = document.createElement("img");
+      img.src = item.imageUrl || ""; img.alt = ""; img.loading = "lazy";
+      img.onerror = function () { this.style.display = "none"; };
+      imgWrap.appendChild(img); card.appendChild(imgWrap);
+
+      var body  = document.createElement("div"); body.className = "inline-card-body";
+      var title = document.createElement("div"); title.className = "inline-card-title";
+      title.textContent = item.title || item.id || ""; body.appendChild(title);
+      if (item.price) {
+        var price = document.createElement("div"); price.className = "inline-card-price";
+        price.textContent = item.price; body.appendChild(price);
+      }
+      card.appendChild(body);
+      card.addEventListener("click", function () {
+        state.productId   = item.id;
+        state.productName = item.title || item.id;
+        grid.querySelectorAll(".inline-product-card").forEach(function (c) { c.classList.toggle("selected", c === card); });
+        selectionLabel.textContent = item.title || item.id;
+        selectionDisp.classList.add("visible");
+        nextBtn.disabled = false;
+      });
+      grid.appendChild(card);
+    });
+    inlineResults.appendChild(grid);
+    var totalPages = Math.ceil(total / INLINE_PAGE_SIZE) || 1;
+    if (totalPages > 1) { inlineFootEl.style.display = "flex"; renderPagination(totalPages); }
+  }
+
+  function renderPagination(totalPages) {
+    inlineFootEl.replaceChildren();
+    var prev = document.createElement("button"); prev.className = "inline-pg-btn";
+    prev.textContent = "\u2039 Prev"; prev.disabled = (inlinePage === 0);
+    prev.addEventListener("click", function () { doProductFetch(inlineLastQ, inlineCatId, inlinePage - 1); });
+    inlineFootEl.appendChild(prev);
+    var info = document.createElement("span"); info.className = "inline-pg-info";
+    info.textContent = (inlinePage + 1) + " / " + totalPages;
+    inlineFootEl.appendChild(info);
+    var nxt = document.createElement("button"); nxt.className = "inline-pg-btn";
+    nxt.textContent = "Next \u203a"; nxt.disabled = (inlinePage >= totalPages - 1);
+    nxt.addEventListener("click", function () { doProductFetch(inlineLastQ, inlineCatId, inlinePage + 1); });
+    inlineFootEl.appendChild(nxt);
+  }
+
+  /* ── Step 2: Review ─────────────────────────────────────────────────────── */
+  function renderReview() {
+    reviewCard.replaceChildren();
+
+    var modeRow = makeReviewRow("Mode");
+    var modeBadge = document.createElement("span");
+    modeBadge.className = "review-mode-badge " + state.mode;
+    modeBadge.textContent = state.mode === "pinned" ? "Pinned" : "Dynamic";
+    modeRow.appendChild(modeBadge);
+    reviewCard.appendChild(modeRow);
+
+    if (state.mode === "dynamic") {
+      addReviewRow("URL Param", "?pid=", true);
+    } else if (state.productId) {
+      addReviewRow("Product ID", state.productId, true);
+    }
+
+    fetchReviewPreview();
+  }
+
+  function makeReviewRow(keyText) {
+    var row = document.createElement("div"); row.className = "review-row";
+    var key = document.createElement("span"); key.className = "review-key";
+    key.textContent = keyText; row.appendChild(key);
+    return row;
+  }
+
+  function addReviewRow(keyText, valText, mono) {
+    var row = makeReviewRow(keyText);
+    var val = document.createElement("span");
+    val.className = "review-val" + (mono ? " mono" : "");
+    val.textContent = valText; row.appendChild(val);
+    reviewCard.appendChild(row);
+  }
+
+  function fetchReviewPreview() {
+    rpContent.replaceChildren();
+    rpStatus.style.display = "none";
+
+    if (state.mode === "dynamic") {
+      rpSubtitle.textContent = "Dynamic mode \u2014 product resolved at runtime";
+      var notice = document.createElement("div"); notice.className = "rp-dynamic-notice";
+      var strong = document.createElement("strong"); strong.textContent = "No preview in dynamic mode.";
+      notice.appendChild(strong);
+      notice.appendChild(document.createTextNode(" The product will be determined by the "));
+      var code = document.createElement("code"); code.textContent = "?pid=";
+      notice.appendChild(code);
+      notice.appendChild(document.createTextNode(" URL parameter when a visitor views this page."));
+      rpContent.appendChild(notice);
+      return;
+    }
+
+    if (!state.productId) {
+      rpSubtitle.textContent = "No product selected";
+      showRpStatus("Select a product to see a preview.");
+      return;
+    }
+
+    rpSubtitle.textContent = "Loading\u2026";
+    rpContent.appendChild(makePreviewSkeleton());
+
+    var url = buildApiUrl(ui, "/discovery/picker/items", {
+      documentId: documentId,
+      channelId:  channelId,
+      ids:        state.productId
+    });
+
+    fetch(url, { credentials: "include" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) {
+        rpContent.replaceChildren();
+        var list = data && data.items ? data.items : (Array.isArray(data) ? data : []);
+        var item = list[0] || null;
+        if (!item) {
+          rpSubtitle.textContent = "Product not found";
+          showRpStatus("No product found for ID: " + state.productId);
+          return;
+        }
+        var card = makePreviewCard(item);
+        rpContent.appendChild(card);
+
+        var meta = document.createElement("div"); meta.className = "rp-product-meta";
+        [["Title", item.title || "\u2014", false], ["ID", item.id || "\u2014", true], ["Price", item.price || "\u2014", false]].forEach(function (pair) {
+          var mrow = document.createElement("div"); mrow.className = "rp-meta-row";
+          var lbl  = document.createElement("span"); lbl.className = "rp-meta-label"; lbl.textContent = pair[0];
+          var val  = document.createElement("span"); val.className = "rp-meta-value" + (pair[2] ? " mono" : ""); val.textContent = pair[1];
+          mrow.append(lbl, val); meta.appendChild(mrow);
+        });
+        rpContent.appendChild(meta);
+
+        state.productName = item.title || item.id;
+        rpSubtitle.textContent = item.title || item.id;
+        addReviewRow("Name", state.productName, false);
+      })
+      .catch(function () {
+        rpContent.replaceChildren();
+        rpSubtitle.textContent = "Preview unavailable";
+        showRpStatus("Could not load product details.");
+      });
+  }
+
+  function showRpStatus(msg) {
+    rpContent.replaceChildren();
+    rpStatus.textContent = msg;
+    rpStatus.style.display = "";
+  }
+
+  /* ── Navigation ─────────────────────────────────────────────────────────── */
+  backBtn.addEventListener("click", function () {
+    if (currentStep === 2) goToStep(1);
+  });
+
+  nextBtn.addEventListener("click", function () {
+    if (currentStep === 1) {
+      if (state.mode === "pinned" && !state.productId) return;
+      renderReview();
+      goToStep(2);
+    }
+  });
+
+  saveBtn.addEventListener("click", function () {
+    ui.dialog.close(state.mode === "pinned" ? (state.productId || "") : "");
+  });
+
+  function goToStep(n) {
+    currentStep = n;
+    document.getElementById("step-1").hidden = (n !== 1);
+    document.getElementById("step-2").hidden = (n !== 2);
+    document.getElementById("node-1").className = "step-node" + (n > 1 ? " done" : " active");
+    document.getElementById("node-2").className = "step-node" + (n === 2 ? " active" : "");
+    document.getElementById("conn-1").classList.toggle("done", n > 1);
+    backBtn.disabled = (n === 1);
+    if (n === 2) {
+      nextBtn.style.display = "none";
+      saveBtn.style.display = "";
+    } else {
+      nextBtn.style.display = "";
+      saveBtn.style.display = "none";
+      nextBtn.disabled = (state.mode === "pinned" && !state.productId);
+    }
+    navStatus.textContent = "";
+    navStatus.className   = "";
+  }
+
+  function setNavStatus(type, msg) {
+    navStatus.textContent = msg;
+    navStatus.className   = type === "error" ? "error" : "";
+  }
+}());
+</script>
+</body>
+</html>

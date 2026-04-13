@@ -110,7 +110,12 @@
     var d = evt.data;
     if (!d || d.type !== "brxdis:categoryChanged" || d.documentId !== documentId) return;
     liveCategoryId = d.categoryId || null;
-    scheduleFetch();
+    if (!liveCategoryId) {
+      // Dynamic mode - no fixed category; clear the preview immediately
+      hideGrid();
+    } else {
+      scheduleFetch();
+    }
   });
 
   UiExtension.register().then(function (registeredUi) {

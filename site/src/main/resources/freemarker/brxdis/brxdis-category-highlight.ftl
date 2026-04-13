@@ -6,13 +6,13 @@
 <style>
 .brxdis-cathighlight{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0}
 .brxdis-cathighlight__title{font-size:1.125rem;font-weight:700;color:#111827;margin:0 0 .875rem}
-.brxdis-cathighlight__misconfig{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
+.brxdis-warning{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
 .brxdis-cathighlight__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem}
 .brxdis-cathighlight__tile{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 1rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;text-decoration:none;color:#111827;transition:background .2s,box-shadow .2s,transform .2s;text-align:center;min-height:110px}
 .brxdis-cathighlight__tile:hover{background:#eff6ff;border-color:#bfdbfe;box-shadow:0 4px 12px rgba(37,99,235,.12);transform:translateY(-2px);color:#1d4ed8}
 .brxdis-cathighlight__icon{font-size:2rem;margin-bottom:.5rem;line-height:1}
 .brxdis-cathighlight__name{font-size:.9375rem;font-weight:600;line-height:1.3}
-.brxdis-cathighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:1px dashed #e5e7eb;border-radius:8px}
+.brxdis-cathighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:2px dashed #e5e7eb;border-radius:8px}
 .brxdis-cathighlight__slot{display:flex;align-items:center;justify-content:center;min-height:110px;border:2px dashed #d1d5db;border-radius:12px;color:#9ca3af;font-size:.875rem;background:#f9fafb}
 .brxdis-cat-products{display:flex;align-items:flex-end;justify-content:center;margin-top:.75rem;padding:4px 4px 2px;overflow:visible}
 .brxdis-cat-product-thumb{position:relative;flex-shrink:0;margin-left:-14px;transition:transform .2s}
@@ -36,9 +36,7 @@
   <h2 class="brxdis-cathighlight__title">Shop by Category</h2>
 
   <#if brxdis_warning??>
-    <div class="brxdis-cathighlight__misconfig">
-      &#9888;&nbsp;<strong>Not configured:</strong> ${brxdis_warning}
-    </div>
+    <div class="brxdis-warning">&#9888; ${brxdis_warning}</div>
   </#if>
 
   <#if inEditMode>
@@ -46,11 +44,11 @@
       <#list categoryBeans as bean>
         <#assign slotNum = bean?index + 1>
         <#if bean??>
-          <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
-              rootPath="brxdis/categories"/>
           <a class="brxdis-cathighlight__tile"
              href="${resolvedCategoryPage}?category=${(bean.categoryId!"")?url('UTF-8')}"
              aria-label="${bean.displayName!"Category"}">
+            <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
+                rootPath="brxdis/categories"/>
             <span class="brxdis-cathighlight__icon">&#128722;</span>
             <span class="brxdis-cathighlight__name">${bean.displayName!"Unnamed"}</span>
             <#assign catProds = (previewProducts!{})[bean.categoryId!""]![]>
@@ -69,9 +67,11 @@
             </#if>
           </a>
         <#else>
-          <@hst.manageContent parameterName="document${slotNum}"
-              rootPath="brxdis/categories" documentTemplateQuery="new-brxdis-categoryDocument"/>
-          <div class="brxdis-cathighlight__slot">&#43; Category ${slotNum}</div>
+          <div class="brxdis-cathighlight__slot">
+            <@hst.manageContent parameterName="document${slotNum}"
+                rootPath="brxdis/categories" documentTemplateQuery="new-brxdis-categoryDocument"/>
+            &#43; Category ${slotNum}
+          </div>
         </#if>
       </#list>
     </div>

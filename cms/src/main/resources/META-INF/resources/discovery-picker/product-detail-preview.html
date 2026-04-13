@@ -90,7 +90,12 @@
     if (evt.origin !== window.location.origin) return;
     var d = evt.data;
     if (!d || d.type !== "brxdis:productChanged" || d.documentId !== documentId) return;
-    scheduleFetch(d.productId || "");
+    if (d.productId) {
+      scheduleFetch(d.productId);
+    } else {
+      // Dynamic mode - no fixed product; clear the preview immediately
+      hideGrid("Dynamic \u2014 product resolved from URL");
+    }
   });
 
   UiExtension.register().then(function (registeredUi) {

@@ -36,6 +36,9 @@ public final class DiscoveryModelKeys {
     public static final String PAGINATION         = "pagination";
     public static final String FACETS             = "facets";
 
+    // Shared document bean (DiscoveryProductDetailComponent, DiscoveryCategoryGridComponent)
+    public static final String DOCUMENT           = "document";
+
     // Product Detail (DiscoveryProductDetailComponent)
     public static final String PRODUCT            = "product";
     public static final String PID                = "pid";

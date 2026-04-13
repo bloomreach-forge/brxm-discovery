@@ -202,9 +202,11 @@ export interface RecommendationModels {
 }
 
 export interface ProductDetailModels {
+  /** null when: no document configured, Dynamic mode with no ?pid= URL param, or product not found in Discovery */
   product: ProductSummary | null;
-  pid: string;               // resolved PID (empty string when not found)
-  document: unknown | null;  // CMS-internal document bean - do not use in SPA code; use `pid` instead
+  /** Resolved PID; empty string when no document is configured or Dynamic mode with no URL param */
+  pid: string;
+  document: unknown | null;  // CMS-internal document bean - do not use in SPA code; use `pid` and `product` instead
   editMode: boolean;
 }
 
@@ -250,7 +252,7 @@ export interface CategoryHighlightModels {
 
 | Parameter | Type | Description |
 |---|---|---|
-| `category` | string | Discovery category ID. Used only when no category document is configured on the component. |
+| `category` | string | Discovery category ID. Only read when the linked Category Document is in **Dynamic mode** (blank `brxdis:categoryId`). Ignored when the document is in Pinned mode. |
 | `page` | number | 0-based page number. |
 | `sort` | string | Sort expression. |
 | `filter.{field}` | string (repeatable) | Facet filter. |
@@ -274,7 +276,7 @@ export interface CategoryHighlightModels {
 
 | Parameter | Type | Description |
 |---|---|---|
-| `pid` | string | Product ID. Overridden by a configured document if one is set on the component. |
+| `pid` | string | Product ID. Only read when the linked Product Detail Document is in **Dynamic mode** (blank `brxdis:productId`). Ignored when the document is Pinned. A document is always required; this param alone is not sufficient. |
 
 ---
 
@@ -356,7 +358,7 @@ export function SearchResults({ component }: BrComponentContext) {
 ```
 
 **Key behaviour:**
-- `products` is `null` when the query is blank (search) or no category is configured (category mode).
+- `products` is `null` when the query is blank (search mode), or when no Category Document is configured (category mode), or when the Category Document is in Dynamic mode and no `?category=` URL param is present.
 - `stats` contains `FieldStats` per field only when `statsFields` is set on the component (e.g. `price` for a price range slider).
 - `facetUrls`, `pageUrls`, `sortUrl`, and `activeFacets` are `null` when the corresponding display option is disabled on the component (`showFacets`, `showPagination`, `showSort`).
 
@@ -569,9 +571,14 @@ import type { BrComponentContext } from '@bloomreach/react-sdk';
 import type { ProductDetailModels } from './discovery.types';
 
 export function ProductDetail({ component }: BrComponentContext) {
-  const { product } = component.getModels<ProductDetailModels>();
+  const { product, pid, editMode } = component.getModels<ProductDetailModels>();
 
-  if (!product) return <p>Product not found.</p>;
+  if (!product) {
+    // No document configured, Dynamic mode with no ?pid= param, or product not in Discovery.
+    // In edit mode the Channel Manager shows the document picker; render nothing in delivery.
+    if (editMode) return <p>Configure a Product Detail Document in component properties.</p>;
+    return null;
+  }
 
   const brand = product.attributes['brand'] as string | undefined;
   const description = product.attributes['description'] as string | undefined;
@@ -596,12 +603,16 @@ export function ProductDetail({ component }: BrComponentContext) {
 }
 ```
 
-**PID resolution order (server-side):**
-1. `DiscoveryProductDetailDocument` configured on the component (document picker in Channel Manager) - wins over URL param
-2. `pid` URL param
-3. Page content bean property (advanced - requires `Product ID field name` component param)
+**Product ID resolution (document-dictated, server-side):**
 
-For a URL-driven PDP (most common), leave the document param empty and pass `?pid=<id>` in the URL.
+A `brxdis:productDetailDocument` is required on the component. The document mode is configured in the CMS via the product wizard:
+
+- **Pinned**: the document stores a specific product ID → that ID is always used; the `?pid=` URL param is ignored.
+- **Dynamic**: the document has no pinned ID → reads the `?pid=` URL param at render time.
+
+If no document is configured on the component, `product: null` is returned and the component renders nothing.
+
+For a URL-driven PDP, attach a Product Detail Document configured in **Dynamic mode** - the component then reads `?pid=<id>` from the URL on each request.
 
 ---
 
@@ -787,8 +798,8 @@ Set in Channel Manager. These drive server-side behaviour - they are **not** in 
 | | `showDescription` | `false` | Template shows product description |
 | | `useProductDetailContext` | `false` | Read PID from the Product Detail component on the same page |
 | | `contextProductId` | `""` | Explicit PID override |
-| `DiscoveryProductDetailComponent` | `document` | - | Product Detail Document picker |
-| | `productUrlParam` | `pid` | URL param name for the product ID |
+| `DiscoveryProductDetailComponent` | `document` | - | Product Detail Document picker (required; use the product wizard in the document editor to choose Dynamic or Pinned mode) |
+| | `productUrlParam` | `pid` | URL param name used in Dynamic mode (e.g. change to `sku` to read `?sku=` instead) |
 | `DiscoveryProductHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Product Detail Document pickers |
 | `DiscoveryCategoryHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Category Document pickers |
 
@@ -799,9 +810,14 @@ Set in Channel Manager. These drive server-side behaviour - they are **not** in 
 | Condition | What you receive |
 |---|---|
 | `q` is blank (search mode) | `products: null`, `pagination: {total:0}` |
-| No category configured (category mode) | `products: null`, `pagination: {total:0}` |
+| No Category Document on component | `products: null`, `categoryId: ""` |
+| Category Document in Dynamic mode, no `?category=` URL param | `products: null`, `categoryId: ""` |
+| Category Document in Pinned mode | `categoryId` = pinned value, products fetched |
 | No widget configured on recommendations | `products: []`, `widgetId: ""` |
-| No PID resolved on product detail | `product: null`, `pid: ""` |
+| No Product Detail Document on component | `product: null`, `pid: ""` |
+| Product Detail Document in Dynamic mode, no `?pid=` URL param | `product: null`, `pid: ""` |
+| Product Detail Document in Dynamic mode, `?pid=` present but product not in Discovery | `product: null`, `pid: "<id>"` |
+| Product Detail Document in Pinned mode, product not in Discovery | `product: null`, `pid: "<pinned-id>"` |
 | No documents on ProductHighlight | `products: [null, null, null, null]` - all slots empty |
 | No documents on CategoryHighlight | `categories: []`, `previewProducts: {}` |
 | CategoryHighlight with `productPreviewCount=0` | `categories` populated, `previewProducts: {}` |

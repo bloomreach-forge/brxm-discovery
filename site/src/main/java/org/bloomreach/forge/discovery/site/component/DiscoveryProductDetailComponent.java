@@ -6,17 +6,28 @@ import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetail
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
-import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.parameters.ParametersInfo;
-import org.hippoecm.hst.core.request.HstRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
+/**
+ * Discovery Product Detail component.
+ *
+ * <p>Requires a linked {@code brxdis:productDetailDocument}. The document dictates
+ * the product ID mode:
+ * <ul>
+ *   <li><b>Pinned</b> - {@code brxdis:productId} is non-blank: use that ID directly.</li>
+ *   <li><b>Dynamic</b> - {@code brxdis:productId} is blank: read the {@code ?pid=} URL parameter.</li>
+ * </ul>
+ *
+ * <p>If no document is configured the component renders nothing and shows a warning
+ * in Experience Manager edit mode.
+ */
 @ParametersInfo(type = DiscoveryProductDetailComponentInfo.class)
 public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent {
 
@@ -30,21 +41,22 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
 
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
                 DiscoveryProductDetailBean.class);
-        request.setModel("document", document);
+        request.setModel(DiscoveryModelKeys.DOCUMENT, document);
 
-        String pid = getPublicRequestParameter(request, info.getProductUrlParam());
-
-        // Stage 2 - Document bean (picker-driven; overrides only when the document has a non-blank productId)
-        if (document != null) {
-            String docPid = document.getProductId();
-            if (docPid != null && !docPid.isBlank()) {
-                pid = docPid;
-            }
+        // Document is required - no silent URL-param fallback without a document
+        if (document == null) {
+            DiscoveryRequestCache.markProductDetailRendered(request);
+            request.setModel(DiscoveryModelKeys.PRODUCT, null);
+            return;
         }
 
-        // Stage 3 - Page content bean property (auto-detection from document)
-        if (pid == null || pid.isBlank()) {
-            pid = resolvePidFromBean(request, info);
+        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL param)
+        String docPid = document.getProductId();
+        String pid;
+        if (docPid != null && !docPid.isBlank()) {
+            pid = docPid;
+        } else {
+            pid = getPublicRequestParameter(request, info.getProductUrlParam());
         }
 
         request.setModel(DiscoveryModelKeys.PID, pid != null ? pid : "");
@@ -53,16 +65,14 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             DiscoveryRequestCache.markProductDetailRendered(request);
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
-                    "No product ID resolved. Select a 'Product Detail Document' in component properties, " +
-                    "or ensure the page content bean has a '" + info.getProductPidProperty() + "' property, " +
-                    "or pass '?pid=' in the URL.");
+                    "Product document is in Dynamic mode but no '?" + info.getProductUrlParam() +
+                    "=' parameter was found in the URL.");
             }
             request.setModel(DiscoveryModelKeys.PRODUCT, null);
             return;
         }
 
         HstDiscoveryService svc = getDiscoveryService();
-
         Optional<ProductSummary> found = svc.fetchProduct(request, pid);
         ProductSummary product = found.orElse(null);
         request.setModel(DiscoveryModelKeys.PRODUCT, product);
@@ -74,25 +84,4 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
 
         log.debug("PDP pid='{}' product={}", pid, product != null ? product.id() : "null");
     }
-
-    /**
-     * Hook for testability - extracts PID from the page content bean's JCR property.
-     * Override in tests to avoid mocking HstRequestContext + HippoBean chains.
-     */
-    protected String resolvePidFromBean(HstRequest request, DiscoveryProductDetailComponentInfo info) {
-        HstRequestContext ctx = request.getRequestContext();
-        if (ctx == null) {
-            return null;
-        }
-        HippoBean pageBean = ctx.getContentBean();
-        if (pageBean == null) {
-            return null;
-        }
-        String pidProp = info.getProductPidProperty();
-        if (pidProp == null || pidProp.isBlank()) {
-            return null;
-        }
-        return pageBean.getSingleProperty(pidProp);
-    }
-
 }

@@ -9,20 +9,16 @@ import org.hippoecm.hst.core.parameters.Parameter;
 /**
  * Channel Manager parameters for the Discovery Product Grid - Category component.
  * Contains only category-browse-relevant parameters; search-specific fields
- * (catalog name, did-you-mean, auto-redirect) are intentionally absent.
+ * (did-you-mean, auto-redirect) are intentionally absent.
  */
 @FieldGroupList({
     @FieldGroup(
-        value = {"document", "pageSize"},
+        value = {"document", "pageSize", "defaultSort"},
         titleKey = "results.content.group"
     ),
     @FieldGroup(
         value = {"showFacets", "showPagination", "showSort"},
         titleKey = "results.display.group"
-    ),
-    @FieldGroup(
-        value = {"defaultSort", "statsFields", "segment", "exclusionFilter"},
-        titleKey = "results.advanced.group"
     )
 })
 public interface DiscoveryCategoryGridComponentInfo {
@@ -42,15 +38,6 @@ public interface DiscoveryCategoryGridComponentInfo {
     @Parameter(name = "defaultSort", displayName = "Default sort", defaultValue = "")
     @DropDownList({"", "price asc", "price desc", "name asc", "name desc", "sale_price asc", "sale_price desc"})
     String getDefaultSort();
-
-    @Parameter(name = "statsFields", displayName = "Statistics fields", defaultValue = "")
-    String getStatsFields();
-
-    @Parameter(name = "segment", displayName = "Visitor segment", defaultValue = "")
-    String getSegment();
-
-    @Parameter(name = "exclusionFilter", displayName = "Exclusion filter", defaultValue = "")
-    String getExclusionFilter();
 
     @Parameter(name = "showFacets", displayName = "Show facets panel", defaultValue = "true")
     boolean isShowFacets();

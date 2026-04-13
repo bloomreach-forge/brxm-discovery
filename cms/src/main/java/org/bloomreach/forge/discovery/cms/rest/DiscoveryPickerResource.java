@@ -218,6 +218,7 @@ public class DiscoveryPickerResource {
             @QueryParam("count") @DefaultValue("4") int count,
             @QueryParam("channelId") @DefaultValue("") String channelId) {
 
+        refreshSession(); // ensure JCR reads see the latest draft variant, not a cached stale state
         // categoryId may be supplied directly by the browser (live, pre-save value from the
         // category picker); fall back to reading from the JCR draft only when absent.
         String resolvedCategoryId = !categoryId.isBlank()
@@ -275,6 +276,7 @@ public class DiscoveryPickerResource {
             @QueryParam("count") @DefaultValue("4") int count,
             @QueryParam("channelId") @DefaultValue("") String channelId) {
 
+        refreshSession(); // ensure JCR reads see the latest draft variant, not a cached stale state
         String resolvedJson = !configJson.isBlank()
                 ? configJson : resolveConfigJsonFromDocument(documentId);
         if (resolvedJson == null || resolvedJson.isBlank()) {
@@ -338,6 +340,7 @@ public class DiscoveryPickerResource {
             @QueryParam("productId") @DefaultValue("") String productId,
             @QueryParam("channelId") @DefaultValue("") String channelId) {
 
+        refreshSession(); // ensure JCR reads see the latest draft variant, not a cached stale state
         String resolvedProductId = !productId.isBlank()
                 ? productId : resolveProductIdFromDocument(documentId);
         if (resolvedProductId == null || resolvedProductId.isBlank()) {
@@ -356,22 +359,14 @@ public class DiscoveryPickerResource {
      * Reads {@code brxdis:categoryId} from the document identified by {@code documentId}.
      *
      * <p>{@code documentId} is the <em>handle</em> UUID (as returned by {@code ui.document.get().id}).
-     * The property lives on the variant child node, not the handle itself, so we iterate the
-     * handle's children and return the first {@code brxdis:categoryId} value found.
+     * The property lives on the variant child node, not the handle itself. The unpublished (draft)
+     * variant is preferred so that CMS preview reflects the latest saved state, not the live one.
      */
     private String resolveCategoryIdFromDocument(String documentId) {
         if (documentId == null || documentId.isBlank()) return null;
         try {
             Node handle = moduleSession.getNodeByIdentifier(documentId);
-            // Property is on the variant child, not the handle
-            NodeIterator variants = handle.getNodes();
-            while (variants.hasNext()) {
-                Node variant = variants.nextNode();
-                if (variant.hasProperty(CATEGORY_ID_PROP)) {
-                    return variant.getProperty(CATEGORY_ID_PROP).getString();
-                }
-            }
-            return null;
+            return resolvePropertyFromVariants(handle, CATEGORY_ID_PROP);
         } catch (RepositoryException e) {
             log.warn("[resolveCategoryIdFromDocument] documentId='{}': {}", documentId, e.getMessage());
             return null;
@@ -381,20 +376,14 @@ public class DiscoveryPickerResource {
     /**
      * Reads {@code brxdis:config} JSON from the document identified by {@code documentId}.
      *
-     * <p>Same variant-child traversal pattern as {@link #resolveCategoryIdFromDocument}.
+     * <p>The unpublished (draft) variant is preferred so that CMS preview reflects the latest
+     * saved state, not the live one.
      */
     private String resolveConfigJsonFromDocument(String documentId) {
         if (documentId == null || documentId.isBlank()) return null;
         try {
             Node handle = moduleSession.getNodeByIdentifier(documentId);
-            NodeIterator variants = handle.getNodes();
-            while (variants.hasNext()) {
-                Node variant = variants.nextNode();
-                if (variant.hasProperty(CONFIG_PROP)) {
-                    return variant.getProperty(CONFIG_PROP).getString();
-                }
-            }
-            return null;
+            return resolvePropertyFromVariants(handle, CONFIG_PROP);
         } catch (RepositoryException e) {
             log.warn("[resolveConfigJsonFromDocument] documentId='{}': {}", documentId, e.getMessage());
             return null;
@@ -404,24 +393,42 @@ public class DiscoveryPickerResource {
     /**
      * Reads {@code brxdis:productId} from the document identified by {@code documentId}.
      *
-     * <p>Same variant-child traversal pattern as {@link #resolveCategoryIdFromDocument}.
+     * <p>The unpublished (draft) variant is preferred so that CMS preview reflects the latest
+     * saved state, not the live one.
      */
     private String resolveProductIdFromDocument(String documentId) {
         if (documentId == null || documentId.isBlank()) return null;
         try {
             Node handle = moduleSession.getNodeByIdentifier(documentId);
-            NodeIterator variants = handle.getNodes();
-            while (variants.hasNext()) {
-                Node variant = variants.nextNode();
-                if (variant.hasProperty(PRODUCT_ID_PROP)) {
-                    return variant.getProperty(PRODUCT_ID_PROP).getString();
-                }
-            }
-            return null;
+            return resolvePropertyFromVariants(handle, PRODUCT_ID_PROP);
         } catch (RepositoryException e) {
             log.warn("[resolveProductIdFromDocument] documentId='{}': {}", documentId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Iterates the variant children of {@code handle} and returns the string value of
+     * {@code propertyName}. The unpublished (draft) variant is preferred over published so that
+     * CMS authoring previews always show the latest saved state.
+     */
+    private static String resolvePropertyFromVariants(Node handle, String propertyName)
+            throws RepositoryException {
+        NodeIterator variants = handle.getNodes();
+        String fallback = null;
+        while (variants.hasNext()) {
+            Node variant = variants.nextNode();
+            if (!variant.hasProperty(propertyName)) continue;
+            String state = variant.hasProperty("hippo:state")
+                    ? variant.getProperty("hippo:state").getString() : "";
+            if ("unpublished".equals(state)) {
+                return variant.getProperty(propertyName).getString();
+            }
+            if (fallback == null) {
+                fallback = variant.getProperty(propertyName).getString();
+            }
+        }
+        return fallback;
     }
 
     private static String buildUrlFromBase(String baseUri, DiscoveryRequestSpec request) {

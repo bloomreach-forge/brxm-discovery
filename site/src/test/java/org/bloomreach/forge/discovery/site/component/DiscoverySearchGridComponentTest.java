@@ -426,10 +426,6 @@ class DiscoverySearchGridComponentTest {
             return new DiscoverySearchGridComponentInfo() {
                 @Override public int getPageSize()           { return pageSize; }
                 @Override public String getDefaultSort()     { return sort; }
-                @Override public String getCatalogName()     { return ""; }
-                @Override public String getStatsFields()     { return ""; }
-                @Override public String getSegment()         { return ""; }
-                @Override public String getExclusionFilter() { return ""; }
                 @Override public boolean isShowFacets()      { return showFacets; }
                 @Override public boolean isShowPagination()  { return showPagination; }
                 @Override public boolean isShowSort()        { return showSort; }

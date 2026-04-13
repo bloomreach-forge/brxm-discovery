@@ -166,7 +166,7 @@
     .inline-toolbar input:focus { border-color: var(--accent); background: var(--surface); }
     .inline-layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
-    /* Sidebar (category nav — products only) */
+    /* Sidebar (category nav - products only) */
     .inline-sidebar {
       width: 128px; flex-shrink: 0;
       border-right: 1px solid var(--border-soft);
@@ -199,49 +199,6 @@
       min-height: fit-content;
       grid-auto-rows: minmax(120px, 1fr);
     }
-    .inline-product-card {
-      display: flex; flex-direction: column;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); cursor: pointer; overflow: hidden; position: relative;
-      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-      animation: cardIn 0.22s ease-out both;
-    }
-    .inline-product-card:hover {
-      border-color: var(--accent); box-shadow: 0 2px 12px var(--accent-ring);
-      transform: translateY(-1px);
-    }
-    .inline-product-card.selected { border-color: var(--accent); background: var(--accent-subtle); }
-    .inline-product-card.selected::after {
-      content: '\2713'; position: absolute; top: 4px; right: 4px;
-      width: 16px; height: 16px; background: var(--accent); color: #fff;
-      border-radius: 50%; font-size: 9px; font-weight: 700;
-      line-height: 16px; text-align: center; z-index: 2;
-    }
-    .inline-card-img {
-      position: relative; width: 100%; flex: 1; min-height: 0; overflow: hidden;
-      background-color: var(--bg);
-      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-      background-size: 10px 10px;
-    }
-    .inline-card-img img {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: contain; display: block; transition: transform 0.25s ease;
-    }
-    .inline-product-card:hover .inline-card-img img { transform: scale(1.04); }
-    .inline-card-img::after {
-      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px;
-      background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none;
-    }
-    .inline-product-card.selected .inline-card-img::after {
-      background: linear-gradient(to bottom, transparent, var(--accent-subtle));
-    }
-    .inline-card-body { padding: 5px 7px 7px; flex-shrink: 0; }
-    .inline-card-title {
-      font-size: 11px; font-weight: 500; line-height: 1.35; color: var(--text);
-      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    }
-    .inline-card-price { font-size: 10px; font-weight: 700; color: var(--accent); margin-top: 2px; }
-
     /* Category rows */
     .inline-cat-row {
       display: flex; align-items: center; padding: 7px 10px; cursor: pointer;
@@ -367,64 +324,45 @@
       padding: 18px 16px; font-size: 11.5px; color: var(--text-faint);
       font-style: italic; text-align: center; display: none;
     }
-    .rp-card {
-      flex: 0 0 120px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      overflow: hidden; animation: rpCardIn 0.3s ease-out both;
+    #rp-test-bar {
+      padding: 10px 16px 8px;
+      border-bottom: 1px solid var(--border-soft);
+      background: var(--bg);
     }
-    .rp-card:nth-child(2) { animation-delay: 50ms; }
-    .rp-card:nth-child(3) { animation-delay: 100ms; }
-    .rp-card:nth-child(4) { animation-delay: 150ms; }
-    @keyframes rpCardIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .rp-test-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-faint);
+      margin-bottom: 6px;
     }
-    .rp-card-img {
-      position: relative; width: 100%; aspect-ratio: 1 / 1;
-      overflow: hidden; background-color: var(--bg);
-      background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-      background-size: 10px 10px;
+    .rp-test-row { display: flex; gap: 6px; align-items: center; }
+    .rp-test-input {
+      flex: 1;
+      padding: 5px 9px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .rp-card-img img {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: contain; display: block;
+    .rp-test-input::placeholder { color: var(--text-faint); }
+    .rp-test-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-ring);
     }
-    .rp-card-img::after {
-      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 22px;
-      background: linear-gradient(to bottom, transparent, var(--surface));
-      pointer-events: none;
-    }
-    .rp-card-body { padding: 5px 8px 8px; }
-    .rp-card-title {
-      font-size: 10.5px; font-weight: 500; line-height: 1.35; color: var(--text-muted);
-      overflow: hidden; display: -webkit-box;
-      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    }
-    .rp-card-price {
-      font-size: 10px; font-weight: 700; color: var(--accent);
-      margin-top: 2px; font-variant-numeric: tabular-nums;
-    }
-    .rp-skeleton {
-      flex: 0 0 120px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-    }
-    .rp-skel-img {
-      width: 100%; aspect-ratio: 1 / 1;
-      background: linear-gradient(90deg, var(--bg) 25%, var(--border-soft) 50%, var(--bg) 75%);
-      background-size: 200% 100%; animation: shimmer 1.4s infinite;
-    }
-    .rp-skel-body { padding: 5px 8px 8px; display: flex; flex-direction: column; gap: 5px; }
-    .rp-skel-line {
-      height: 9px; border-radius: 4px;
-      background: linear-gradient(90deg, var(--bg) 25%, var(--border-soft) 50%, var(--bg) 75%);
-      background-size: 200% 100%; animation: shimmer 1.4s infinite;
-    }
-    .rp-skel-line.short { width: 55%; }
-    .rp-skel-line:nth-child(2) { animation-delay: 0.2s; }
-    .rp-skel-line:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes shimmer {
-      from { background-position: 200% 0; }
-      to   { background-position: -200% 0; }
+    .rp-test-run { flex-shrink: 0; padding: 4px 10px; font-size: 11px; }
+    .rp-test-hint {
+      display: block;
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-top: 5px;
+      font-style: italic;
     }
   </style>
 </head>
@@ -530,6 +468,14 @@
         <span class="rp-title">Live Preview</span>
         <span class="rp-subtitle">Sample results for this configuration</span>
       </div>
+      <div id="rp-test-bar" style="display:none">
+        <label class="rp-test-label" id="rp-test-prompt" for="rp-test-input">Test with a product ID</label>
+        <div class="rp-test-row">
+          <input id="rp-test-input" class="rp-test-input" type="text" autocomplete="off"/>
+          <button id="rp-test-btn" class="btn rp-test-run">&#x25B6;</button>
+        </div>
+        <span class="rp-test-hint">not saved &mdash; preview only</span>
+      </div>
       <div id="rp-grid"></div>
       <div id="rp-status"></div>
     </div>
@@ -569,6 +515,7 @@ syncBodyToViewport();
     widgetId:            null,
     widgetName:          null,
     widgetType:          null,
+    contextMode:         null,   // "url" | "specific" | null (null → defaults to "url")
     contextProductId:    null,
     contextProductName:  null,
     contextCategoryId:   null,
@@ -604,6 +551,10 @@ syncBodyToViewport();
   var inlineProdCatId  = "";
 
   var reviewCard      = document.getElementById("review-card");
+  var rpTestBar       = document.getElementById("rp-test-bar");
+  var rpTestPrompt    = document.getElementById("rp-test-prompt");
+  var rpTestInput     = document.getElementById("rp-test-input");
+  var rpTestBtn       = document.getElementById("rp-test-btn");
   var backBtn         = document.getElementById("back-btn");
   var nextBtn         = document.getElementById("next-btn");
   var saveBtn         = document.getElementById("save-btn");
@@ -626,12 +577,13 @@ syncBodyToViewport();
     var existing = null;
     try { existing = data.currentValue ? JSON.parse(data.currentValue) : null; } catch (e) {}
     if (existing && existing.widgetId) {
-      state.widgetId           = existing.widgetId;
-      state.widgetName         = existing.widgetName        || existing.widgetId;
-      state.widgetType         = existing.widgetType        || null;
-      state.contextProductId   = existing.contextProductId   || null;
-      state.contextProductName = existing.contextProductName || null;
-      state.contextCategoryId  = existing.contextCategoryId  || null;
+      state.widgetId            = existing.widgetId;
+      state.widgetName          = existing.widgetName          || existing.widgetId;
+      state.widgetType          = existing.widgetType          || null;
+      state.contextMode         = existing.contextMode         || null;
+      state.contextProductId    = existing.contextProductId    || null;
+      state.contextProductName  = existing.contextProductName  || null;
+      state.contextCategoryId   = existing.contextCategoryId   || null;
       state.contextCategoryName = existing.contextCategoryName || null;
     }
 
@@ -767,32 +719,39 @@ syncBodyToViewport();
       inlineSearch.placeholder    = "Filter categories\u2026";
     }
 
-    // Restore prior selection
+    // Determine mode: honour explicit user choice; infer from existing data when not yet set
     var hasExisting = isItem ? !!state.contextProductId : !!state.contextCategoryId;
-    if (hasExisting) {
-      setContextMode("specific");
-      var name = isItem
-        ? (state.contextProductName || state.contextProductId)
-        : (state.contextCategoryName || state.contextCategoryId);
-      showSelection(name);
+    var mode = state.contextMode || (hasExisting ? "specific" : "url");
+    // setContextMode writes mode back to state.contextMode, keeping state in sync
+    setContextMode(mode);
+    if (mode === "specific") {
+      if (hasExisting) {
+        var name = isItem
+          ? (state.contextProductName || state.contextProductId)
+          : (state.contextCategoryName || state.contextCategoryId);
+        showSelection(name);
+      }
       if (isItem) {
         loadInlineProducts("");
       } else {
         loadInlineCategories();
       }
-    } else {
-      setContextMode("url");
     }
   }
 
   function setContextMode(mode) {
+    state.contextMode = mode;
     if (mode === "specific") {
       radioUrl.checked      = false;
       radioSpecific.checked = true;
       radioUrlLabel.classList.remove("selected");
       radioSpecLabel.classList.add("selected");
       inlinePicker.classList.add("visible");
-      nextBtn.disabled = false;
+      // Require a selection; re-enabled by item/category click or by switching back to url.
+      var type = state.widgetType || "";
+      var isItem = ITEM_TYPES.indexOf(type) >= 0;
+      var hasSelection = isItem ? !!state.contextProductId : !!state.contextCategoryId;
+      nextBtn.disabled = !hasSelection;
     } else {
       radioUrl.checked      = true;
       radioSpecific.checked = false;
@@ -822,14 +781,6 @@ syncBodyToViewport();
     }
   });
 
-  // Clicking the label div also toggles the radio
-  radioUrlLabel.addEventListener("click", function () {
-    radioUrl.click();
-  });
-  radioSpecLabel.addEventListener("click", function () {
-    radioSpecific.click();
-  });
-
   // Inline product search with debounce
   inlineSearch.addEventListener("input", function () {
     clearTimeout(searchTimer);
@@ -844,6 +795,7 @@ syncBodyToViewport();
 
   selectionClear.addEventListener("click", function () {
     clearContextState();
+    nextBtn.disabled = true; // selection cleared - require a new pick before proceeding
     inlineResults.replaceChildren();
     var type = state.widgetType || "";
     if (ITEM_TYPES.indexOf(type) >= 0) {
@@ -976,6 +928,7 @@ syncBodyToViewport();
         state.contextProductName = item.title || item.id;
         grid.querySelectorAll(".inline-product-card").forEach(function (c) { c.classList.toggle("selected", c === card); });
         showSelection(item.title || item.id);
+        nextBtn.disabled = false;
       });
       grid.appendChild(card);
     });
@@ -1074,6 +1027,7 @@ syncBodyToViewport();
           r.classList.toggle("selected", r === row);
         });
         showSelection(cat.name || cat.id);
+        nextBtn.disabled = false;
       });
 
       inlineResults.appendChild(row);
@@ -1144,34 +1098,47 @@ syncBodyToViewport();
     var grid   = document.getElementById("rp-grid");
     var status = document.getElementById("rp-status");
 
-    // Personalized widgets require a live visitor UID — not available in the CMS editor.
+    // Personalized widgets require a live visitor UID - not available in the CMS editor.
     if (PERSONALIZED_TYPES.indexOf(state.widgetType || "") >= 0) {
+      rpTestBar.style.display = "none";
       showRpStatus("Preview not available \u2014 personalized results require a live visitor session.");
       return;
+    }
+
+    // Determine effective context IDs (may come from test input when URL-param mode is active).
+    var type     = state.widgetType || "";
+    var isItem   = ITEM_TYPES.indexOf(type) >= 0;
+    var isCat    = type === "category";
+    var effectiveProductId  = state.contextProductId  || null;
+    var effectiveCategoryId = state.contextCategoryId || null;
+
+    if ((isItem && !effectiveProductId) || (isCat && !effectiveCategoryId)) {
+      // URL-param mode: show test bar so user can supply a context ID for preview,
+      // but always proceed with the API call regardless (server returns empty when absent).
+      rpTestPrompt.textContent = isItem ? "Test with a product ID" : "Test with a category ID";
+      rpTestInput.placeholder  = isItem ? "e.g. SKU-123" : "e.g. cat-456";
+      rpTestBar.style.display  = "";
+      var testId = rpTestInput.value.trim();
+      if (testId) {
+        if (isItem) effectiveProductId  = testId;
+        else        effectiveCategoryId = testId;
+      }
+    } else {
+      rpTestBar.style.display = "none";
     }
 
     // Show 4 shimmer skeletons while fetching
     grid.replaceChildren();
     status.style.display = "none";
-    for (var i = 0; i < 4; i++) {
-      var skel = document.createElement("div"); skel.className = "rp-skeleton";
-      var si   = document.createElement("div"); si.className = "rp-skel-img";
-      var sb   = document.createElement("div"); sb.className = "rp-skel-body";
-      var sl1  = document.createElement("div"); sl1.className = "rp-skel-line";
-      var sl2  = document.createElement("div"); sl2.className = "rp-skel-line";
-      var sl3  = document.createElement("div"); sl3.className = "rp-skel-line short";
-      sb.append(sl1, sl2, sl3);
-      skel.append(si, sb);
-      grid.appendChild(skel);
-    }
+    for (var i = 0; i < 4; i++) { grid.appendChild(makePreviewSkeleton()); }
 
     var configJson = JSON.stringify({
       widgetId:            state.widgetId,
       widgetName:          state.widgetName,
       widgetType:          state.widgetType,
-      contextProductId:    state.contextProductId    || null,
+      contextProductId:    effectiveProductId,
       contextProductName:  state.contextProductName  || null,
-      contextCategoryId:   state.contextCategoryId   || null,
+      contextCategoryId:   effectiveCategoryId,
       contextCategoryName: state.contextCategoryName || null
     });
 
@@ -1190,23 +1157,7 @@ syncBodyToViewport();
           showRpStatus("No preview \u2014 context required or no results for this widget.");
           return;
         }
-        items.forEach(function (item) {
-          var card    = document.createElement("div"); card.className = "rp-card";
-          var imgWrap = document.createElement("div"); imgWrap.className = "rp-card-img";
-          var img     = document.createElement("img");
-          img.src     = item.imageUrl || ""; img.alt = ""; img.loading = "lazy";
-          img.onerror = function () { this.style.display = "none"; };
-          imgWrap.appendChild(img); card.appendChild(imgWrap);
-          var body  = document.createElement("div"); body.className = "rp-card-body";
-          var title = document.createElement("div"); title.className = "rp-card-title";
-          title.textContent = item.title || item.id || ""; body.appendChild(title);
-          if (item.price) {
-            var price = document.createElement("div"); price.className = "rp-card-price";
-            price.textContent = item.price; body.appendChild(price);
-          }
-          card.appendChild(body);
-          grid.appendChild(card);
-        });
+        items.forEach(function (item) { grid.appendChild(makePreviewCard(item)); });
       })
       .catch(function () {
         grid.replaceChildren();
@@ -1256,14 +1207,20 @@ syncBodyToViewport();
     }
   });
 
+  rpTestBtn.addEventListener("click", fetchReviewPreview);
+  rpTestInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") fetchReviewPreview();
+  });
+
   saveBtn.addEventListener("click", function () {
     var result = JSON.stringify({
       widgetId:             state.widgetId,
       widgetName:           state.widgetName,
       widgetType:           state.widgetType,
-      contextProductId:     state.contextProductId  || null,
-      contextProductName:   state.contextProductName || null,
-      contextCategoryId:    state.contextCategoryId  || null,
+      contextMode:          state.contextMode         || null,
+      contextProductId:     state.contextProductId    || null,
+      contextProductName:   state.contextProductName  || null,
+      contextCategoryId:    state.contextCategoryId   || null,
       contextCategoryName:  state.contextCategoryName || null
     });
     ui.dialog.close(result);
@@ -1271,6 +1228,12 @@ syncBodyToViewport();
 
   function goToStep(n) {
     currentStep = n;
+
+    // Reset test bar when leaving step 3 so stale input doesn't persist across widget changes.
+    if (n !== 3) {
+      rpTestBar.style.display = "none";
+      rpTestInput.value = "";
+    }
 
     document.getElementById("step-1").hidden = (n !== 1);
     document.getElementById("step-2").hidden = (n !== 2);

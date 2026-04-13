@@ -45,166 +45,159 @@ class DiscoveryProductDetailComponentTest {
         lenient().when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
     }
 
-    /** No document, no bean resolution. */
-    private TestableProductDetailComponent component(String urlPid) {
-        return new TestableProductDetailComponent(discoveryService, urlPid, null, "brxdis:pid", null, "pid");
+    /** No document attached; null = no URL param either. */
+    private TestableProductDetailComponent noDoc() {
+        return new TestableProductDetailComponent(discoveryService, null, null, "pid");
     }
 
-    /** URL param + page bean resolution, no document. */
-    private TestableProductDetailComponent component(String urlPid, String beanPid, String pidProperty) {
-        return new TestableProductDetailComponent(discoveryService, urlPid, beanPid, pidProperty, null, "pid");
+    /** No document attached; URL param has this value. */
+    private TestableProductDetailComponent noDoc(String urlPid) {
+        return new TestableProductDetailComponent(discoveryService, null, urlPid, "pid");
     }
 
-    /** Full chain: URL param + page bean + document bean. */
-    private TestableProductDetailComponent component(String urlPid, String beanPid,
-                                                     String pidProperty, String documentPid) {
-        return new TestableProductDetailComponent(discoveryService, urlPid, beanPid, pidProperty, documentPid, "pid");
+    /** Document in dynamic mode (blank productId); URL param provides the ID. */
+    private TestableProductDetailComponent dynamic(String urlPid) {
+        return new TestableProductDetailComponent(discoveryService, "", urlPid, "pid");
     }
 
-    // ── blank pid → early exit, service never called ──────────────────────────
+    /** Document in dynamic mode, no URL param. */
+    private TestableProductDetailComponent dynamic() {
+        return new TestableProductDetailComponent(discoveryService, "", null, "pid");
+    }
+
+    /** Document in pinned mode with the given productId; no URL param. */
+    private TestableProductDetailComponent pinned(String productId) {
+        return new TestableProductDetailComponent(discoveryService, productId, null, "pid");
+    }
+
+    // ── No document → required ────────────────────────────────────────────────
 
     @Test
-    void noProduct_pid_blank() {
-        component("").doBeforeRender(request, response);
+    void noDocument_noServiceCall_setsNullProduct() {
+        noDoc().doBeforeRender(request, response);
 
         verifyNoInteractions(discoveryService);
         verify(request).setModel("product", null);
     }
 
-    // ── product found → model set ─────────────────────────────────────────────
+    /** RED: current code falls back to reading the URL param even when no document is attached. */
+    @Test
+    void noDocument_withUrlParam_noServiceCall() {
+        noDoc("p-1").doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+        verify(request).setModel("product", null);
+    }
+
+    @Test
+    void noDocument_editMode_noWarning() {
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+
+        noDoc().doBeforeRender(request, response);
+
+        // Channel Manager's own properties panel provides the "configure" affordance;
+        // no redundant inline warning needed for the no-document case.
+        verify(request, never()).setAttribute(eq("brxdis_warning"), any());
+    }
+
+    // ── Dynamic mode (blank productId) → URL param ────────────────────────────
+
+    @Test
+    void document_dynamic_withUrlParam_fetchesProduct() {
+        ProductSummary product = new ProductSummary("p-1", "Test", null, null, null, null, Map.of());
+        when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
+
+        dynamic("p-1").doBeforeRender(request, response);
+
+        verify(discoveryService).fetchProduct(eq(request), eq("p-1"));
+        verify(request).setModel("product", product);
+    }
+
+    @Test
+    void document_dynamic_noUrlParam_setsNullProduct() {
+        dynamic().doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+        verify(request).setModel("product", null);
+    }
+
+    // ── Pinned mode (non-blank productId) → use pinned ID, ignore URL param ───
+
+    @Test
+    void document_pinned_usesPinnedId() {
+        ProductSummary product = new ProductSummary("p99", "Test", null, null, null, null, Map.of());
+        when(discoveryService.fetchProduct(eq(request), eq("p99"))).thenReturn(Optional.of(product));
+
+        pinned("p99").doBeforeRender(request, response);
+
+        verify(discoveryService).fetchProduct(eq(request), eq("p99"));
+    }
+
+    @Test
+    void document_pinned_ignoresUrlParam() {
+        ProductSummary product = new ProductSummary("doc-pid", "Test", null, null, null, null, Map.of());
+        when(discoveryService.fetchProduct(eq(request), eq("doc-pid"))).thenReturn(Optional.of(product));
+
+        new TestableProductDetailComponent(discoveryService, "doc-pid", "url-pid", "pid")
+                .doBeforeRender(request, response);
+
+        verify(discoveryService).fetchProduct(eq(request), eq("doc-pid"));
+        verify(discoveryService, never()).fetchProduct(eq(request), eq("url-pid"));
+    }
+
+    // ── Product found / not found ─────────────────────────────────────────────
 
     @Test
     void productFound_setsModel() {
         ProductSummary product = new ProductSummary("p-1", "Test", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
-        component("p-1").doBeforeRender(request, response);
+        pinned("p-1").doBeforeRender(request, response);
 
         verify(request).setModel("product", product);
     }
-
-    // ── product not found → null model ───────────────────────────────────────
 
     @Test
     void productNotFound_setsNullProduct() {
         when(discoveryService.fetchProduct(eq(request), eq("p-99"))).thenReturn(Optional.empty());
 
-        component("p-99").doBeforeRender(request, response);
+        pinned("p-99").doBeforeRender(request, response);
 
         verify(request).setModel("product", null);
     }
 
-    // ── Stage 2: document bean provides PID when URL param absent ────────────
+    // ── PID exposed as model attribute ────────────────────────────────────────
 
     @Test
-    void pid_resolvedFromDocumentBean_whenNoUrlParam() {
-        ProductSummary product = new ProductSummary("p99", "Test", null, null, null, null, Map.of());
-        when(discoveryService.fetchProduct(eq(request), eq("p99"))).thenReturn(Optional.of(product));
+    void pid_exposedAsModelAttribute() {
+        when(discoveryService.fetchProduct(eq(request), eq("bad-pid"))).thenReturn(Optional.empty());
 
-        component(null, null, "brxdis:pid", "p99").doBeforeRender(request, response);
+        pinned("bad-pid").doBeforeRender(request, response);
 
-        verify(discoveryService).fetchProduct(eq(request), eq("p99"));
+        verify(request).setModel("pid", "bad-pid");
     }
 
-    // ── Stage 3: bean property used when URL param + document bean both absent ─
+    // ── Custom URL param name (dynamic mode) ──────────────────────────────────
 
     @Test
-    void pid_resolvedFromPageBeanProperty_whenNoUrlParamOrDocumentBean() {
-        ProductSummary product = new ProductSummary("p-from-bean", "Test", null, null, null, null, Map.of());
-        when(discoveryService.fetchProduct(eq(request), eq("p-from-bean"))).thenReturn(Optional.of(product));
-
-        component(null, "p-from-bean", "brxdis:pid").doBeforeRender(request, response);
-
-        verify(discoveryService).fetchProduct(eq(request), eq("p-from-bean"));
-    }
-
-    // ── URL param wins over document bean and page bean ───────────────────────
-
-//    @Test
-//    void pid_DocumentWins_overDocumentBeanAndPageBean() {
-//        ProductSummary product = new ProductSummary("url-pid", "Test", null, null, null, null, Map.of());
-//        when(discoveryService.fetchProduct(eq(request), eq("url-pid"))).thenReturn(Optional.of(product));
-//
-//        component("url-pid", "bean-pid", "brxdis:pid", "doc-pid").doBeforeRender(request, response);
-//
-//        verify(discoveryService).fetchProduct(eq(request), eq("url-pid"));
-//        verify(discoveryService, never()).fetchProduct(eq(request), eq("doc-pid"));
-//        verify(discoveryService, never()).fetchProduct(eq(request), eq("bean-pid"));
-//    }
-
-    // ── Custom PID property name is used when configured ─────────────────────
-
-    @Test
-    void pid_customPidProperty_usedWhenConfigured() {
-        ProductSummary product = new ProductSummary("sku-42", "Test", null, null, null, null, Map.of());
-        when(discoveryService.fetchProduct(eq(request), eq("sku-42"))).thenReturn(Optional.of(product));
-
-        component(null, "sku-42", "commerce:sku").doBeforeRender(request, response);
-
-        verify(discoveryService).fetchProduct(eq(request), eq("sku-42"));
-    }
-
-    // ── Custom URL param name used when configured ────────────────────────────
-
-    @Test
-    void pid_customUrlParam_usedWhenConfigured() {
+    void document_dynamic_customUrlParam_used() {
         ProductSummary product = new ProductSummary("some-sku", "Test", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("some-sku"))).thenReturn(Optional.of(product));
 
-        new TestableProductDetailComponent(discoveryService, "some-sku", null, "brxdis:pid", null, "sku")
+        new TestableProductDetailComponent(discoveryService, "", "some-sku", "sku")
                 .doBeforeRender(request, response);
 
         verify(discoveryService).fetchProduct(eq(request), eq("some-sku"));
     }
 
-    // ── Document bean productId wins over page bean ───────────────────────────
-
-    @Test
-    void pid_resolvedFromDocumentBean_overridesPageBean() {
-        ProductSummary product = new ProductSummary("doc-pid", "Test", null, null, null, null, Map.of());
-        when(discoveryService.fetchProduct(eq(request), eq("doc-pid"))).thenReturn(Optional.of(product));
-
-        component(null, "bean-pid", "brxdis:pid", "doc-pid").doBeforeRender(request, response);
-
-        verify(discoveryService).fetchProduct(eq(request), eq("doc-pid"));
-        verify(discoveryService, never()).fetchProduct(eq(request), eq("bean-pid"));
-    }
-
-    // ── Bug #2: document with blank productId must not wipe valid URL param ──
-
-    @Test
-    void pid_urlParam_preservedWhenDocumentHasBlankProductId() {
-        // document IS attached (documentPid = "") but has no productId set - must not override "url-pid"
-        ProductSummary product = new ProductSummary("url-pid", "T", null, null, null, null, Map.of());
-        when(discoveryService.fetchProduct(eq(request), eq("url-pid"))).thenReturn(Optional.of(product));
-
-        new TestableProductDetailComponent(discoveryService, "url-pid", null, "brxdis:pid", "", "pid")
-                .doBeforeRender(request, response);
-
-        verify(discoveryService).fetchProduct(eq(request), eq("url-pid"));
-    }
-
-    // ── Bug #1: resolved pid must be exposed as a model attribute ────────────
-
-    @Test
-    void pid_exposedAsModelAttribute_forTemplateErrorMessage() {
-        when(discoveryService.fetchProduct(eq(request), eq("bad-pid"))).thenReturn(Optional.empty());
-
-        component("bad-pid").doBeforeRender(request, response);
-
-        verify(request).setModel("pid", "bad-pid");
-    }
-
-    // ── testable subclass ─────────────────────────────────────────────────────
-
-    // ── band publication: marksBandPresent_whenProductFound ──────────────────
+    // ── Band publication ──────────────────────────────────────────────────────
 
     @Test
     void marksBandPresent_whenProductFound() {
         ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
-        component("p-1").doBeforeRender(request, response);
+        pinned("p-1").doBeforeRender(request, response);
 
         assertTrue(DiscoveryRequestCache.isProductDetailRendered(request));
     }
@@ -213,7 +206,7 @@ class DiscoveryProductDetailComponentTest {
     void marksBandPresent_whenProductNotFound() {
         when(discoveryService.fetchProduct(eq(request), eq("p-99"))).thenReturn(Optional.empty());
 
-        component("p-99").doBeforeRender(request, response);
+        pinned("p-99").doBeforeRender(request, response);
 
         assertTrue(DiscoveryRequestCache.isProductDetailRendered(request));
     }
@@ -223,7 +216,7 @@ class DiscoveryProductDetailComponentTest {
         ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
-        component("p-1").doBeforeRender(request, response);
+        pinned("p-1").doBeforeRender(request, response);
 
         Optional<ProductSummary> cached = DiscoveryRequestCache.getProductResult(request);
         assertTrue(cached.isPresent());
@@ -234,30 +227,32 @@ class DiscoveryProductDetailComponentTest {
     void doesNotPutToCache_whenProductNotFound() {
         when(discoveryService.fetchProduct(eq(request), eq("p-99"))).thenReturn(Optional.empty());
 
-        component("p-99").doBeforeRender(request, response);
+        pinned("p-99").doBeforeRender(request, response);
 
         assertTrue(DiscoveryRequestCache.getProductResult(request).isEmpty());
     }
 
-    // ── testable subclass ─────────────────────────────────────────────────────
+    // ── Testable subclass ─────────────────────────────────────────────────────
 
     private static class TestableProductDetailComponent extends DiscoveryProductDetailComponent {
 
         private final HstDiscoveryService service;
-        private final String urlPid;
-        private final String beanPid;
-        private final String pidProperty;
+        /**
+         * null  = no document attached (component has no document configured)<br>
+         * ""    = document in Dynamic mode (blank productId, falls back to URL param)<br>
+         * other = document in Pinned mode (explicit productId stored in document)
+         */
         private final String documentPid;
+        private final String urlPid;
         private final String productUrlParam;
 
-        TestableProductDetailComponent(HstDiscoveryService service, String urlPid,
-                                       String beanPid, String pidProperty,
-                                       String documentPid, String productUrlParam) {
+        TestableProductDetailComponent(HstDiscoveryService service,
+                                       String documentPid,
+                                       String urlPid,
+                                       String productUrlParam) {
             this.service = service;
-            this.urlPid = urlPid;
-            this.beanPid = beanPid;
-            this.pidProperty = pidProperty;
             this.documentPid = documentPid;
+            this.urlPid = urlPid;
             this.productUrlParam = productUrlParam;
         }
 
@@ -270,8 +265,7 @@ class DiscoveryProductDetailComponentTest {
         @Override
         protected DiscoveryProductDetailComponentInfo getComponentParametersInfo(HstRequest request) {
             return new DiscoveryProductDetailComponentInfo() {
-                @Override public String getDocument() { return documentPid != null ? "test-doc" : ""; }
-                @Override public String getProductPidProperty() { return pidProperty; }
+                @Override public String getDocument()        { return documentPid != null ? "test-doc" : ""; }
                 @Override public String getProductUrlParam() { return productUrlParam; }
             };
         }
@@ -289,11 +283,6 @@ class DiscoveryProductDetailComponentTest {
         @Override
         public String getPublicRequestParameter(HstRequest request, String name) {
             return productUrlParam.equals(name) ? urlPid : null;
-        }
-
-        @Override
-        protected String resolvePidFromBean(HstRequest request, DiscoveryProductDetailComponentInfo info) {
-            return beanPid;
         }
     }
 }

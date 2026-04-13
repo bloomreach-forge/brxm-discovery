@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discovery Category</title>
+  <link rel="stylesheet" href="picker-field.css"/>
+  <style>
+    #value-display { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+    .mode-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .mode-badge.dynamic { background: #e8f5e9; color: #2e7d32; }
+    .mode-badge.pinned  { background: #ffedd5; color: #c2410c; }
+    .id-hint { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono, monospace); }
+  </style>
+</head>
+<body>
+
+<div id="field-row">
+  <div id="value-display" class="empty">Not configured</div>
+  <button id="clear-btn" class="btn btn-ghost" style="display:none">&#x2715; Clear</button>
+  <button id="configure-btn" class="btn btn-primary">Configure&hellip;</button>
+</div>
+
+<script src="ui-extension.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var ui           = null;
+  var currentValue = "";
+  var documentId   = "";
+
+  var valueDisplay = document.getElementById("value-display");
+  var clearBtn     = document.getElementById("clear-btn");
+  var configureBtn = document.getElementById("configure-btn");
+
+  UiExtension.register().then(function (registeredUi) {
+    ui = registeredUi;
+
+    ui.document.field.getValue().then(function (val) {
+      currentValue = val || "";
+      refreshDisplay(currentValue);
+    });
+
+    ui.document.get().then(function (doc) {
+      documentId = doc.id || "";
+      setEditMode(doc.mode === "edit");
+    });
+
+    ui.document.observe(function (doc) {
+      documentId = doc.id || "";
+      setEditMode(doc.mode === "edit");
+    });
+
+    ui.document.field.setHeight(52);
+  }).catch(function () {
+    valueDisplay.textContent = "Failed to connect to CMS";
+    valueDisplay.classList.add("empty");
+  });
+
+  configureBtn.addEventListener("click", function () {
+    if (!ui) return;
+    var dialogUrl = (ui.baseUrl || "").replace(/\/$/, "") +
+      "/discovery-picker/category-wizard-dialog.html";
+
+    ui.dialog.open({
+      title: currentValue ? "Edit Category" : "Configure Category",
+      url:   dialogUrl,
+      size:  "large",
+      value: JSON.stringify({ documentId: documentId, currentValue: currentValue })
+    })
+    .then(function (result) {
+      if (result !== undefined && result !== null) {
+        currentValue = String(result);
+        ui.document.field.setValue(currentValue);
+        refreshDisplay(currentValue);
+        broadcastCategoryChanged(currentValue);
+      }
+    })
+    .catch(function (err) {
+      if (err && err.code !== "DialogCanceled") {
+        console.error("brxm-discovery category wizard error:", err);
+      }
+    });
+  });
+
+  clearBtn.addEventListener("click", function () {
+    currentValue = "";
+    if (ui) ui.document.field.setValue("");
+    refreshDisplay("");
+    broadcastCategoryChanged("");
+  });
+
+  function broadcastCategoryChanged(categoryId) {
+    if (!window.parent || !window.parent.frames) return;
+    var msg = { type: "brxdis:categoryChanged", documentId: documentId, categoryId: categoryId };
+    for (var i = 0; i < window.parent.frames.length; i++) {
+      try { window.parent.frames[i].postMessage(msg, window.location.origin); } catch (e) {}
+    }
+  }
+
+  function setEditMode(editable) {
+    configureBtn.disabled = !editable;
+    clearBtn.disabled     = !editable;
+  }
+
+  function refreshDisplay(value) {
+    while (valueDisplay.firstChild) {
+      valueDisplay.removeChild(valueDisplay.firstChild);
+    }
+
+    if (value) {
+      var badge = document.createElement("span");
+      badge.className = "mode-badge pinned";
+      badge.textContent = "Pinned";
+      valueDisplay.appendChild(badge);
+
+      var id = document.createElement("span");
+      id.className = "id-hint";
+      id.textContent = value;
+      valueDisplay.appendChild(id);
+
+      valueDisplay.classList.remove("empty");
+      clearBtn.style.display = "";
+      configureBtn.textContent = "Edit\u2026";
+    } else {
+      var dynBadge = document.createElement("span");
+      dynBadge.className = "mode-badge dynamic";
+      dynBadge.textContent = "Dynamic";
+      valueDisplay.appendChild(dynBadge);
+
+      var hint = document.createElement("span");
+      hint.className = "id-hint";
+      hint.textContent = "URL parameter \u00b7 ?category=";
+      valueDisplay.appendChild(hint);
+
+      valueDisplay.classList.remove("empty");
+      clearBtn.style.display = "none";
+      configureBtn.textContent = "Configure\u2026";
+    }
+  }
+}());
+</script>
+</body>
+</html>

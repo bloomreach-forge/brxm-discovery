@@ -8,7 +8,7 @@ import org.hippoecm.hst.core.parameters.Parameter;
 @FieldGroupList({
     @FieldGroup(value = {"document"},
                 titleKey = "pdp.group"),
-    @FieldGroup(value = {"productPidProperty", "productUrlParam"},
+    @FieldGroup(value = {"productUrlParam"},
                 titleKey = "pdp.advanced.group")
 })
 public interface DiscoveryProductDetailComponentInfo {
@@ -21,11 +21,6 @@ public interface DiscoveryProductDetailComponentInfo {
         isRelative = true
     )
     String getDocument();
-
-    @Parameter(name = "productPidProperty",
-               displayName = "Product ID field name",
-               defaultValue = "brxdis:pid")
-    String getProductPidProperty();
 
     @Parameter(name = "productUrlParam", displayName = "URL parameter", defaultValue = "pid")
     String getProductUrlParam();

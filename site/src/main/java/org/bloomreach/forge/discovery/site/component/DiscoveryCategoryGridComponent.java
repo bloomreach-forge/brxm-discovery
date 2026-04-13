@@ -13,14 +13,21 @@ import org.hippoecm.hst.core.parameters.ParametersInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Discovery Product Grid - Category browse mode.
  *
- * <p>Resolves a category ID from either a linked Category Document or the
- * {@code ?category=} URL parameter, then fetches matching products from the
- * Discovery API. Renders via {@code brxdis-results.ftl}.
+ * <p>Requires a linked {@code brxdis:categoryDocument}. The document dictates the
+ * category ID mode:
+ * <ul>
+ *   <li><b>Pinned</b> - {@code brxdis:categoryId} is non-blank: use that ID directly.</li>
+ *   <li><b>Dynamic</b> - {@code brxdis:categoryId} is blank: read the {@code ?category=} URL parameter.</li>
+ * </ul>
+ *
+ * <p>If no document is configured the component renders nothing and shows a warning
+ * in Experience Manager edit mode.
  *
  * <p>Catalog entry: {@code /product-grid-category} - "Discovery Product Grid - Category".
  */
@@ -39,20 +46,31 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
         DiscoveryCategoryBean document = getHippoBeanForPath(
                 request, info.getDocument(), DiscoveryCategoryBean.class);
 
-        String categoryId = document != null
-                && document.getCategoryId() != null
-                && !document.getCategoryId().isBlank()
-                ? document.getCategoryId()
-                : getPublicRequestParameter(request, CAT_ID_PARAM);
+        request.setModel(DiscoveryModelKeys.DOCUMENT, document);
+        request.setModel(DiscoveryModelKeys.DATA_SOURCE_MODE, "category");
+
+        // Document is required - no silent URL-param fallback without a document
+        if (document == null) {
+            request.setModel(DiscoveryModelKeys.CATEGORY_ID, "");
+            setEmptyState(request);
+            return;
+        }
+
+        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL param)
+        String docCategoryId = document.getCategoryId();
+        String categoryId;
+        if (docCategoryId != null && !docCategoryId.isBlank()) {
+            categoryId = docCategoryId;
+        } else {
+            categoryId = getPublicRequestParameter(request, CAT_ID_PARAM);
+        }
 
         request.setModel(DiscoveryModelKeys.CATEGORY_ID, categoryId != null ? categoryId : "");
-        request.setModel(DiscoveryModelKeys.DATA_SOURCE_MODE, "category");
 
         if (categoryId == null || categoryId.isBlank()) {
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
-                        "No category configured. Attach a Category Document to this component " +
-                        "or pass a '?category=' URL parameter.");
+                        "Category document is in Dynamic mode but no '?category=' URL parameter was found.");
             }
             setEmptyState(request);
             return;
@@ -60,9 +78,7 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
 
         HstDiscoveryService svc = getDiscoveryService();
         SearchResponse browseResponse = svc.browse(request, categoryId, new SearchRequestOptions(
-                info.getPageSize(), info.getDefaultSort(), null,
-                parseStatsFields(info.getStatsFields()),
-                info.getSegment(), info.getExclusionFilter()));
+                info.getPageSize(), blankToNull(info.getDefaultSort()), null, List.of(), null, null));
 
         request.setModel(DiscoveryModelKeys.DISPLAY_NAME, browseResponse.metadata().categoryName());
         request.setModel(DiscoveryModelKeys.CAMPAIGN, browseResponse.metadata().campaign());

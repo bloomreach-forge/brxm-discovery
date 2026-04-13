@@ -12,9 +12,13 @@ The picker talks to the CMS REST endpoint (`{cms}/ws/discovery/picker`) - not di
 
 When `brxm-discovery-cms` is on the CMS classpath, HCM bootstraps the following Open UI extensions under `/hippo:configuration/hippo:frontend/cms/ui-extensions/`:
 
-**Product / category pickers (dialogs)**
+**Product / category pickers (dialogs - used directly on custom doc types)**
 - **`discoveryProductPicker`** - full product search picker with category sidebar
 - **`discoveryCategoryPicker`** - category picker (dialog)
+
+**Product & category document wizards (built-in doc types)**
+- **`discoveryProductWizard`** - 2-step wizard for `brxdis:productDetailDocument`; lets editors choose Dynamic (URL param) or Pinned (specific product) mode
+- **`discoveryCategoryWizard`** - 2-step wizard for `brxdis:categoryDocument`; lets editors choose Dynamic or Pinned category mode
 
 **Recommendation wizard fields**
 - **`discoveryProductRecommendationWizard`** - wizard for `brxdis:productRecommendationDocument`; filters to product widget types (`co_viewed`, `co_bought`, `rt_recs`, `mlt`)
@@ -28,7 +32,7 @@ When `brxm-discovery-cms` is on the CMS classpath, HCM bootstraps the following 
 
 **Live preview fields**
 - **`discoveryRecommendationPreview`** - shows sample product thumbnails for the selected recommendation config (listens for `brxdis:configChanged` from the wizard field above it)
-- **`discoveryProductDetailPreview`** - shows the thumbnail of the product picked in a `brxdis:productDetailDocument`
+- **`discoveryProductDetailPreview`** - shows the thumbnail of the product configured in a `brxdis:productDetailDocument` (works alongside the product wizard)
 - **`discoveryCategoryProductPreview`** - inline product count selector + live thumbnail preview for `brxdis:categoryDocument` (see [below](#discoverycategoryproductpreview-inline-field))
 
 - **Picker daemon module** at
@@ -231,14 +235,63 @@ The extension reads the `categoryId` via `postMessage` from the category picker 
 
 ---
 
+## Product & category document wizards
+
+### Product wizard (`discoveryProductWizard`)
+
+Used on `brxdis:productDetailDocument`. Makes the product ID mode explicit so editors always know what the component will use at runtime.
+
+**Step 1 - Mode selection + optional picker**
+
+Two radio options are shown:
+- **Dynamic** - the component reads `?pid=` from the URL at render time. No product is stored.
+- **Pinned** - the editor picks a specific product. An inline product search (search bar + category sidebar + product grid) appears immediately below the radio for finding and selecting a product.
+
+**Step 2 - Review**
+
+Shows a summary of the chosen mode and a live product card for Pinned selections (fetched via `GET /product-detail`). In Dynamic mode a notice is shown explaining the `?pid=` runtime behaviour.
+
+**Stored value**: `brxdis:productId` - empty string for Dynamic, plain PID for Pinned.
+
+---
+
+### Category wizard (`discoveryCategoryWizard`)
+
+Used on `brxdis:categoryDocument`. Same 2-step structure as the product wizard.
+
+**Step 1 - Mode selection + optional picker**
+
+- **Dynamic** - the component reads `?category=` from the URL at render time.
+- **Pinned** - an inline filterable category list lets the editor select a specific category.
+
+**Step 2 - Review**
+
+Shows the mode summary and a 4-product thumbnail grid for Pinned selections (fetched via `GET /browse`). Dynamic mode shows a `?category=` URL parameter notice.
+
+**Stored value**: `brxdis:categoryId` - empty string for Dynamic, plain category ID for Pinned.
+
+---
+
+### Runtime enforcement
+
+Both wizards enforce the document-required contract at the HST component level:
+
+- **No document configured** on the component → component renders nothing; Channel Manager shows the document picker field for configuration.
+- **Document in Dynamic mode** + URL param present → product/category fetched from URL param.
+- **Document in Dynamic mode** + no URL param → component renders nothing; Channel Manager shows a warning ("dynamic mode, no URL param found").
+- **Document in Pinned mode** → URL param is ignored; the pinned ID is always used.
+
+---
+
 ## `discoveryProductDetailPreview` inline field
 
-The built-in `brxdis:productDetailDocument` type includes a `brxdis:_preview` field backed by `discoveryProductDetailPreview`. It renders a live thumbnail of the selected product inside the document editor.
+The built-in `brxdis:productDetailDocument` type includes a `brxdis:_preview` field backed by `discoveryProductDetailPreview`. It renders a live thumbnail of the selected product inside the document editor alongside the product wizard field.
 
 ### How it works
 
 1. On load, the field reads the stored `brxdis:productId` and fetches the thumbnail via `GET /product-detail?documentId=...`.
-2. When the **product picker** above changes the selected product, it broadcasts a `brxdis:productChanged` message to sibling iframes via `window.parent.frames`. The preview field receives it and re-fetches immediately with the live `productId` - no JCR save required.
+2. When the **product wizard** dialog saves a new product selection, it broadcasts a `brxdis:productChanged` message to sibling iframes via `window.parent.frames`. The preview field receives it and re-fetches immediately with the live `productId` - no JCR save required.
+3. When Dynamic mode is selected in the wizard, the stored `productId` is empty and the preview field shows a placeholder ("Dynamic - determined by URL parameter").
 
 ---
 
@@ -248,14 +301,16 @@ The recommendation wizard is a 3-step dialog for configuring recommendation docu
 
 ### Steps
 
-**Step 1 — Widget**: Lists all recommendation widgets available for the channel. The widget list is pre-filtered to the widget types declared in `frontend:config.widgetTypes` of the extension registration. Clicking a row advances to step 2.
+**Step 1 - Widget**: Lists all recommendation widgets available for the channel. The widget list is pre-filtered to the widget types declared in `frontend:config.widgetTypes` of the extension registration. Clicking a row advances to step 2.
 
-**Step 2 — Context** (product and category types only):
+**Step 2 - Context** (product and category types only):
 - **Product types** (`co_viewed`, `co_bought`, `rt_recs`, `mlt`): choose between "Use URL param (`?pid=`)" or "Pick a specific product" (inline product search, same backend as `/search`).
 - **Category type**: choose between "Use URL param (`?category=`)" or "Pick a specific category" (inline category list, same backend as `/categories`).
 - Global/personalized types skip this step entirely.
 
-**Step 3 — Review**: Shows the resolved config summary and a live thumbnail strip (via `GET /recommendation-products`). Click **Save** to write the config.
+**Step 3 - Review**: Shows the resolved config summary and a live thumbnail strip (via `GET /recommendation-products`). Click **Save** to write the config.
+
+When the editor chose "Use URL param" context (product or category types), Step 3 shows a **Test with** input bar instead of a blank preview. The editor can type a product ID or category ID to fire a preview fetch; the test value is never saved - it only drives the thumbnail strip during review.
 
 ### Stored value
 

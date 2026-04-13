@@ -5,6 +5,7 @@
 
 <#-- @ftlvariable name="editMode"           type="java.lang.Boolean" -->
 <#-- @ftlvariable name="dataSourceMode"     type="java.lang.String" -->
+<#-- @ftlvariable name="document"           type="org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean" -->
 <#-- @ftlvariable name="query"              type="java.lang.String" -->
 <#-- @ftlvariable name="categoryId"         type="java.lang.String" -->
 <#-- @ftlvariable name="displayName"        type="java.lang.String" -->
@@ -91,15 +92,26 @@
 .brxdis-pagination__disabled{display:inline-flex;align-items:center;justify-content:center;min-width:2.25rem;height:2.25rem;padding:0 .625rem;border:1px solid #e5e7eb;border-radius:7px;background:#f9fafb;color:#d1d5db;font-size:.875rem;cursor:default;white-space:nowrap}
 .brxdis-pagination__ellipsis{display:inline-flex;align-items:center;justify-content:center;min-width:2.25rem;height:2.25rem;color:#9ca3af;font-size:.875rem}
 .brxdis-empty{padding:3rem 1.5rem;text-align:center;color:#6b7280;font-size:.9375rem;border:2px dashed #e5e7eb;border-radius:10px;margin:1rem 0}
+.brxdis-warning{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
+.brxdis-hint{border:2px dashed #e5e7eb;padding:.75rem 1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center;margin:.5rem 0}
 </style>
 </@hst.headContribution>
 
 <div class="brxdis-results">
 
+<#-- Category Document inline editing / creation (category mode only) -->
+<#if (dataSourceMode!"") == "category">
+  <#if document??>
+    <@hst.manageContent hippobean=document parameterName="document"
+        rootPath="brxdis/categories"/>
+  <#else>
+    <@hst.manageContent documentTemplateQuery="new-brxdis-categoryDocument"
+        parameterName="document" rootPath="brxdis/categories" defaultPath="categories"/>
+  </#if>
+</#if>
+
 <#if brxdis_warning??>
-  <div style="border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem">
-    &#9888;&nbsp;<strong>Warning:</strong> ${brxdis_warning}
-  </div>
+  <div class="brxdis-warning">&#9888; ${brxdis_warning}</div>
 </#if>
 
 <#-- Campaign banner -->
@@ -277,10 +289,6 @@
           </article>
         </#list>
       </div>
-    <#elseif (editMode!false)>
-      <div class="brxdis-empty">
-        &#128736; <strong>Discovery Results</strong> &mdash; configure the component (search or category) in properties.
-      </div>
     <#elseif (dataSourceMode!"") == "search" && (query!"") != "">
       <div class="brxdis-empty">
         <p>&#128269; No products found for "<strong>${query}</strong>". Try different keywords or clear filters.</p>
@@ -335,9 +343,7 @@
 
       </nav>
     <#elseif (editMode!false) && pagination?? && (pagination.totalPages() lte 1)>
-      <div style="border:2px dashed #e5e7eb;padding:.75rem 1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center">
-        &#128736; <strong>Pagination</strong> &mdash; controls appear here when results span multiple pages.
-      </div>
+      <div class="brxdis-hint">&#128736; <strong>Pagination</strong> &mdash; controls appear here when results span multiple pages.</div>
     </#if>
 
   </div>

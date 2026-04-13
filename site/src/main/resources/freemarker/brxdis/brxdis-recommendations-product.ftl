@@ -8,7 +8,7 @@
 .brxdis-recs__header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.875rem}
 .brxdis-recs__title{font-size:1.125rem;font-weight:700;color:#111827;margin:0}
 .brxdis-recs__widget{font-size:.75rem;color:#9ca3af}
-.brxdis-recs__misconfig{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
+.brxdis-warning{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
 .brxdis-recs__track{display:flex;gap:1rem;overflow-x:auto;padding-bottom:.75rem;scroll-snap-type:x mandatory;-ms-overflow-style:none;scrollbar-width:none}
 .brxdis-recs__track::-webkit-scrollbar{display:none}
 .brxdis-recs__card{flex:0 0 200px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;scroll-snap-align:start;transition:box-shadow .2s,transform .2s}
@@ -23,7 +23,7 @@
 .brxdis-recs__price{font-size:.9375rem;font-weight:700;color:#111827;margin-top:auto;padding-top:.375rem}
 .brxdis-recs__cta{margin:.25rem .75rem .75rem;padding:.4375rem;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:.8125rem;font-weight:500;text-align:center;text-decoration:none;display:block;transition:background .15s}
 .brxdis-recs__cta:hover{background:#1d4ed8;color:#fff}
-.brxdis-recs__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:1px dashed #e5e7eb;border-radius:8px}
+.brxdis-recs__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:2px dashed #e5e7eb;border-radius:8px}
 .brxdis-recs__viewport{position:relative;overflow:hidden}
 .brxdis-recs__viewport::before,.brxdis-recs__viewport::after{content:'';position:absolute;top:0;bottom:0;width:3.5rem;z-index:1;pointer-events:none;opacity:0;transition:opacity .2s}
 .brxdis-recs__viewport::before{left:0;background:linear-gradient(to right,#fff 20%,transparent)}
@@ -62,9 +62,7 @@
   </div>
 
   <#if brxdis_warning??>
-    <div class="brxdis-recs__misconfig">
-      &#9888;&nbsp;<strong>Not configured:</strong> ${brxdis_warning}
-    </div>
+    <div class="brxdis-warning">&#9888; ${brxdis_warning}</div>
   </#if>
 
   <#if products?? && products?has_content>
@@ -115,9 +113,7 @@
       </div>
       <button class="brxdis-recs__btn brxdis-recs__btn--next" aria-label="Scroll right">&#8250;</button>
     </div>
-  <#elseif (editMode!false)>
-    <div class="brxdis-recs__empty">&#128736; Select a <strong>Recommendation Document</strong> in component properties to show recommendations.</div>
-  <#else>
+  <#elseif document??>
     <div class="brxdis-recs__empty">No recommendations available.</div>
   </#if>
 </section>

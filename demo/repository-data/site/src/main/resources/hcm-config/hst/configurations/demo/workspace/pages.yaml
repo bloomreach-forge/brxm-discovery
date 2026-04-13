@@ -68,15 +68,17 @@ definitions:
             jcr:primaryType: hst:containercomponent
             hst:xtype: hst.nomarkup
             hippo:identifier: d6a1f5e4-0e7b-4d2c-b8f6-5b4a2c3d9e7f
+            hst:lastmodified: 2026-04-12T21:57:00.931+01:00
             /category-results:
               jcr:primaryType: hst:containeritemcomponent
               hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryGridComponent
               hst:label: Discovery Product Grid - Category
               hst:template: brxdis-results
               hst:xtype: hst.Item
-              hst:parameternames: [document, pageSize, defaultSort, statsFields, segment,
-                exclusionFilter, showFacets, showPagination, showSort]
-              hst:parametervalues: ['', '12', '', '', '', '', 'true', 'true', 'true']
+              hst:parameternames: [exclusionFilter, showFacets, showSort, document,
+                segment, statsFields, pageSize, showPagination, defaultSort]
+              hst:parametervalues: ['', 'true', 'true', test/category-test, '', '',
+                '12', 'true', '']
       /recommendations-page:
         jcr:primaryType: hst:component
         hst:referencecomponent: hst:abstractpages/base
@@ -138,13 +140,16 @@ definitions:
           jcr:primaryType: hst:containercomponent
           hst:xtype: hst.vBox
           hippo:identifier: 1c3af6b0-441b-47c4-b7cd-a7c763cbcdac
-          hst:lastmodified: 2026-04-10T14:56:36.229+01:00
+          hst:lastmodified: 2026-04-12T22:51:48.264+01:00
           /product-detail:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent
             hst:label: Discovery Product Detail
             hst:template: brxdis-product-detail
             hst:xtype: hst.Item
+            hst:parameternames: [com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              document, productUrlParam]
+            hst:parametervalues: ['off', test/dynamic-product, pid]
           /recommendations:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent

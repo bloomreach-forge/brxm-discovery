@@ -16,6 +16,7 @@
 .brxdis-pdp__cta{margin-top:.75rem;padding:.75rem 1.5rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;display:inline-block;transition:background .15s;align-self:flex-start}
 .brxdis-pdp__cta:hover{background:#1d4ed8;color:#fff}
 .brxdis-pdp__notfound{padding:3rem 1.5rem;text-align:center;color:#6b7280;border:2px dashed #e5e7eb;border-radius:10px}
+.brxdis-warning{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
 .brxdis-pdp__notfound h2{font-size:1.25rem;margin:0 0 .5rem}
 .brxdis-band-badge{font-size:.75rem;color:#374151;border-radius:6px;padding:.3rem .6rem;margin-bottom:.5rem;display:inline-block}
 .brxdis-band-badge--green{background:#f0fdf4;border:1px solid #86efac}
@@ -32,7 +33,11 @@
   <#if document??>
     <@hst.manageContent hippobean=document parameterName="document" rootPath="brxdis/products"/>
   <#else>
-    <@hst.manageContent parameterName="document" rootPath="brxdis/products"/>
+    <@hst.manageContent documentTemplateQuery="new-brxdis-productDetailDocument"
+        parameterName="document" rootPath="brxdis/products" defaultPath="products"/>
+  </#if>
+  <#if brxdis_warning??>
+    <div class="brxdis-warning">&#9888; ${brxdis_warning}</div>
   </#if>
   <#if product??>
     <#assign prodAttrs = product.attributes()!{}>
@@ -63,19 +68,11 @@
       </div>
     </div>
 
-  <#else>
+  <#elseif document?? && (pid!"")?has_content>
+    <#-- Document and PID resolved, but product was not found in Discovery -->
     <div class="brxdis-pdp__notfound">
-      <#if (editMode!false)>
-        <h2>&#128736; Not configured</h2>
-        <p>Select a <strong>Product Detail Document</strong> in component properties, or add <code>?pid=&lt;product-id&gt;</code> to the URL.</p>
-      <#else>
-        <h2>&#128269; Product not found</h2>
-        <#if (pid!"")?has_content>
-          <p>No product found for PID: <code>${pid?html}</code></p>
-        <#else>
-          <p>No product ID specified. Add <code>?pid=&lt;product-id&gt;</code> to the URL.</p>
-        </#if>
-      </#if>
+      <h2>&#128269; Product not found</h2>
+      <p>No product found for PID: <code>${pid?html}</code></p>
     </div>
   </#if>
 </div>

@@ -189,3 +189,34 @@ function esc(s) {
 function escAttr(s) {
   return String(s).replace(/"/g, "&quot;");
 }
+
+function makePreviewSkeleton() {
+  var skel = document.createElement("div"); skel.className = "preview-skeleton";
+  var si = document.createElement("div"); si.className = "preview-skeleton-img";
+  var sb = document.createElement("div"); sb.className = "preview-skeleton-body";
+  [0, 1, 2].forEach(function (i) {
+    var sl = document.createElement("div");
+    sl.className = "preview-skeleton-line" + (i === 2 ? " short" : "");
+    sb.appendChild(sl);
+  });
+  skel.append(si, sb);
+  return skel;
+}
+
+function makePreviewCard(item) {
+  var card    = document.createElement("div"); card.className = "preview-card";
+  var imgWrap = document.createElement("div"); imgWrap.className = "preview-card-img";
+  var img     = document.createElement("img");
+  img.src = item.imageUrl || ""; img.alt = ""; img.loading = "lazy";
+  img.onerror = function () { this.style.display = "none"; };
+  imgWrap.appendChild(img); card.appendChild(imgWrap);
+  var body  = document.createElement("div"); body.className = "preview-card-body";
+  var title = document.createElement("div"); title.className = "preview-card-title";
+  title.textContent = item.title || item.id || ""; body.appendChild(title);
+  if (item.price) {
+    var price = document.createElement("div"); price.className = "preview-card-price";
+    price.textContent = item.price; body.appendChild(price);
+  }
+  card.appendChild(body);
+  return card;
+}

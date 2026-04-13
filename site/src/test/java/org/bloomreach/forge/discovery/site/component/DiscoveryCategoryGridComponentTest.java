@@ -7,9 +7,11 @@ import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchMetadata;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryGridComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -55,6 +57,37 @@ class DiscoveryCategoryGridComponentTest {
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
     }
 
+    // ── No document → required ─────────────────────────────────────────────
+
+    @Test
+    void noDocument_noServiceCall_setsEmptyState() {
+        buildNoDoc().doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+        verify(request).setModel("categoryId", "");
+        verify(request).setModel("products", null);
+    }
+
+    /** RED: current code falls back to reading the URL param when no document is attached. */
+    @Test
+    void noDocument_withUrlParam_noServiceCall() {
+        buildNoDocWithUrl("cat-123").doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+        verify(request).setModel("products", null);
+    }
+
+    @Test
+    void noDocument_editMode_noWarning() {
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+
+        buildNoDoc().doBeforeRender(request, response);
+
+        // Channel Manager's own properties panel provides the "configure" affordance;
+        // no redundant inline warning needed for the no-document case.
+        verify(request, never()).setAttribute(eq("brxdis_warning"), any());
+    }
+
     // ── Category ID resolution ─────────────────────────────────────────────
 
     @Test
@@ -80,7 +113,7 @@ class DiscoveryCategoryGridComponentTest {
 
     @Test
     void noCategoryId_noServiceCall_setsEmptyState() {
-        build(null, 12, "").doBeforeRender(request, response);
+        buildNoDoc().doBeforeRender(request, response);
 
         verifyNoInteractions(discoveryService);
         verify(request).setModel("categoryId", "");
@@ -88,12 +121,33 @@ class DiscoveryCategoryGridComponentTest {
     }
 
     @Test
-    void noCategoryId_editMode_setsWarning() {
+    void dynamicDocument_noUrlParam_editMode_setsWarning() {
         when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
 
-        build(null, 12, "").doBeforeRender(request, response);
+        // Document attached in Dynamic mode, no ?category= URL param → editor needs to know why component is empty
+        buildDynamic(null, 12, "").doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), anyString());
+    }
+
+    // ── Dynamic mode (blank categoryId in doc) → URL param ────────────────
+
+    @Test
+    void document_dynamic_withUrlParam_callsBrowse() {
+        when(discoveryService.browse(eq(request), eq("cat-dynamic"), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        buildDynamic("cat-dynamic", 12, "").doBeforeRender(request, response);
+
+        verify(discoveryService).browse(eq(request), eq("cat-dynamic"), any(SearchRequestOptions.class));
+    }
+
+    @Test
+    void document_dynamic_noUrlParam_setsEmptyState() {
+        buildDynamic(null, 12, "").doBeforeRender(request, response);
+
+        verifyNoInteractions(discoveryService);
+        verify(request).setModel("products", null);
     }
 
     // ── Result models ──────────────────────────────────────────────────────
@@ -222,21 +276,42 @@ class DiscoveryCategoryGridComponentTest {
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
+    /** Pinned document with non-blank categoryId; no URL param. */
     private TestableCategoryGridComponent build(String categoryId, int pageSize, String sort) {
-        return new TestableCategoryGridComponent(discoveryService, categoryId, pageSize, sort,
-                true, true, true, Map.of());
+        return new TestableCategoryGridComponent(discoveryService, categoryId, null,
+                pageSize, sort, true, true, true, Map.of());
     }
 
+    /** Pinned document; varies display flags. */
     private TestableCategoryGridComponent buildWith(String categoryId,
             boolean showFacets, boolean showPagination, boolean showSort) {
-        return new TestableCategoryGridComponent(discoveryService, categoryId,
+        return new TestableCategoryGridComponent(discoveryService, categoryId, null,
                 12, "", showFacets, showPagination, showSort, Map.of());
     }
 
+    /** Pinned document; varies display flags + servlet params. */
     private TestableCategoryGridComponent buildWithParams(String categoryId,
             Map<String, String[]> params, boolean showFacets, boolean showPagination, boolean showSort) {
-        return new TestableCategoryGridComponent(discoveryService, categoryId,
+        return new TestableCategoryGridComponent(discoveryService, categoryId, null,
                 12, "", showFacets, showPagination, showSort, params);
+    }
+
+    /** No document attached; no URL param. */
+    private TestableCategoryGridComponent buildNoDoc() {
+        return new TestableCategoryGridComponent(discoveryService, null, null,
+                12, "", true, true, true, Map.of());
+    }
+
+    /** No document attached; URL param provides a categoryId. */
+    private TestableCategoryGridComponent buildNoDocWithUrl(String urlCategoryId) {
+        return new TestableCategoryGridComponent(discoveryService, null, urlCategoryId,
+                12, "", true, true, true, Map.of());
+    }
+
+    /** Document in dynamic mode (blank categoryId); URL param provides the categoryId. */
+    private TestableCategoryGridComponent buildDynamic(String urlCategoryId, int pageSize, String sort) {
+        return new TestableCategoryGridComponent(discoveryService, "", urlCategoryId,
+                pageSize, sort, true, true, true, Map.of());
     }
 
     // ── Testable subclass ──────────────────────────────────────────────────
@@ -244,7 +319,14 @@ class DiscoveryCategoryGridComponentTest {
     private static class TestableCategoryGridComponent extends DiscoveryCategoryGridComponent {
 
         private final HstDiscoveryService service;
-        private final String categoryId;
+        /**
+         * null  = no document attached<br>
+         * ""    = document in Dynamic mode (blank categoryId, falls back to URL param)<br>
+         * other = document in Pinned mode (explicit categoryId stored in document)
+         */
+        private final String docCategoryId;
+        /** Value of the {@code ?category=} URL parameter. */
+        private final String urlCategoryId;
         private final int pageSize;
         private final String sort;
         private final boolean showFacets;
@@ -252,11 +334,14 @@ class DiscoveryCategoryGridComponentTest {
         private final boolean showSort;
         private final Map<String, String[]> servletParams;
 
-        TestableCategoryGridComponent(HstDiscoveryService service, String categoryId,
-                int pageSize, String sort, boolean showFacets, boolean showPagination,
-                boolean showSort, Map<String, String[]> servletParams) {
+        TestableCategoryGridComponent(HstDiscoveryService service,
+                String docCategoryId, String urlCategoryId,
+                int pageSize, String sort,
+                boolean showFacets, boolean showPagination, boolean showSort,
+                Map<String, String[]> servletParams) {
             this.service = service;
-            this.categoryId = categoryId;
+            this.docCategoryId = docCategoryId;
+            this.urlCategoryId = urlCategoryId;
             this.pageSize = pageSize;
             this.sort = sort;
             this.showFacets = showFacets;
@@ -274,12 +359,9 @@ class DiscoveryCategoryGridComponentTest {
         @Override
         protected DiscoveryCategoryGridComponentInfo getComponentParametersInfo(HstRequest request) {
             return new DiscoveryCategoryGridComponentInfo() {
-                @Override public String getDocument()        { return ""; }
+                @Override public String getDocument()        { return docCategoryId != null ? "test-doc" : ""; }
                 @Override public int getPageSize()           { return pageSize; }
                 @Override public String getDefaultSort()     { return sort; }
-                @Override public String getStatsFields()     { return ""; }
-                @Override public String getSegment()         { return ""; }
-                @Override public String getExclusionFilter() { return ""; }
                 @Override public boolean isShowFacets()      { return showFacets; }
                 @Override public boolean isShowPagination()  { return showPagination; }
                 @Override public boolean isShowSort()        { return showSort; }
@@ -287,8 +369,18 @@ class DiscoveryCategoryGridComponentTest {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
+        protected <T extends HippoBean> T getHippoBeanForPath(HstRequest request, String path, Class<T> beanClass) {
+            if (docCategoryId == null) return null;
+            if (path == null || path.isBlank()) return null;
+            return beanClass.cast(new DiscoveryCategoryBean() {
+                @Override public String getCategoryId() { return docCategoryId; }
+            });
+        }
+
+        @Override
         public String getPublicRequestParameter(HstRequest request, String name) {
-            if ("category".equals(name)) return categoryId;
+            if ("category".equals(name)) return urlCategoryId;
             return null;
         }
 

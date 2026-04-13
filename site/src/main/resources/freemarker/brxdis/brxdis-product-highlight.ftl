@@ -6,7 +6,7 @@
 <style>
 .brxdis-prodhighlight{font-family:system-ui,-apple-system,sans-serif;margin:1rem 0;position:relative}
 .brxdis-prodhighlight__title{font-size:1.125rem;font-weight:700;color:#111827;margin:0 0 .875rem}
-.brxdis-prodhighlight__misconfig{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
+.brxdis-warning{border:2px solid #f59e0b;background:#fffbeb;padding:.625rem .875rem;border-radius:7px;font-size:.8125rem;color:#78350f;margin-bottom:.75rem}
 .brxdis-prodhighlight__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem}
 .brxdis-prodhighlight__card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s}
 .brxdis-prodhighlight__card:hover{box-shadow:0 8px 24px rgba(0,0,0,.1);transform:translateY(-3px)}
@@ -22,7 +22,7 @@
 .brxdis-prodhighlight__price{font-size:1.125rem;font-weight:700;color:#111827;margin-top:auto;padding-top:.5rem}
 .brxdis-prodhighlight__cta{margin:.25rem 1rem 1rem;padding:.5625rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.875rem;font-weight:500;text-align:center;text-decoration:none;display:block;transition:background .15s}
 .brxdis-prodhighlight__cta:hover{background:#1d4ed8;color:#fff}
-.brxdis-prodhighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:1px dashed #e5e7eb;border-radius:8px}
+.brxdis-prodhighlight__empty{padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.875rem;border:2px dashed #e5e7eb;border-radius:8px}
 .brxdis-prodhighlight__slot{display:flex;align-items:center;justify-content:center;min-height:220px;border:2px dashed #d1d5db;border-radius:12px;color:#9ca3af;font-size:.875rem;background:#f9fafb}
 </style>
 </@hst.headContribution>
@@ -31,9 +31,7 @@
   <h2 class="brxdis-prodhighlight__title">Featured Products</h2>
 
   <#if brxdis_warning??>
-    <div class="brxdis-prodhighlight__misconfig">
-      &#9888;&nbsp;<strong>Not configured:</strong> ${brxdis_warning}
-    </div>
+    <div class="brxdis-warning">&#9888; ${brxdis_warning}</div>
   </#if>
 
   <#-- @ftlvariable name="products" type="java.util.List" -->
@@ -59,8 +57,8 @@
               <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
                   rootPath="brxdis/products"/>
             <#else>
-              <@hst.manageContent parameterName="document${slotNum}"
-                  rootPath="brxdis/products"/>
+              <@hst.manageContent documentTemplateQuery="new-brxdis-productDetailDocument"
+                  parameterName="document${slotNum}" rootPath="brxdis/products" defaultPath="products"/>
             </#if>
             <div class="brxdis-prodhighlight__img">
               <#if prodImageUrl?has_content>
@@ -87,8 +85,13 @@
           </article>
         <#else>
           <div class="brxdis-prodhighlight__slot">
-            <@hst.manageContent parameterName="document${slotNum}"
-                rootPath="brxdis/products"/>
+            <#if bean??>
+              <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
+                  rootPath="brxdis/products"/>
+            <#else>
+              <@hst.manageContent documentTemplateQuery="new-brxdis-productDetailDocument"
+                  parameterName="document${slotNum}" rootPath="brxdis/products" defaultPath="products"/>
+            </#if>
             &#43; Product ${slotNum}
           </div>
         </#if>

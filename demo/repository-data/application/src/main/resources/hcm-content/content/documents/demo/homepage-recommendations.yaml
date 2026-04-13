@@ -3,52 +3,52 @@
   jcr:primaryType: hippo:handle
   jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
   jcr:uuid: a3b4c5d6-e7f8-9012-abcd-123456789012
-  hippo:versionHistory: 59d48b89-e2bc-4284-a4b8-80253ebccb2a
+  hippo:versionHistory: 12d3eb33-00af-4abc-8afc-d61f1d6f1a61
   /homepage-recommendations[1]:
     jcr:primaryType: brxdis:productRecommendationDocument
     jcr:mixinTypes: ['mix:referenceable']
     jcr:uuid: b4c5d6e7-f8a9-0123-bcde-234567890123
     brxdis:_preview: ''
-    brxdis:config: '{"widgetId":"09z4x41l","widgetName":"You May Also Like","widgetType":"mlt","contextProductId":"1243","contextProductName":"Duck
-      Decanter","contextCategoryId":null,"contextCategoryName":null}'
+    brxdis:config: '{"widgetId":"09z4x41l","widgetName":"You May Also Like","widgetType":"mlt","contextMode":"specific","contextProductId":"1305fam","contextProductName":"Coupe
+      Dinnerware","contextCategoryId":null,"contextCategoryName":null}'
     brxdis:displayName: Homepage Recommendations
     hippo:availability: [live]
     hippostd:retainable: false
     hippostd:state: published
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-04-10T15:34:01.479+01:00
+    hippostdpubwf:lastModificationDate: 2026-04-13T13:55:25.725+01:00
     hippostdpubwf:lastModifiedBy: admin
-    hippostdpubwf:publicationDate: 2026-04-10T15:34:06.707+01:00
+    hippostdpubwf:publicationDate: 2026-04-13T13:55:29.136+01:00
     hippostdpubwf:publishedBy: admin
   /homepage-recommendations[2]:
     jcr:primaryType: brxdis:productRecommendationDocument
     jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
     jcr:uuid: 9af0dee1-8b8e-4393-a3eb-d56f33f85e6b
     brxdis:_preview: ''
-    brxdis:config: '{"widgetId":"09z4x41l","widgetName":"You May Also Like","widgetType":"mlt","contextProductId":"1243","contextProductName":"Duck
-      Decanter","contextCategoryId":null,"contextCategoryName":null}'
+    brxdis:config: '{"widgetId":"09z4x41l","widgetName":"You May Also Like","widgetType":"mlt","contextMode":"specific","contextProductId":"1305fam","contextProductName":"Coupe
+      Dinnerware","contextCategoryId":null,"contextCategoryName":null}'
     brxdis:displayName: Homepage Recommendations
     hippo:availability: [preview]
     hippostd:retainable: false
     hippostd:state: unpublished
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-04-10T15:34:01.479+01:00
+    hippostdpubwf:lastModificationDate: 2026-04-13T13:55:25.725+01:00
     hippostdpubwf:lastModifiedBy: admin
   /homepage-recommendations[3]:
     jcr:primaryType: brxdis:productRecommendationDocument
     jcr:mixinTypes: ['mix:referenceable']
     jcr:uuid: ad513efd-62c2-4f73-a501-6892b45d4a5f
     brxdis:_preview: ''
-    brxdis:config: '{"widgetId":"09z4x41l","widgetName":"You May Also Like","widgetType":"mlt","contextProductId":"1243","contextProductName":"Duck
-      Decanter","contextCategoryId":null,"contextCategoryName":null}'
+    brxdis:config: '{"widgetId":"09z4x41l","widgetName":"You May Also Like","widgetType":"mlt","contextMode":"specific","contextProductId":"1305fam","contextProductName":"Coupe
+      Dinnerware","contextCategoryId":null,"contextCategoryName":null}'
     brxdis:displayName: Homepage Recommendations
     hippo:availability: []
-    hippostd:holder: admin
     hippostd:retainable: false
     hippostd:state: draft
+    hippostd:transferable: false
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-04-12T15:20:09.083+01:00
+    hippostdpubwf:lastModificationDate: 2026-04-13T13:56:04.743+01:00
     hippostdpubwf:lastModifiedBy: admin

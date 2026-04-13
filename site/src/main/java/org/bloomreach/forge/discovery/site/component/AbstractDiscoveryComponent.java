@@ -15,7 +15,6 @@ import org.hippoecm.hst.site.HstServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -74,11 +73,6 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     protected static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
-    }
-
-    protected static List<String> parseStatsFields(String value) {
-        if (value == null || value.isBlank()) return List.of();
-        return Arrays.stream(value.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 
     /**
