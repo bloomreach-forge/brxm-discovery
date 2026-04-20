@@ -2,7 +2,15 @@
 
 ## Overview
 
-`DiscoveryRecommendationComponent` calls the Discovery Recommendations API via CRISP and exposes a `products` list for your template. It supports both:
+Three separate HST components call the Discovery Recommendations API and each exposes a `products` list for your template:
+
+| Component class | Use when |
+|---|---|
+| `DiscoveryProductRecommendationComponent` | Recommendations keyed to a product (PDP, "similar items") |
+| `DiscoveryCategoryRecommendationComponent` | Recommendations keyed to a category (PLP, "trending in category") |
+| `DiscoveryGlobalRecommendationComponent` | Context-free global or personalised recommendations |
+
+All three support both:
 
 - **v1 API** (`discoverySearchAPI`) - used when `authKey` is not configured
 - **v2 Pathways API** (`discoveryPathwaysAPI`) - used automatically when `authKey` is configured
@@ -35,8 +43,8 @@ The plugin ships three JCR document types for managing recommendation configurat
 }
 ```
 
-- `contextProductId` / `contextProductName` are present on product-type documents only. A `null` value means "fall back to the `?pid=` URL param at render time".
-- `contextCategoryId` / `contextCategoryName` are present on category-type documents only. A `null` value means "fall back to the `?category=` URL param".
+- `contextProductId` / `contextProductName` are present on product-type documents only. A `null` value means "fall back to the URL param at render time (default `?pid=`; configurable via `productUrlParam` component property)".
+- `contextCategoryId` / `contextCategoryName` are present on category-type documents only. A `null` value means "fall back to the URL param (default `?category=`; configurable via `categoryUrlParam` component property)".
 - Global/personalized documents carry neither context field.
 
 > **Migration note**: `brxdis:recommendationDocument` (which stored only `brxdis:widgetId`) is removed. Existing documents should be recreated using the appropriate typed document.
@@ -52,10 +60,18 @@ The plugin ships three JCR document types for managing recommendation configurat
 definitions:
   config:
     /hst:hst/hst:configurations/<your-site>/hst:components:
-      /recommendations:
+      /product-recommendations:
         jcr:primaryType: hst:component
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
-        hst:template: brxdis-recommendations
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
+        hst:template: brxdis-recommendations-product
+      /category-recommendations:
+        jcr:primaryType: hst:component
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryRecommendationComponent
+        hst:template: brxdis-recommendations-category
+      /global-recommendations:
+        jcr:primaryType: hst:component
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryGlobalRecommendationComponent
+        hst:template: brxdis-recommendations-global
 ```
 
 The bundled `brxdis-recommendations` template is auto-registered under `hst:default`, so no manual `templates.yaml` entry is required unless you want to override it. The plugin ships it as a ready-to-use horizontal-scroll carousel with scoped CSS injected via `<@hst.headContribution>`.
@@ -64,17 +80,28 @@ The bundled `brxdis-recommendations` template is auto-registered under `hst:defa
 
 ## Component parameters
 
-Set in HST config via `@ParametersInfo` (visible in the Channel Manager component editor):
+Set in HST config via `@ParametersInfo` (visible in the Channel Manager component editor). All three recommendation components share the same base parameters; only the URL-param name differs.
+
+### All recommendation components
 
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|
-| `document` | Recommendations | JCR path | - | Picker for any `brxdis:productRecommendationDocument`, `brxdis:categoryRecommendationDocument`, or `brxdis:globalRecommendationDocument`. Stores the widget config as JSON. When set, takes precedence over URL `widgetId`. |
+| `document` | Recommendations | JCR path | - | Picker for the typed recommendation document (`brxdis:productRecommendationDocument`, `brxdis:categoryRecommendationDocument`, or `brxdis:globalRecommendationDocument`). Stores the widget config as JSON. |
 | `limit` | Recommendations | int | `8` | Default number of recommendations. |
 | `showPrice` | Recommendations | boolean | `true` | Whether the template shows price. |
 | `showDescription` | Recommendations | boolean | `false` | Whether the template shows description. |
-| `useProductDetailContext` | Advanced | boolean | `false` | When checked, reads the product shown by a Product Detail component on this page and recommends similar items. The Product Detail component must appear above this one in the layout. |
-| `contextProductId` | Advanced | String | `""` | Explicit product ID to recommend against. Overrides automatic detection. Leave blank for auto. |
-| `contextProductPidProperty` | Advanced | String | `"brxdis:pid"` | JCR property name for product ID resolution from the page content bean. Only change if your content model uses a custom property. |
+
+### `DiscoveryProductRecommendationComponent` only
+
+| Parameter | Group | Type | Default | Description |
+|---|---|---|---|---|
+| `productUrlParam` | Advanced | String | `pid` | URL query parameter to read the product ID from in Dynamic mode (e.g. change to `sku` to use `?sku=`). Only relevant when `contextProductId` is blank in the recommendation document. |
+
+### `DiscoveryCategoryRecommendationComponent` only
+
+| Parameter | Group | Type | Default | Description |
+|---|---|---|---|---|
+| `categoryUrlParam` | Advanced | String | `category` | URL query parameter to read the category ID from in Dynamic mode. Only relevant when `contextCategoryId` is blank in the recommendation document. |
 
 ---
 
@@ -104,14 +131,13 @@ Example (v2): `GET /site/recommendations?widgetId=similar-items&contextProductId
 
 ## Product Detail page - "Similar Items" carousel
 
-To show a "Similar Items" carousel on a PDP that automatically uses the current product's PID, use `DiscoveryProductDetailComponent` alongside `DiscoveryRecommendationComponent` and check **Link to Product Detail on page** on the recommendations component.
+Place `DiscoveryProductDetailComponent` and `DiscoveryProductRecommendationComponent` on the same page. Both components use Dynamic mode by default: they each read the `?pid=` URL parameter to resolve the current product. No special wiring is needed — the shared URL parameter is the coordination mechanism.
 
 ### Channel Manager setup
 
-1. Add `DiscoveryProductDetailComponent` to the page layout.
-2. Add `DiscoveryRecommendationComponent` **below** it on the same page.
-3. On the recommendations component, set **Link to Product Detail on page** = checked.
-4. Pick a recommendation widget document (or pass `?widgetId=` in the URL).
+1. Add `DiscoveryProductDetailComponent` to the page layout; author a Dynamic-mode product document.
+2. Add `DiscoveryProductRecommendationComponent` on the same page; author a Dynamic-mode recommendation document (leave `contextProductId` blank in the wizard).
+3. At runtime, navigating to `?pid=SKU-123` feeds both components automatically.
 
 ### HST `pages.yaml` example
 
@@ -133,15 +159,11 @@ To show a "Similar Items" carousel on a PDP that automatically uses the current 
       hst:xtype: hst.nomarkup
       /recs:
         jcr:primaryType: hst:containeritemcomponent
-        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryRecommendationComponent
-        hst:template: brxdis-recommendations
-        hst:parameternames: [useProductDetailContext, limit]
-        hst:parametervalues: [true, 6]
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductRecommendationComponent
+        hst:template: brxdis-recommendations-product
+        hst:parameternames: [limit]
+        hst:parametervalues: [6]
 ```
-
-When `useProductDetailContext=true`, the recommendation component reads the PID resolved by `DiscoveryProductDetailComponent` on the same page. If the Product Detail component is missing or has no PID, an empty products list is returned (with a `brxdis_warning` in Channel Manager preview).
-
-**Standalone mode** (the default, `useProductDetailContext=false`): reads `contextProductId` from the URL param or the `contextProductId` component parameter. Use this for recommendation widgets not on a PDP.
 
 ---
 
@@ -152,8 +174,8 @@ When `widgetId` is not set (neither via document picker nor URL param), the comp
 ```yaml
 /recs:
   jcr:primaryType: hst:component
-  hst:componentclassname: …DiscoveryRecommendationComponent
-  hst:template: brxdis-recommendations
+  hst:componentclassname: …DiscoveryGlobalRecommendationComponent
+  hst:template: brxdis-recommendations-global
   hst:parameternames: [limit]
   hst:parametervalues: [6]
 ```

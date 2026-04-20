@@ -1,5 +1,11 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#function slugify text>
+  <#local s = (text!"")?lower_case>
+  <#local s = s?replace("[^a-z0-9]+", "-", "r")>
+  <#local s = s?replace("^-+|-+$", "", "r")>
+  <#if s?has_content><#return s><#else><#return "product"></#if>
+</#function>
 <#assign resolvedProductPage><@hst.link path="/product"/></#assign>
 <#assign resolvedProductPage = resolvedProductPage?trim>
 <@hst.headContribution keyHint="brxdis-recs-css">
@@ -74,8 +80,10 @@
           <#assign prodTitle = product.title()!"">
           <#assign prodUrl = product.url()!"">
           <#assign prodAttrs = product.attributes()!{}>
-          <#assign recommendationHref = resolvedProductPage + "?pid=" + ((product.id()!"")?url('UTF-8'))>
-          <#assign recommendationHref = recommendationHref + "&brxdis_event=widget-click">
+          <#assign _recSlug = slugify(product.title()!"")>
+          <#assign _recId   = (product.id()!"")?url('UTF-8')>
+          <#assign recommendationHref = resolvedProductPage + "/" + _recSlug + "/p/" + _recId>
+          <#assign recommendationHref = recommendationHref + "?brxdis_event=widget-click">
           <#if widgetId?has_content>
             <#assign recommendationHref = recommendationHref + "&brxdis_wid=" + widgetId?url('UTF-8')>
           </#if>

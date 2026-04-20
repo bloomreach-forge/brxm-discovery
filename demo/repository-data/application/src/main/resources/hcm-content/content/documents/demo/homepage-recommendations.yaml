@@ -45,10 +45,10 @@
       Dinnerware","contextCategoryId":null,"contextCategoryName":null}'
     brxdis:displayName: Homepage Recommendations
     hippo:availability: []
+    hippostd:holder: admin
     hippostd:retainable: false
     hippostd:state: draft
-    hippostd:transferable: false
     hippostdpubwf:createdBy: ''
     hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-    hippostdpubwf:lastModificationDate: 2026-04-13T13:56:04.743+01:00
+    hippostdpubwf:lastModificationDate: 2026-04-13T14:34:15.165+01:00
     hippostdpubwf:lastModifiedBy: admin

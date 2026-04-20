@@ -1,5 +1,11 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#function slugify text>
+  <#local s = (text!"")?lower_case>
+  <#local s = s?replace("[^a-z0-9]+", "-", "r")>
+  <#local s = s?replace("^-+|-+$", "", "r")>
+  <#if s?has_content><#return s><#else><#return "product"></#if>
+</#function>
 <#if resultsPage?has_content>
   <#assign resolvedResultsPage><@hst.link path="${resultsPage}"/></#assign>
   <#assign resolvedResultsPage = resolvedResultsPage?trim>
@@ -164,8 +170,10 @@
       <p class="brxdis-as__heading">Products</p>
       <div class="brxdis-as__products">
         <#list autosuggestResult.productSuggestions() as product>
+          <#assign _asPid  = (product.id()!"")?url('UTF-8')>
+          <#assign _asSlug = slugify(product.title()!"")>
           <a class="brxdis-as__prod"
-             href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}&_br_psugg_q=${productSuggestQuery?url('UTF-8')}">
+             href="${resolvedProductPage}/${_asSlug}/p/${_asPid}?_br_psugg_q=${productSuggestQuery?url('UTF-8')}">
             <div class="brxdis-as__prod-img">
               <#if product.imageUrl()?has_content>
                 <img src="${product.imageUrl()}" alt="${product.title()!""}"/>

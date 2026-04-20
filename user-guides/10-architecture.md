@@ -157,6 +157,34 @@ Because beans live in the addon child context, the module name is required. `Spr
 
 ---
 
+## Component render lifecycle
+
+`AbstractDiscoveryComponent.doBeforeRender` is `final`. Subclasses override `doDiscoveryBeforeRender` instead:
+
+```
+doBeforeRender(request, response)          ← final; called by HST
+  ├── super.doBeforeRender(...)
+  ├── sets editMode model
+  └── try {
+        doDiscoveryBeforeRender(request, response)   ← override this
+      } catch (DiscoveryException e) {
+        log.warn(...)
+        if editMode → request.setAttribute("brxdis_warning", message)
+      }
+```
+
+This means a transient Discovery API failure or misconfiguration in one component cannot propagate a 500 to the whole page. In Channel Manager / Experience Editor preview, `brxdis_warning` is set so the FTL template can surface an in-place notice to the author:
+
+```ftl
+<#if brxdis_warning??>
+  <div style="border:2px dashed #f59e0b;padding:1rem;color:#92400e">⚠ ${brxdis_warning}</div>
+</#if>
+```
+
+All bundled templates include this block. Custom templates should include it too.
+
+---
+
 ## CRISP broker resolution
 
 The CRISP `ResourceServiceBroker` is obtained via `CrispHstServices.getDefaultResourceServiceBroker(HstServices.getComponentManager())` - the standard CRISP pattern. No custom factory is needed; CRISP handles lifecycle internally.

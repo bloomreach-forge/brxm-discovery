@@ -1,5 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import org.bloomreach.forge.discovery.exception.DiscoveryException;
+import org.bloomreach.forge.discovery.exception.SearchException;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -8,6 +10,7 @@ import org.hippoecm.hst.core.container.ComponentManager;
 import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.container.HstContainerURL;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.hippoecm.hst.site.HstServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -29,6 +33,7 @@ class AbstractDiscoveryComponentTest {
     @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstContainerURL baseUrl;
+    @Mock ResolvedSiteMapItem resolvedSiteMapItem;
 
     @AfterEach
     void tearDown() {
@@ -142,6 +147,65 @@ class AbstractDiscoveryComponentTest {
         verify(requestContext, never()).getBaseURL();
     }
 
+    // ── doBeforeRender — DiscoveryException handling ──────────────────────
+
+    @Test
+    void doBeforeRender_discoveryException_doesNotPropagate() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
+
+        assertDoesNotThrow(() ->
+                new ThrowingComponent(new SearchException("API down")).doBeforeRender(request, response));
+    }
+
+    @Test
+    void doBeforeRender_discoveryException_setsWarningInEditMode() throws HstComponentException {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+
+        new ThrowingComponent(new SearchException("API down")).doBeforeRender(request, response);
+
+        verify(request).setAttribute(eq("brxdis_warning"), anyString());
+    }
+
+    @Test
+    void doBeforeRender_discoveryException_noWarningInLiveMode() throws HstComponentException {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
+
+        new ThrowingComponent(new SearchException("API down")).doBeforeRender(request, response);
+
+        verify(request, never()).setAttribute(anyString(), any());
+    }
+
+    // ── getPathSegmentParam ───────────────────────────────────────────────
+
+    @Test
+    void getPathSegmentParam_returnsValue_whenSiteMapItemPresent() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
+        when(resolvedSiteMapItem.getParameter("2")).thenReturn("SKU-123");
+
+        assertEquals("SKU-123", AbstractDiscoveryComponent.getPathSegmentParam(request, "2"));
+    }
+
+    @Test
+    void getPathSegmentParam_returnsNull_whenSiteMapItemNull() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(null);
+
+        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "1"));
+    }
+
+    @Test
+    void getPathSegmentParam_returnsNull_whenParamBlank() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
+        when(resolvedSiteMapItem.getParameter("1")).thenReturn("  ");
+
+        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "1"));
+    }
+
     // ── getDiscoveryService ───────────────────────────────────────────────
 
     @Test
@@ -211,21 +275,24 @@ class AbstractDiscoveryComponentTest {
         public String getPublicRequestParameter(HstRequest request, String name) {
             return name.equals(paramName) ? paramValue : null;
         }
-
-        @Override
-        public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-            // no-op - only testing base-class helpers
-        }
     }
 
     private static class TestableLookupComponent extends AbstractDiscoveryComponent {
-
-        @Override
-        public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-            // no-op - exercising base lookupService implementation
-        }
     }
 
     private static class TestableBaseRenderComponent extends AbstractDiscoveryComponent {
+    }
+
+    private static class ThrowingComponent extends AbstractDiscoveryComponent {
+        private final DiscoveryException ex;
+
+        ThrowingComponent(DiscoveryException ex) {
+            this.ex = ex;
+        }
+
+        @Override
+        protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) {
+            throw ex;
+        }
     }
 }

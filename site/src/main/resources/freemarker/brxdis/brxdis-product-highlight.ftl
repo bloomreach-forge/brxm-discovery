@@ -1,5 +1,11 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#function slugify text>
+  <#local s = (text!"")?lower_case>
+  <#local s = s?replace("[^a-z0-9]+", "-", "r")>
+  <#local s = s?replace("^-+|-+$", "", "r")>
+  <#if s?has_content><#return s><#else><#return "product"></#if>
+</#function>
 <#assign resolvedProductPage><@hst.link path="/product"/></#assign>
 <#assign resolvedProductPage = resolvedProductPage?trim>
 <@hst.headContribution keyHint="brxdis-prodhighlight-css">
@@ -50,8 +56,10 @@
           <#assign prodTitle = product.title()!"">
           <#assign prodAttrs = product.attributes()!{}>
           <#assign prodPrice = product.price()>
-          <#assign _rawUrl = product.url()!>
-          <#assign prodUrl = _rawUrl?has_content?then(_rawUrl, resolvedProductPage + '?pid=' + (product.id()!''))>
+          <#assign _rawUrl  = product.url()!>
+          <#assign _slug   = slugify(product.title()!"")>
+          <#assign _pid    = (product.id()!"")?url('UTF-8')>
+          <#assign prodUrl = _rawUrl?has_content?then(_rawUrl, resolvedProductPage + "/" + _slug + "/p/" + _pid)>
           <article class="brxdis-prodhighlight__card" role="listitem">
             <#if bean??>
               <@hst.manageContent hippobean=bean parameterName="document${slotNum}"

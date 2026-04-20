@@ -32,8 +32,7 @@ public class DiscoveryGlobalRecommendationComponent extends AbstractDiscoveryRec
     private static final Logger log = LoggerFactory.getLogger(DiscoveryGlobalRecommendationComponent.class);
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryGlobalRecommendationComponentInfo info = getComponentParametersInfo(request);
         HstDiscoveryService svc = getDiscoveryService();
 

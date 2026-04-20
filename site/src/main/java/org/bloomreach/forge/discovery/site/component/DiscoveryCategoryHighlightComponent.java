@@ -34,8 +34,7 @@ public class DiscoveryCategoryHighlightComponent extends AbstractDiscoveryCompon
     private static final int MAX_SLOTS = 4; // supports up to 4 curated category slots
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryCategoryHighlightComponentInfo info = getComponentParametersInfo(request);
 
         List<DiscoveryCategoryBean> categoryBeans = new ArrayList<>(MAX_SLOTS);

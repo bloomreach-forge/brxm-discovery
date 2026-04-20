@@ -198,6 +198,7 @@ class DiscoveryCategoryRecommendationComponentTest {
                 @Override public int getLimit()              { return limit; }
                 @Override public boolean isShowPrice()       { return true; }
                 @Override public boolean isShowDescription() { return false; }
+                @Override public String getCategoryUrlParam(){ return "category"; }
             };
         }
 

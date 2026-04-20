@@ -1,5 +1,11 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#function slugify text>
+  <#local s = (text!"")?lower_case>
+  <#local s = s?replace("[^a-z0-9]+", "-", "r")>
+  <#local s = s?replace("^-+|-+$", "", "r")>
+  <#if s?has_content><#return s><#else><#return "product"></#if>
+</#function>
 <#assign resolvedProductPage><@hst.link path="/product"/></#assign>
 <#assign resolvedProductPage = resolvedProductPage?trim>
 
@@ -267,6 +273,9 @@
     <#if products?has_content>
       <div class="brxdis-grid">
         <#list products as product>
+          <#assign _slug = slugify(product.title()!"")>
+          <#assign _pid  = (product.id()!"")?url('UTF-8')>
+          <#assign _href = resolvedProductPage + "/" + _slug + "/p/" + _pid>
           <article class="brxdis-card">
             <div class="brxdis-card__img">
               <#if product.imageUrl()?has_content>
@@ -277,15 +286,14 @@
             </div>
             <div class="brxdis-card__body">
               <h3 class="brxdis-card__title">
-                <a href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">${product.title()!"Untitled product"}</a>
+                <a href="${_href}">${product.title()!"Untitled product"}</a>
               </h3>
               <p class="brxdis-card__pid">PID:&nbsp;${product.id()!""}</p>
               <#if product.price()??>
                 <p class="brxdis-card__price">${product.currency()!""}&nbsp;${product.price()?string("0.00")}</p>
               </#if>
             </div>
-            <a class="brxdis-card__cta"
-               href="${resolvedProductPage}?pid=${(product.id()!"")?url('UTF-8')}">View Product</a>
+            <a class="brxdis-card__cta" href="${_href}">View Product</a>
           </article>
         </#list>
       </div>

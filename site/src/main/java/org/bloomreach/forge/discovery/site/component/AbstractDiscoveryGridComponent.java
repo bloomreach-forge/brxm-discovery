@@ -17,7 +17,7 @@ import java.util.Map;
  * Owns result-model population, empty-state setup, and URL construction helpers
  * so neither concrete subclass duplicates this logic.
  *
- * <p>Subclasses provide their own {@code doBeforeRender} implementation and
+ * <p>Subclasses provide their own {@code doDiscoveryBeforeRender} implementation and
  * declare mode-specific {@code @ParametersInfo}.
  */
 abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent {

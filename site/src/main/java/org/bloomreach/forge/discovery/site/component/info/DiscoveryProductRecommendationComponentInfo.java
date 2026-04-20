@@ -7,7 +7,8 @@ import org.hippoecm.hst.core.parameters.Parameter;
 
 @FieldGroupList({
     @FieldGroup(value = {"document", "limit", "showPrice", "showDescription"},
-                titleKey = "recommendation.group")
+                titleKey = "recommendation.group"),
+    @FieldGroup(value = {"productUrlParam"}, titleKey = "advanced.group")
 })
 public interface DiscoveryProductRecommendationComponentInfo {
 
@@ -28,4 +29,7 @@ public interface DiscoveryProductRecommendationComponentInfo {
 
     @Parameter(name = "showDescription", displayName = "Show description", defaultValue = "false")
     boolean isShowDescription();
+
+    @Parameter(name = "productUrlParam", displayName = "URL parameter", defaultValue = "pid")
+    String getProductUrlParam();
 }

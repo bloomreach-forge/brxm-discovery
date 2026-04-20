@@ -18,8 +18,7 @@ import org.hippoecm.hst.core.parameters.ParametersInfo;
 public class DiscoverySearchInputComponent extends AbstractDiscoveryComponent {
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoverySearchInputComponentInfo info = getComponentParametersInfo(request);
 
         String query = getPublicRequestParameter(request, "q");

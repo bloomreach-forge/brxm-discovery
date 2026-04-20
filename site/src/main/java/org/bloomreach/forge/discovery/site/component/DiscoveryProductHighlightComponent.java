@@ -28,8 +28,7 @@ public class DiscoveryProductHighlightComponent extends AbstractDiscoveryCompone
     private static final int MAX_SLOTS = 4; // supports up to 4 curated product slots
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryProductHighlightComponentInfo info = getComponentParametersInfo(request);
         HstDiscoveryService svc = getDiscoveryService();
 

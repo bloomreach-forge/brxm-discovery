@@ -9,6 +9,7 @@ import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,7 @@ class DiscoveryProductDetailComponentTest {
     @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstRequestContext requestContext;
+    @Mock ResolvedSiteMapItem resolvedSiteMapItem;
 
     private final Map<String, Object> attrs = new HashMap<>();
 
@@ -119,6 +121,34 @@ class DiscoveryProductDetailComponentTest {
 
         verifyNoInteractions(discoveryService);
         verify(request).setModel("product", null);
+    }
+
+    // ── Dynamic mode — path segment takes precedence over query param ─────────
+
+    @Test
+    void document_dynamic_pathParamTakesPrecedenceOverQueryParam() {
+        ProductSummary product = new ProductSummary("path-pid", "Test", null, null, null, null, Map.of());
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
+        when(resolvedSiteMapItem.getParameter("2")).thenReturn("path-pid");
+        when(discoveryService.fetchProduct(eq(request), eq("path-pid"))).thenReturn(Optional.of(product));
+
+        // URL param is "query-pid" but path param "path-pid" must win
+        new TestableProductDetailComponent(discoveryService, "", "query-pid", "pid")
+                .doBeforeRender(request, response);
+
+        verify(discoveryService).fetchProduct(eq(request), eq("path-pid"));
+        verify(discoveryService, never()).fetchProduct(eq(request), eq("query-pid"));
+    }
+
+    @Test
+    void document_dynamic_fallsBackToQueryParam_whenPathParamAbsent() {
+        ProductSummary product = new ProductSummary("query-pid", "Test", null, null, null, null, Map.of());
+        // getResolvedSiteMapItem() returns null by default → path param absent
+        when(discoveryService.fetchProduct(eq(request), eq("query-pid"))).thenReturn(Optional.of(product));
+
+        dynamic("query-pid").doBeforeRender(request, response);
+
+        verify(discoveryService).fetchProduct(eq(request), eq("query-pid"));
     }
 
     // ── Pinned mode (non-blank productId) → use pinned ID, ignore URL param ───

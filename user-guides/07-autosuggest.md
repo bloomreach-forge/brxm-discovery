@@ -133,7 +133,9 @@ Register and use it directly:
   <#if autosuggestResult.productSuggestions()?has_content>
   <div class="product-strip">
     <#list autosuggestResult.productSuggestions() as product>
-    <a href="/product?pid=${product.id()!""?url('UTF-8')}" class="product-card">
+    <#assign _asPid = (product.id()!"")?url('UTF-8')>
+    <#assign _asSlug = (product.title()!"")?lower_case?replace("[^a-z0-9]+", "-", "r")?replace("^-+|-+$", "", "r")>
+    <a href="/product/${_asSlug}/p/${_asPid}" class="product-card">
       <#if product.imageUrl()?has_content>
         <img src="${product.imageUrl()}" alt="${product.title()!""}"/>
       </#if>

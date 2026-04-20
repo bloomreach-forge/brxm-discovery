@@ -19,6 +19,10 @@ import org.hippoecm.hst.core.parameters.Parameter;
     @FieldGroup(
         value = {"showFacets", "showPagination", "showSort"},
         titleKey = "results.display.group"
+    ),
+    @FieldGroup(
+        value = {"categoryUrlParam"},
+        titleKey = "advanced.group"
     )
 })
 public interface DiscoveryCategoryGridComponentInfo {
@@ -47,4 +51,7 @@ public interface DiscoveryCategoryGridComponentInfo {
 
     @Parameter(name = "showSort", displayName = "Show sort options", defaultValue = "true")
     boolean isShowSort();
+
+    @Parameter(name = "categoryUrlParam", displayName = "URL parameter", defaultValue = "category")
+    String getCategoryUrlParam();
 }

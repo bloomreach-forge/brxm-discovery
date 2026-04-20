@@ -55,6 +55,10 @@ definitions:
 
 ### Add sitemap entries
 
+The plugin generates SEO-friendly path-based URLs for product and category pages. See [11-seo.md](11-seo.md) for the full sitemap YAML, URL patterns, backward-compatibility notes, and slug stability details.
+
+Minimal sitemap for search + category + product:
+
 ```yaml
 definitions:
   config:
@@ -65,6 +69,19 @@ definitions:
       /category:
         jcr:primaryType: hst:sitemapitem
         hst:componentconfigurationid: hst:pages/category-page
+        /_any_:
+          jcr:primaryType: hst:sitemapitem
+          hst:componentconfigurationid: hst:pages/category-page
+      /product:
+        jcr:primaryType: hst:sitemapitem
+        hst:componentconfigurationid: hst:pages/product-detail-page
+        /_any_:
+          jcr:primaryType: hst:sitemapitem
+          /p:
+            jcr:primaryType: hst:sitemapitem
+            /_any_:
+              jcr:primaryType: hst:sitemapitem
+              hst:componentconfigurationid: hst:pages/product-detail-page
 ```
 
 ---
@@ -223,13 +240,18 @@ In React/SPA mode, the same URL strings come through in the JSON models - no URL
 
 ## CMS preview diagnostics
 
-When `DiscoveryResultsComponent` is in category mode but no category is configured (no document, no `?category=` URL param), it sets `brxdis_warning` in Channel Manager preview mode:
+`brxdis_warning` is set as a request attribute in Channel Manager / Experience Editor preview mode in two situations:
+
+- **Missing context** — category mode with no category configured (no document, no URL param or path segment)
+- **Discovery API error** — any `DiscoveryException` thrown during render is caught by `AbstractDiscoveryComponent` and surfaces here in edit mode; in live mode the component renders empty silently
 
 ```ftl
 <#if brxdis_warning??>
   <div style="border:2px dashed #f59e0b;padding:1rem;color:#92400e">⚠ ${brxdis_warning}</div>
 </#if>
 ```
+
+All bundled templates include this block. Include it in any custom template that extends a discovery component.
 
 ---
 

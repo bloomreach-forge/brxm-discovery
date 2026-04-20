@@ -32,8 +32,7 @@ public class DiscoveryProductRecommendationComponent extends AbstractDiscoveryRe
     private static final Logger log = LoggerFactory.getLogger(DiscoveryProductRecommendationComponent.class);
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryProductRecommendationComponentInfo info = getComponentParametersInfo(request);
         HstDiscoveryService svc = getDiscoveryService();
 
@@ -53,7 +52,7 @@ public class DiscoveryProductRecommendationComponent extends AbstractDiscoveryRe
 
         String pid = cfg.contextProductId() != null && !cfg.contextProductId().isBlank()
                 ? cfg.contextProductId()
-                : getPublicRequestParameter(request, "pid");
+                : getPublicRequestParameter(request, info.getProductUrlParam());
 
         int    limit  = getPublicRequestParameterAsInt(request, LIMIT_PARAM, info.getLimit());
         String fields = getPublicRequestParameter(request, FIELDS_PARAM);

@@ -15,6 +15,7 @@ import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,7 @@ class DiscoveryCategoryGridComponentTest {
     @Mock HstResponse response;
     @Mock HstRequestContext requestContext;
     @Mock HstDiscoveryService discoveryService;
+    @Mock ResolvedSiteMapItem resolvedSiteMapItem;
 
     private SearchResult singlePageResult;
     private SearchResult multiPageResult;
@@ -128,6 +130,35 @@ class DiscoveryCategoryGridComponentTest {
         buildDynamic(null, 12, "").doBeforeRender(request, response);
 
         verify(request).setAttribute(eq("brxdis_warning"), anyString());
+    }
+
+    // ── Dynamic mode — path segment takes precedence over query param ─────────
+
+    @Test
+    void document_dynamic_pathParamTakesPrecedenceOverQueryParam() {
+        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
+        when(resolvedSiteMapItem.getParameter("1")).thenReturn("path-cat");
+        when(discoveryService.browse(eq(request), eq("path-cat"), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        // URL param would give "query-cat" but path param "path-cat" must win
+        new TestableCategoryGridComponent(discoveryService, "", "query-cat",
+                12, "", true, true, true, Map.of())
+                .doBeforeRender(request, response);
+
+        verify(discoveryService).browse(eq(request), eq("path-cat"), any(SearchRequestOptions.class));
+        verify(discoveryService, never()).browse(eq(request), eq("query-cat"), any(SearchRequestOptions.class));
+    }
+
+    @Test
+    void document_dynamic_fallsBackToQueryParam_whenPathParamAbsent() {
+        // getResolvedSiteMapItem() returns null by default → path param absent
+        when(discoveryService.browse(eq(request), eq("query-cat"), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        buildDynamic("query-cat", 12, "").doBeforeRender(request, response);
+
+        verify(discoveryService).browse(eq(request), eq("query-cat"), any(SearchRequestOptions.class));
     }
 
     // ── Dynamic mode (blank categoryId in doc) → URL param ────────────────
@@ -365,6 +396,7 @@ class DiscoveryCategoryGridComponentTest {
                 @Override public boolean isShowFacets()      { return showFacets; }
                 @Override public boolean isShowPagination()  { return showPagination; }
                 @Override public boolean isShowSort()        { return showSort; }
+                @Override public String getCategoryUrlParam(){ return "category"; }
             };
         }
 

@@ -33,8 +33,7 @@ public class DiscoveryCategoryRecommendationComponent extends AbstractDiscoveryR
     private static final Logger log = LoggerFactory.getLogger(DiscoveryCategoryRecommendationComponent.class);
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryCategoryRecommendationComponentInfo info = getComponentParametersInfo(request);
         HstDiscoveryService svc = getDiscoveryService();
 
@@ -54,13 +53,13 @@ public class DiscoveryCategoryRecommendationComponent extends AbstractDiscoveryR
 
         String catId = cfg.contextCategoryId() != null && !cfg.contextCategoryId().isBlank()
                 ? cfg.contextCategoryId()
-                : getPublicRequestParameter(request, "category");
+                : getPublicRequestParameter(request, info.getCategoryUrlParam());
 
         if (catId == null || catId.isBlank()) {
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
                         "No category configured. Set a category in the recommendation document " +
-                        "or pass a '?category=' URL parameter.");
+                        "or pass a '?" + info.getCategoryUrlParam() + "=' URL parameter.");
             }
             request.setModel(DiscoveryModelKeys.PRODUCTS, List.of());
             request.setModel(DiscoveryModelKeys.WIDGET_ID, cfg.widgetId());

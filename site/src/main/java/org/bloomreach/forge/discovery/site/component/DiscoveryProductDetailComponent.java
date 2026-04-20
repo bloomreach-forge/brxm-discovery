@@ -34,9 +34,7 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryProductDetailComponent.class);
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
-
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryProductDetailComponentInfo info = getComponentParametersInfo(request);
 
         DiscoveryProductDetailBean document = getHippoBeanForPath(request, info.getDocument(),
@@ -56,7 +54,10 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         if (docPid != null && !docPid.isBlank()) {
             pid = docPid;
         } else {
-            pid = getPublicRequestParameter(request, info.getProductUrlParam());
+            // Path takes precedence: /product/{slug}/p/{pid} → sitemap param "2"
+            String pathPid = getPathSegmentParam(request, "2");
+            pid = pathPid != null ? pathPid
+                    : getPublicRequestParameter(request, info.getProductUrlParam());
         }
 
         request.setModel(DiscoveryModelKeys.PID, pid != null ? pid : "");
@@ -65,8 +66,8 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             DiscoveryRequestCache.markProductDetailRendered(request);
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
-                    "Product document is in Dynamic mode but no '?" + info.getProductUrlParam() +
-                    "=' parameter was found in the URL.");
+                    "Product document is in Dynamic mode but no PID was found in the URL path " +
+                    "(/product/{slug}/p/{pid}) or '?" + info.getProductUrlParam() + "=' query parameter.");
             }
             request.setModel(DiscoveryModelKeys.PRODUCT, null);
             return;

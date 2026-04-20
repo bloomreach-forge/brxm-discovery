@@ -706,14 +706,14 @@ syncBodyToViewport();
     if (isItem) {
       step2Title.textContent      = "Product Context";
       step2Desc.textContent       = "How should this widget identify the product to show recommendations for?";
-      radioUrlHint.textContent    = "At runtime, reads the ?pid= parameter from the page URL.";
+      radioUrlHint.textContent    = "At runtime, reads a URL parameter from the page URL (default: ?pid=). The parameter name is configured in the component properties.";
       radioSpecTitle.textContent  = "Pick a specific product";
       radioSpecHint.textContent   = "Always use a fixed product, regardless of the current page.";
       inlineSearch.placeholder    = "Search products\u2026";
     } else {
       step2Title.textContent      = "Category Context";
       step2Desc.textContent       = "How should this widget identify the category to show recommendations for?";
-      radioUrlHint.textContent    = "At runtime, reads the ?category= parameter from the page URL.";
+      radioUrlHint.textContent    = "At runtime, reads a URL parameter from the page URL (default: ?category=). The parameter name is configured in the component properties.";
       radioSpecTitle.textContent  = "Pick a specific category";
       radioSpecHint.textContent   = "Always show recommendations for a fixed category.";
       inlineSearch.placeholder    = "Filter categories\u2026";

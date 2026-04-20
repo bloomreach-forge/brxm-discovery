@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
+import org.bloomreach.forge.discovery.exception.DiscoveryException;
 import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.hippoecm.hst.component.support.bean.BaseHstComponent;
@@ -27,14 +28,35 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     static final String MODULE_NAME = "org.bloomreach.forge.discovery.site";
 
     /**
-     * Sets {@code editMode} on the FTL model once, before every component renders.
-     * All brxdis templates use {@code (editMode!false)} so this guarantees a non-null
-     * value without any per-component boilerplate.
+     * Sets {@code editMode} on the FTL model, then delegates to
+     * {@link #doDiscoveryBeforeRender}. Catches any {@link DiscoveryException}
+     * (transient API failures or misconfiguration) so a single unavailable
+     * Discovery service cannot cause a 500 on the whole page.
+     * In edit mode an {@code brxdis_warning} request attribute is set so
+     * the FTL template can surface a notice to the author.
      */
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
+    public final void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         super.doBeforeRender(request, response);
         request.setModel(DiscoveryModelKeys.EDIT_MODE, isEditMode(request));
+        try {
+            doDiscoveryBeforeRender(request, response);
+        } catch (DiscoveryException e) {
+            log.warn("Discovery service error in {} during render: {}",
+                    getClass().getSimpleName(), e.getMessage(), e);
+            if (isEditMode(request)) {
+                request.setAttribute("brxdis_warning", "Discovery service error: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Extension point for subclasses. Called by {@link #doBeforeRender} inside a
+     * {@link DiscoveryException} safety net.
+     */
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response)
+            throws HstComponentException {
+        // no-op — subclasses override to add component-specific render logic
     }
 
     protected <T> T lookupService(Class<T> type) {
@@ -73,6 +95,21 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     protected static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
+    }
+
+    /**
+     * Reads a numbered path-segment captured by an HST sitemap wildcard ({@code _any_}).
+     * Indices are 1-based, numbered in the order wildcards appear in the matched path.
+     * For example, in {@code /product/{slug}/p/{pid}} the slug is {@code "1"} and the pid is {@code "2"}.
+     * Returns {@code null} if the sitemap item is absent or the parameter is blank.
+     */
+    protected static String getPathSegmentParam(HstRequest request, String paramIndex) {
+        var ctx = request.getRequestContext();
+        if (ctx == null) return null;
+        var smi = ctx.getResolvedSiteMapItem();
+        if (smi == null) return null;
+        String val = smi.getParameter(paramIndex);
+        return (val != null && !val.isBlank()) ? val : null;
     }
 
     /**

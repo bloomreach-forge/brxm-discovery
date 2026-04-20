@@ -31,8 +31,7 @@ public class DiscoverySearchGridComponent extends AbstractDiscoveryGridComponent
     private static final Logger log = LoggerFactory.getLogger(DiscoverySearchGridComponent.class);
 
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoverySearchGridComponentInfo info = getComponentParametersInfo(request);
         Map<String, String[]> params = getServletParameters(request);
 

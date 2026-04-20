@@ -9,6 +9,9 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:sitemap/category:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/category-page
+      /_any_:
+        jcr:primaryType: hst:sitemapitem
+        hst:componentconfigurationid: hst:pages/category-page
     /hst:hst/hst:configurations/demo/hst:sitemap/recommendations:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/recommendations-page
@@ -18,6 +21,13 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:sitemap/product:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/product-detail-page
+      /_any_:
+        jcr:primaryType: hst:sitemapitem
+        /p:
+          jcr:primaryType: hst:sitemapitem
+          /_any_:
+            jcr:primaryType: hst:sitemapitem
+            hst:componentconfigurationid: hst:pages/product-detail-page
     /hst:hst/hst:configurations/demo/hst:sitemap/category-highlight:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/category-highlight-page

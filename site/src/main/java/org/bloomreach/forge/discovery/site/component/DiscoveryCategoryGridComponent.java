@@ -35,11 +35,8 @@ import java.util.Map;
 public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridComponent {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoveryCategoryGridComponent.class);
-    static final String CAT_ID_PARAM = "category";
-
     @Override
-    public void doBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
-        super.doBeforeRender(request, response);
+    protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) throws HstComponentException {
         DiscoveryCategoryGridComponentInfo info = getComponentParametersInfo(request);
         Map<String, String[]> params = getServletParameters(request);
 
@@ -62,7 +59,10 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
         if (docCategoryId != null && !docCategoryId.isBlank()) {
             categoryId = docCategoryId;
         } else {
-            categoryId = getPublicRequestParameter(request, CAT_ID_PARAM);
+            // Path takes precedence: /category/{id} → sitemap param "1"
+            String pathCategoryId = getPathSegmentParam(request, "1");
+            categoryId = pathCategoryId != null ? pathCategoryId
+                    : getPublicRequestParameter(request, info.getCategoryUrlParam());
         }
 
         request.setModel(DiscoveryModelKeys.CATEGORY_ID, categoryId != null ? categoryId : "");
@@ -70,7 +70,8 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
         if (categoryId == null || categoryId.isBlank()) {
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning",
-                        "Category document is in Dynamic mode but no '?category=' URL parameter was found.");
+                        "Category document is in Dynamic mode but no category ID was found in the URL path " +
+                        "(/category/{id}) or '?" + info.getCategoryUrlParam() + "=' query parameter.");
             }
             setEmptyState(request);
             return;

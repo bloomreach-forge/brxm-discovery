@@ -45,7 +45,7 @@
         <#assign slotNum = bean?index + 1>
         <#if bean??>
           <a class="brxdis-cathighlight__tile"
-             href="${resolvedCategoryPage}?category=${(bean.categoryId!"")?url('UTF-8')}"
+             href="${resolvedCategoryPage}/${(bean.categoryId!"")?url('UTF-8')}"
              aria-label="${bean.displayName!"Category"}">
             <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
                 rootPath="brxdis/categories"/>
@@ -79,7 +79,7 @@
     <div class="brxdis-cathighlight__grid">
       <#list categories as cat>
         <a class="brxdis-cathighlight__tile"
-           href="${resolvedCategoryPage}?category=${(cat.categoryId()!"")?url('UTF-8')}"
+           href="${resolvedCategoryPage}/${(cat.categoryId()!"")?url('UTF-8')}"
            aria-label="${cat.displayName()!"Category"}">
           <span class="brxdis-cathighlight__icon">&#128722;</span>
           <span class="brxdis-cathighlight__name">${cat.displayName()!"Unnamed"}</span>

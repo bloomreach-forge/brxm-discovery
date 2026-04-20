@@ -792,13 +792,21 @@ Set in Channel Manager. These drive server-side behaviour - they are **not** in 
 | | `suggestionsLimit` | `5` | Max suggestions per group |
 | | `minChars` | `2` | Min characters before suggestions are fetched |
 | | `debounceMs` | `250` | Debounce delay for suggestion requests |
-| `DiscoveryRecommendationComponent` | `document` | - | Recommendation Document picker |
+| `DiscoveryProductRecommendationComponent` | `document` | - | Product Recommendation Document picker |
 | | `limit` | `8` | Max recommended products |
 | | `showPrice` | `true` | Template shows product price |
 | | `showDescription` | `false` | Template shows product description |
-| | `useProductDetailContext` | `false` | Read PID from the Product Detail component on the same page |
-| | `contextProductId` | `""` | Explicit PID override |
-| `DiscoveryProductDetailComponent` | `document` | - | Product Detail Document picker (required; use the product wizard in the document editor to choose Dynamic or Pinned mode) |
+| | `productUrlParam` | `pid` | URL param name for Dynamic mode (change to use `?sku=` etc.) |
+| `DiscoveryCategoryRecommendationComponent` | `document` | - | Category Recommendation Document picker |
+| | `limit` | `8` | Max recommended products |
+| | `showPrice` | `true` | Template shows product price |
+| | `showDescription` | `false` | Template shows product description |
+| | `categoryUrlParam` | `category` | URL param name for Dynamic mode |
+| `DiscoveryGlobalRecommendationComponent` | `document` | - | Global/Personalized Recommendation Document picker |
+| | `limit` | `8` | Max recommended products |
+| | `showPrice` | `true` | Template shows product price |
+| | `showDescription` | `false` | Template shows product description |
+| `DiscoveryProductDetailComponent` | `document` | - | Product Detail Document picker (required; use the product wizard to choose Dynamic or Pinned mode) |
 | | `productUrlParam` | `pid` | URL param name used in Dynamic mode (e.g. change to `sku` to read `?sku=` instead) |
 | `DiscoveryProductHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Product Detail Document pickers |
 | `DiscoveryCategoryHighlightComponent` | `document1`–`document4` | `""` | Up to 4 Category Document pickers |
