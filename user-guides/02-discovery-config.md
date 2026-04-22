@@ -5,7 +5,9 @@ Configuration has two layers:
 - a global `brxdis:discoveryConfig` JCR node for shared defaults and structural settings
 - optional per-channel overrides through `hst:channelinfo`
 
-Global credentials resolve with `env -> sys -> JCR` precedence. Channel-level overrides are applied on top of that base config for `accountId`, `domainKey`, and env-var names for `apiKey` / `authKey`. Structural settings still resolve from the global JCR node when present and otherwise fall back to environment-aware defaults.
+**Credentials** (`accountId`, `domainKey`, `apiKey`, `authKey`) resolve with `env -> sys -> JCR` precedence — secrets belong in the environment, not JCR.
+
+**Schema config** (`defaultFieldList`, sort options, picker field aliases) is application config, not secrets. It resolves `JCR -> coded default` only. No env var or system property is consulted. Per-channel `discoveryDefaultFieldList` on `hst:channelinfo` takes precedence over the global JCR node.
 
 ---
 
@@ -43,8 +45,11 @@ Optional per-channel overrides are resolved after the global config:
 | `discoveryDomainKey` | Override domain key for this channel |
 | `discoveryApiKeyEnvVar` | Name of the env var to read the API key from for this channel |
 | `discoveryAuthKeyEnvVar` | Name of the env var to read the Pathways auth key from for this channel |
+| `discoveryDefaultFieldList` | Comma-separated `fl` field list for this channel (replaces global default when set) |
 
-This lets one deployment share the addon while keeping channel-specific values in Channel Manager and secrets in environment variables.
+This lets one deployment serve multiple Discovery accounts or catalogs — each channel declares the credentials and field set appropriate for its schema. When `discoveryDefaultFieldList` is blank, the global JCR default (or coded default) applies.
+
+The field list is a **full replacement**, not an append. A channel wanting a smaller page model for a lightweight mobile experience sets only the fields it needs.
 
 ### Other credentials
 
@@ -56,17 +61,20 @@ This lets one deployment share the addon while keeping channel-specific values i
 
 `accountId`, `domainKey`, and `apiKey` are required. If none of the resolution sources provide them after all layers are evaluated, a `ConfigurationException` is thrown at request time.
 
-### Structural config (resolved: JCR -> environment-aware default)
+### Structural config (resolved: JCR -> coded default)
+
+These fields are application config, not secrets. They are read from JCR only — no env var or system property is consulted.
 
 | JCR property | Default | Description |
 |---|---|---|
-| `brxdis:baseUri` | `https://core.dxpapi.com` or `https://staging-core.dxpapi.com` | Base URL of the Discovery Search/Category API |
-| `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` or `https://staging-pathways.dxpapi.com` | Base URL of the Pathways recommendations API |
-| `brxdis:autosuggestBaseUri` | `https://suggest.dxpapi.com` or `https://staging-suggest.dxpapi.com` | Base URL of the Autosuggest API |
+| `brxdis:baseUri` | `https://core.dxpapi.com` (staging: `https://staging-core.dxpapi.com`) | Base URL of the Discovery Search/Category API |
+| `brxdis:pathwaysBaseUri` | `https://pathways.dxpapi.com` (staging: `https://staging-pathways.dxpapi.com`) | Base URL of the Pathways recommendations API |
+| `brxdis:autosuggestBaseUri` | `https://suggest.dxpapi.com` (staging: `https://staging-suggest.dxpapi.com`) | Base URL of the Autosuggest API |
 | `brxdis:defaultPageSize` | `12` | Results per page when not specified in the request |
 | `brxdis:defaultSort` | `` | Default sort expression, e.g. `price asc`. Blank = relevance. |
+| `brxdis:defaultFieldList` | `pid,title,thumb_image,url,price,brand,sale_price,description` | Comma-separated list of Discovery fields to request (`fl` param). Covers Bloomreach reserved attributes used by the reference templates. Per-channel `discoveryDefaultFieldList` overrides this. |
 
-Structural fields are edited in the CMS on the `brxdis:discoveryConfig` node. If a base URI property is absent, the plugin derives the default from `environment`.
+If a base URI property is absent, the default is derived from `environment`.
 
 ---
 
@@ -112,16 +120,19 @@ If your project uses `DiscoveryChannelInfo` or a composite interface that extend
   discoveryDomainKey: pacifichome
   discoveryApiKeyEnvVar: BRXDIS_API_KEY
   discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
+  # Optional: override the fl field list for this channel's catalog schema
+  # discoveryDefaultFieldList: 'pid,title,thumb_image,url,price,brand,sale_price,description,pet_type,tags'
 ```
 
 ## Credential injection
 
 The recommended production setup:
 
-- Set `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` as env vars or sys props - or in the JCR global node as fallback.
+- Set `BRXDIS_ACCOUNT_ID`, `BRXDIS_DOMAIN_KEY` as env vars or sys props — or in the JCR global node as fallback.
 - Set `BRXDIS_API_KEY` and `BRXDIS_AUTH_KEY` as env vars (never store secrets in JCR).
 - If channels need different account/domain values or different secret env-var names, set `discoveryAccountId`, `discoveryDomainKey`, `discoveryApiKeyEnvVar`, and `discoveryAuthKeyEnvVar` on `hst:channelinfo`.
-- Leave the JCR node fields blank for secrets - env var resolution takes precedence automatically.
+- If channels point at different Discovery catalogs with different field schemas, set `discoveryDefaultFieldList` on `hst:channelinfo`. This replaces the global default for that channel only.
+- Leave the JCR node fields blank for secrets — env var resolution takes precedence automatically.
 
 See [06-credential-injection.md](06-credential-injection.md) for deployment-specific patterns.
 

@@ -148,25 +148,13 @@ public class DiscoveryResponseMapper {
     }
 
     private ProductSummary toProductSummary(ProductDoc doc) {
-        Map<String, Object> attrs = new LinkedHashMap<>();
-        putIfPresent(attrs, "brand", doc.brand());
-        putIfPresent(attrs, "description", doc.description());
-        if (doc.salePrice() != null) {
-            attrs.put("sale_price", doc.salePrice());
-        }
         return new ProductSummary(doc.pid(), doc.title(), doc.url(), doc.thumbImage(),
-                doc.price(), doc.currency(), Map.copyOf(attrs));
+                doc.price(), doc.currency(), doc.extras());
     }
 
     private Campaign toCampaign(CampaignDto dto) {
         if (dto == null) return null;
         return new Campaign(dto.id(), dto.campaignName(), dto.htmlText(), dto.bannerUrl(), dto.imageUrl());
-    }
-
-    private static void putIfPresent(Map<String, Object> map, String key, String value) {
-        if (value != null && !value.isBlank()) {
-            map.put(key, value);
-        }
     }
 
     private Map<String, Facet> toFacets(FacetCounts facetCounts) {

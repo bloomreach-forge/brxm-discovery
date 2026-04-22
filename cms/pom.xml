@@ -19,7 +19,7 @@
         <!-- Shared: DiscoveryConfigReader, DiscoveryConfig, SearchQuery -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>brxm-discovery-shared</artifactId>
+            <artifactId>brxm-discovery-commons</artifactId>
         </dependency>
 
         <!-- CRISP (provided-scope deps are not transitive; must declare explicitly) -->

@@ -203,8 +203,8 @@
       <label class="radio-option selected" id="radio-dynamic-label">
         <input type="radio" name="mode" id="radio-dynamic" value="dynamic" checked/>
         <div class="radio-option-text">
-          <span class="radio-option-title">Dynamic &mdash; URL parameter (default)</span>
-          <span class="radio-option-hint">At runtime, reads a URL parameter from the page URL (default: <code>?pid=</code>). The parameter name is configured in the component properties.</span>
+          <span class="radio-option-title">Dynamic &mdash; URL path or query parameter (default)</span>
+          <span class="radio-option-hint">At runtime, reads the product ID from a URL path segment (e.g. <code>/pid/product-123</code>) or query parameter (default: <code>?pid=</code>). Path segments take priority. The parameter name is configured in the component properties.</span>
         </div>
       </label>
       <label class="radio-option" id="radio-pinned-label">
@@ -537,7 +537,7 @@ syncBodyToViewport();
     reviewCard.appendChild(modeRow);
 
     if (state.mode === "dynamic") {
-      addReviewRow("URL Param", "?pid=", true);
+      addReviewRow("URL Path/Param", "?pid=", true);
     } else if (state.productId) {
       addReviewRow("Product ID", state.productId, true);
     }
@@ -572,7 +572,7 @@ syncBodyToViewport();
       notice.appendChild(document.createTextNode(" The product will be determined by the "));
       var code = document.createElement("code"); code.textContent = "?pid=";
       notice.appendChild(code);
-      notice.appendChild(document.createTextNode(" URL parameter when a visitor views this page."));
+      notice.appendChild(document.createTextNode(" URL path segment or query parameter when a visitor views this page."));
       rpContent.appendChild(notice);
       return;
     }

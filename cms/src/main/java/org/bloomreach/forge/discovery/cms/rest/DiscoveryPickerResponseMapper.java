@@ -7,6 +7,7 @@ import org.bloomreach.forge.discovery.cms.rest.dto.PickerCategoryDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerItemDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerSearchResponseDto;
 import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
+import org.bloomreach.forge.discovery.config.model.DiscoverySchemaConfig;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,6 +17,19 @@ final class DiscoveryPickerResponseMapper {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private final DiscoverySchemaConfig schema;
+
+    DiscoveryPickerResponseMapper(DiscoverySchemaConfig schema) {
+        this.schema = schema != null ? schema : DiscoverySchemaConfig.DEFAULT;
+    }
+
+    /** Returns the comma-separated field list the picker needs for product-fetching requests. */
+    String pickerFieldList() {
+        return String.join(",",
+                schema.pickerIdField(), schema.pickerTitleField(),
+                schema.pickerImageField(), schema.pickerPriceField(), "url");
+    }
+
     PickerSearchResponseDto toSearchResponse(String json, int page, int pageSize) {
         try {
             JsonNode root = MAPPER.readTree(json);
@@ -23,11 +37,12 @@ final class DiscoveryPickerResponseMapper {
             long total = response.path("numFound").asLong(0);
             List<PickerItemDto> items = new ArrayList<>();
             for (JsonNode doc : response.path("docs")) {
-                String price = doc.path("price").isNumber() ? doc.path("price").asText() : null;
+                JsonNode priceNode = doc.path(schema.pickerPriceField());
+                String price = priceNode.isNumber() ? priceNode.asText() : null;
                 items.add(new PickerItemDto(
-                        doc.path("pid").asText(null),
-                        doc.path("title").asText(null),
-                        doc.path("thumb_image").asText(null),
+                        doc.path(schema.pickerIdField()).asText(null),
+                        doc.path(schema.pickerTitleField()).asText(null),
+                        doc.path(schema.pickerImageField()).asText(null),
                         doc.path("url").asText(null),
                         price));
             }

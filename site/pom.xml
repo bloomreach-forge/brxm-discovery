@@ -25,7 +25,7 @@
         <!-- Shared: config, exceptions, search model -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>brxm-discovery-shared</artifactId>
+            <artifactId>brxm-discovery-commons</artifactId>
         </dependency>
 
         <!-- CRISP -->

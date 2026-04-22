@@ -261,12 +261,12 @@ Used on `brxdis:categoryDocument`. Same 2-step structure as the product wizard.
 
 **Step 1 - Mode selection + optional picker**
 
-- **Dynamic** - the component reads `?category=` from the URL at render time.
+- **Dynamic** - the component reads the category ID from the URL at render time: first from a path segment (`/category/{slug}/cid/{id}`), then from `?cid=`.
 - **Pinned** - an inline filterable category list lets the editor select a specific category.
 
 **Step 2 - Review**
 
-Shows the mode summary and a 4-product thumbnail grid for Pinned selections (fetched via `GET /browse`). Dynamic mode shows a `?category=` URL parameter notice.
+Shows the mode summary and a 4-product thumbnail grid for Pinned selections (fetched via `GET /browse`). Dynamic mode shows a URL parameter notice (the default parameter name is `cid`).
 
 **Stored value**: `brxdis:categoryId` - empty string for Dynamic, plain category ID for Pinned.
 
@@ -305,7 +305,7 @@ The recommendation wizard is a 3-step dialog for configuring recommendation docu
 
 **Step 2 - Context** (product and category types only):
 - **Product types** (`co_viewed`, `co_bought`, `rt_recs`, `mlt`): choose between "Use URL param (`?pid=`)" or "Pick a specific product" (inline product search, same backend as `/search`).
-- **Category type**: choose between "Use URL param (`?category=`)" or "Pick a specific category" (inline category list, same backend as `/categories`).
+- **Category type**: choose between "Use URL param" or "Pick a specific category" (inline category list, same backend as `/categories`). In Dynamic mode the category ID is read from the URL path (`/category/{slug}/cid/{id}`) or `?cid=` query param (configurable via `categoryUrlParam`, default `cid`).
 - Global/personalized types skip this step entirely.
 
 **Step 3 - Review**: Shows the resolved config summary and a live thumbnail strip (via `GET /recommendation-products`). Click **Save** to write the config.
@@ -326,7 +326,7 @@ The wizard stores a JSON string in `brxdis:config`:
 }
 ```
 
-For category type, `contextProductId`/`contextProductName` are replaced by `contextCategoryId`/`contextCategoryName`. For global types, none of the context fields are present. A `null` context field means "fall back to URL param at runtime" (`?pid=` / `?category=`).
+For category type, `contextProductId`/`contextProductName` are replaced by `contextCategoryId`/`contextCategoryName`. For global types, none of the context fields are present. A `null` context field means "fall back to the URL at runtime": for product contexts, reads `/{label}/{pid}` path or `?{label}=` query (default label: `pid`); for category contexts, reads `/{label}/{cid}` path or `?{label}=` query (default label: `cid`).
 
 ### postMessage cross-field sync
 

@@ -7,7 +7,7 @@
 - Renders a search input in any page zone (header, sidebar, or inline)
 - Calls the Bloomreach Discovery Autosuggest API when `suggestionsEnabled=true`
 - Exposes an `autosuggestResult` model for typeahead dropdown rendering
-- Submits the search form to a configurable results page (which uses `DiscoveryResultsComponent`)
+- Submits the search form to a configurable results page (which uses `DiscoverySearchGridComponent`)
 
 The `discoveryAutosuggestAPI` CRISP resource space is bootstrapped automatically. Autosuggest results are fetched live (not cached) - they reflect the query state at the moment of the request.
 
@@ -39,7 +39,7 @@ All suggestion parameters are component parameters set in HST config:
 
 ## How it works with results
 
-`DiscoverySearchInputComponent` and `DiscoveryResultsComponent` are independent. The search bar submits a form to the results page (`resultsPage` param); the results page runs the full search.
+`DiscoverySearchInputComponent` and `DiscoverySearchGridComponent` are independent. The search bar submits a form to the results page (`resultsPage` param); the results page runs the full search.
 
 Typical page layout:
 
@@ -48,10 +48,10 @@ Any page (e.g. homepage):
   └── search-bar: DiscoverySearchInputComponent (resultsPage=/search)
 
 Search results page (/search):
-  └── results: DiscoveryResultsComponent (dataSource=search)
+  └── results: DiscoverySearchGridComponent (dataSource=search)
 ```
 
-For pages where the search bar is on the same page as the results (e.g. a simple search page), set `resultsPage=""` - the form submits to the current page and `DiscoveryResultsComponent` picks up the `q` parameter.
+For pages where the search bar is on the same page as the results (e.g. a simple search page), set `resultsPage=""` - the form submits to the current page and `DiscoverySearchGridComponent` picks up the `q` parameter.
 
 ---
 

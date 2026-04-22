@@ -30,6 +30,6 @@ public interface DiscoveryCategoryRecommendationComponentInfo {
     @Parameter(name = "showDescription", displayName = "Show description", defaultValue = "false")
     boolean isShowDescription();
 
-    @Parameter(name = "categoryUrlParam", displayName = "URL parameter", defaultValue = "category")
+    @Parameter(name = "categoryUrlParam", displayName = "URL path segment / query param name", defaultValue = "cid")
     String getCategoryUrlParam();
 }

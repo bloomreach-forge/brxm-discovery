@@ -143,6 +143,9 @@
         <!-- project logging -->
         <Logger name="org.bloomreach.forge.discovery" level="debug"/>
 
+        <!-- Spring bean creation debug: surfaces full BeanCreationException cause chain -->
+        <Logger name="org.springframework.beans.factory" level="debug"/>
+
         <!-- CRISP HTTP debug: shows request URL, status code, response body -->
         <Logger name="org.onehippo.cms7.crisp" level="debug"/>
         <Logger name="org.springframework.web.client" level="debug"/>

@@ -22,7 +22,7 @@ public interface DiscoveryProductDetailComponentInfo {
     )
     String getDocument();
 
-    @Parameter(name = "productUrlParam", displayName = "URL parameter", defaultValue = "pid")
+    @Parameter(name = "productUrlParam", displayName = "URL path segment / query param name", defaultValue = "pid")
     String getProductUrlParam();
 
 }

@@ -10,6 +10,7 @@ import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamPa
 import org.hippoecm.hst.configuration.hosting.Mount;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,9 +63,8 @@ public final class DiscoveryRuntimeContextFactory {
         DiscoveryConfig config = applyChannelOverrides(rawConfig, requestContext);
         logCredentials(config.credentials());
         validateCredentials(config.credentials());
-        String pageUrl = PageContextResolver.pageUrl(request);
+        String pageUrl = pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), pageUrl);
-        String pageType = PageContextResolver.pageType(request);
         DiscoveryRuntimeContext runtimeContext = new DiscoveryRuntimeContext(
                 config,
                 ClientContextExtractor.clientContext(request),
@@ -72,10 +72,9 @@ public final class DiscoveryRuntimeContextFactory {
                 paramProvider(request),
                 brUid2Service.ensure(request),
                 pageUrl,
-                PageContextResolver.pageTitle(request, pageType),
-                pageType,
+                pageTitle(request),
                 refUrl,
-                PageContextResolver.originalRefUrl(request, refUrl),
+                originalRefUrl(request, refUrl),
                 ClientContextExtractor.extractClientIp(request)
         );
         requestContext.setAttribute(ATTR, runtimeContext);
@@ -117,7 +116,14 @@ public final class DiscoveryRuntimeContextFactory {
                 channelInfo.getDiscoveryApiKeyEnvVar(),
                 channelInfo.getDiscoveryAuthKeyEnvVar(),
                 envResolver);
-        return overrides != null ? config.withCredentials(overrides) : config;
+        if (overrides != null) {
+            config = config.withCredentials(overrides);
+        }
+        String fl = channelInfo.getDiscoveryDefaultFieldList();
+        if (fl != null && !fl.isBlank()) {
+            config = config.withFieldList(fl);
+        }
+        return config;
     }
 
     private static void validateCredentials(DiscoveryCredentials credentials) {
@@ -149,6 +155,55 @@ public final class DiscoveryRuntimeContextFactory {
                 return servletRequest.getParameterMap();
             }
         };
+    }
+
+    private static String pageUrl(HstRequest request) {
+        StringBuilder sb = new StringBuilder()
+                .append(request.getScheme()).append("://").append(request.getServerName());
+        int port = request.getServerPort();
+        if (port != 80 && port != 443) {
+            sb.append(':').append(port);
+        }
+        sb.append(request.getRequestURI());
+        String query = request.getQueryString();
+        if (query != null && !query.isBlank()) {
+            sb.append('?').append(query);
+        }
+        return sb.toString();
+    }
+
+    private static String pageTitle(HstRequest request) {
+        HstRequestContext requestContext = request.getRequestContext();
+        if (requestContext != null) {
+            ResolvedSiteMapItem siteMapItem = requestContext.getResolvedSiteMapItem();
+            if (siteMapItem != null) {
+                String title = siteMapItem.getPageTitle();
+                if (title != null && !title.isBlank()) {
+                    return title;
+                }
+            }
+        }
+        String requestUri = request.getRequestURI();
+        if (requestUri == null || requestUri.isBlank() || "/".equals(requestUri)) {
+            return "Home";
+        }
+        return requestUri;
+    }
+
+    private static String originalRefUrl(HstRequest request, String fallbackRefUrl) {
+        HstRequestContext requestContext = request.getRequestContext();
+        if (requestContext == null || requestContext.getServletRequest() == null) {
+            return null;
+        }
+        String fromParam = requestContext.getServletRequest().getParameter("orig_ref_url");
+        if (fromParam != null && !fromParam.isBlank()) {
+            return fromParam;
+        }
+        String fromHeader = request.getHeader("X-Brxdis-Orig-Ref-Url");
+        if (fromHeader != null && !fromHeader.isBlank()) {
+            return fromHeader;
+        }
+        return fallbackRefUrl;
     }
 
     private static String maskSecret(String s) {

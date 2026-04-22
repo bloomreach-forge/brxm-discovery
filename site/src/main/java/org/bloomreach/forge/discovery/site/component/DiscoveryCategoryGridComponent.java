@@ -13,7 +13,6 @@ import org.hippoecm.hst.core.parameters.ParametersInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,7 +22,7 @@ import java.util.Map;
  * category ID mode:
  * <ul>
  *   <li><b>Pinned</b> - {@code brxdis:categoryId} is non-blank: use that ID directly.</li>
- *   <li><b>Dynamic</b> - {@code brxdis:categoryId} is blank: read the {@code ?category=} URL parameter.</li>
+ *   <li><b>Dynamic</b> - {@code brxdis:categoryId} is blank: resolve from a URL path segment (e.g. {@code /cid/root-cat-id}) or query parameter (e.g. {@code ?cid=}); path segment takes priority.</li>
  * </ul>
  *
  * <p>If no document is configured the component renders nothing and shows a warning
@@ -53,25 +52,24 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
             return;
         }
 
-        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL param)
+        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL-driven)
         String docCategoryId = document.getCategoryId();
         String categoryId;
         if (docCategoryId != null && !docCategoryId.isBlank()) {
             categoryId = docCategoryId;
         } else {
-            // Path takes precedence: /category/{id} → sitemap param "1"
-            String pathCategoryId = getPathSegmentParam(request, "1");
-            categoryId = pathCategoryId != null ? pathCategoryId
-                    : getPublicRequestParameter(request, info.getCategoryUrlParam());
+            categoryId = resolveUrlParam(request, info.getCategoryUrlParam());
         }
 
         request.setModel(DiscoveryModelKeys.CATEGORY_ID, categoryId != null ? categoryId : "");
 
         if (categoryId == null || categoryId.isBlank()) {
             if (isEditMode(request)) {
+                String param = info.getCategoryUrlParam();
                 request.setAttribute("brxdis_warning",
-                        "Category document is in Dynamic mode but no category ID was found in the URL path " +
-                        "(/category/{id}) or '?" + info.getCategoryUrlParam() + "=' query parameter.");
+                        "Category document is in Dynamic mode but no category ID was found. " +
+                        "Ensure the sitemap maps the URL segment to parameter '" + param +
+                        "', or pass '?" + param + "=' as a query string.");
             }
             setEmptyState(request);
             return;
@@ -79,7 +77,12 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
 
         HstDiscoveryService svc = getDiscoveryService();
         SearchResponse browseResponse = svc.browse(request, categoryId, new SearchRequestOptions(
-                info.getPageSize(), blankToNull(info.getDefaultSort()), null, List.of(), null, null));
+                info.getPageSize(),
+                blankToNull(info.getDefaultSort()),
+                null,
+                parseStatsFields(info.getStatsFields()),
+                blankToNull(info.getSegment()),
+                blankToNull(info.getExclusionFilter())));
 
         request.setModel(DiscoveryModelKeys.DISPLAY_NAME, browseResponse.metadata().categoryName());
         request.setModel(DiscoveryModelKeys.CAMPAIGN, browseResponse.metadata().campaign());

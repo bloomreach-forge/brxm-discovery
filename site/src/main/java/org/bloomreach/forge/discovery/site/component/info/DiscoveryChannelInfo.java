@@ -15,6 +15,10 @@ import org.hippoecm.hst.core.parameters.Parameter;
         titleKey = "Credentials"
     ),
     @FieldGroup(
+        value = {"discoveryDefaultFieldList"},
+        titleKey = "Schema"
+    ),
+    @FieldGroup(
         value = {"discoveryPixelsEnabled", "discoveryPixelTestData", "discoveryPixelDebug", "discoveryPixelRegion"},
         titleKey = "Pixel Tracking"
     )
@@ -32,6 +36,16 @@ public interface DiscoveryChannelInfo extends ChannelInfo {
 
     @Parameter(name = "discoveryAuthKeyEnvVar", displayName = "Auth Key env-var name (v2/Pathways)", defaultValue = "")
     String getDiscoveryAuthKeyEnvVar();
+
+    /**
+     * Comma-separated Discovery {@code fl} field list for this channel.
+     * Replaces the global default when set. Leave blank to use the global JCR default or the
+     * coded default ({@code pid,title,thumb_image,url,price,brand,sale_price,description}).
+     * Different channels pointing at different Discovery accounts/catalogs can declare their
+     * own field sets here.
+     */
+    @Parameter(name = "discoveryDefaultFieldList", displayName = "Field list (fl) override", defaultValue = "")
+    String getDiscoveryDefaultFieldList();
 
     @Parameter(name = "discoveryPixelsEnabled", displayName = "Send pixel events", defaultValue = "true")
     boolean getDiscoveryPixelsEnabled();

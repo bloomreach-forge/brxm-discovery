@@ -9,8 +9,8 @@ definitions:
         hst:label: Discovery Product Recommendations
         hst:template: brxdis-recommendations-product
         hst:xtype: hst.Item
-        hst:parameternames: [document, limit, showPrice, showDescription]
-        hst:parametervalues: ['', '8', 'true', 'false']
+        hst:parameternames: [document, limit, showPrice, showDescription, productUrlParam]
+        hst:parametervalues: ['', '8', 'true', 'false', 'pid']
       /category-recommendations:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryRecommendationComponent
@@ -18,8 +18,8 @@ definitions:
         hst:label: Discovery Category Recommendations
         hst:template: brxdis-recommendations-category
         hst:xtype: hst.Item
-        hst:parameternames: [document, limit, showPrice, showDescription]
-        hst:parametervalues: ['', '8', 'true', 'false']
+        hst:parameternames: [document, limit, showPrice, showDescription, categoryUrlParam]
+        hst:parametervalues: ['', '8', 'true', 'false', 'cid']
       /global-recommendations:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryGlobalRecommendationComponent
@@ -36,6 +36,8 @@ definitions:
         hst:label: Discovery Product Detail
         hst:template: brxdis-product-detail
         hst:xtype: hst.Item
+        hst:parameternames: [document, productUrlParam]
+        hst:parametervalues: ['', 'pid']
       /category-highlight:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryHighlightComponent
@@ -74,9 +76,9 @@ definitions:
         hst:template: brxdis-results
         hst:xtype: hst.Item
         hst:parameternames: [document, pageSize, defaultSort,
-                              statsFields, segment, exclusionFilter,
+                              statsFields, segment, exclusionFilter, categoryUrlParam,
                               showFacets, showPagination, showSort]
-        hst:parametervalues: ['', '12', '', '', '', '',
+        hst:parametervalues: ['', '12', '', '', '', '', 'cid',
                                'true', 'true', 'true']
       /search-input:
         jcr:primaryType: hst:containeritemcomponent

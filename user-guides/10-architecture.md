@@ -8,21 +8,21 @@ This guide documents the plugin's internal architecture for contributors and mai
 
 ```
 brxm-discovery/
-├── shared/    brxm-discovery-shared
+├── commons/   brxm-discovery-commons
 │   Domain model, config resolution, exceptions.
 │   Zero framework dependencies (only JCR API as provided).
 │   Depended on by both site and cms.
 │
 ├── cms/       brxm-discovery-cms
 │   CMS daemon module (picker REST endpoints, Open UI extensions).
-│   Depends on shared only - never imports from site.
+│   Depends on commons only - never imports from site.
 │
 └── site/      brxm-discovery-site
     HST components, Discovery API clients, CRISP wiring, pixel tracking.
-    Depends on shared. All HST/CRISP deps are provided scope.
+    Depends on commons. All HST/CRISP deps are provided scope.
 ```
 
-**Dependency direction:** `site → shared ← cms`. The cms and site modules never import each other. The shared module defines the domain contract that both runtimes consume.
+**Dependency direction:** `site → commons ← cms`. The cms and site modules never import each other. The commons module defines the domain contract that both runtimes consume.
 
 ---
 
@@ -34,9 +34,13 @@ The plugin follows Clean Architecture principles. Dependencies flow inward - out
 ┌─ PRESENTATION ──────────────────────────────────────────────┐
 │                                                              │
 │  AbstractDiscoveryComponent                                  │
-│  ├── DiscoveryResultsComponent                               │
+│  ├── DiscoverySearchGridComponent                            │
+│  ├── DiscoveryCategoryGridComponent                          │
 │  ├── DiscoverySearchInputComponent                           │
-│  ├── DiscoveryRecommendationComponent                        │
+│  ├── AbstractDiscoveryRecommendationComponent                │
+│  │   ├── DiscoveryProductRecommendationComponent             │
+│  │   ├── DiscoveryCategoryRecommendationComponent            │
+│  │   └── DiscoveryGlobalRecommendationComponent              │
 │  ├── DiscoveryProductDetailComponent                         │
 │  ├── DiscoveryProductHighlightComponent                      │
 │  └── DiscoveryCategoryHighlightComponent                     │
@@ -274,7 +278,7 @@ shutdown()
   └── Unregisters DiscoveryConfigProvider from HippoServiceRegistry
 ```
 
-The CMS module depends only on `shared` - it never imports from `site`. It creates its own config provider instance because it runs in a different classloader.
+The CMS module depends only on `commons` - it never imports from `site`. It creates its own config provider instance because it runs in a different classloader.
 
 ---
 

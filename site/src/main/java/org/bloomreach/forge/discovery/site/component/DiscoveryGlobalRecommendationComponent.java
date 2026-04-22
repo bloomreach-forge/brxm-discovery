@@ -50,7 +50,7 @@ public class DiscoveryGlobalRecommendationComponent extends AbstractDiscoveryRec
         }
         DiscoveryRecommendationConfig cfg = cfgOpt.get();
 
-        int    limit  = getPublicRequestParameterAsInt(request, LIMIT_PARAM, info.getLimit());
+        int limit = getPublicRequestParameterAsInt(request, LIMIT_PARAM, info.getLimit());
         String fields = getPublicRequestParameter(request, FIELDS_PARAM);
         String filter = getPublicRequestParameter(request, FILTER_PARAM);
 

@@ -1,5 +1,6 @@
 package org.bloomreach.forge.discovery.site.component;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.bloomreach.forge.discovery.exception.DiscoveryException;
 import org.bloomreach.forge.discovery.exception.SearchException;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
@@ -10,7 +11,6 @@ import org.hippoecm.hst.core.container.ComponentManager;
 import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.container.HstContainerURL;
 import org.hippoecm.hst.core.request.HstRequestContext;
-import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.hippoecm.hst.site.HstServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ class AbstractDiscoveryComponentTest {
     @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstContainerURL baseUrl;
-    @Mock ResolvedSiteMapItem resolvedSiteMapItem;
+    @Mock HttpServletRequest servletRequest;
 
     @AfterEach
     void tearDown() {
@@ -181,29 +181,58 @@ class AbstractDiscoveryComponentTest {
     // ── getPathSegmentParam ───────────────────────────────────────────────
 
     @Test
-    void getPathSegmentParam_returnsValue_whenSiteMapItemPresent() {
+    void getPathSegmentParam_returnsValue_whenLabelPrecedesValueInPath() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
-        when(resolvedSiteMapItem.getParameter("2")).thenReturn("SKU-123");
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair/pid/SKU-123");
 
-        assertEquals("SKU-123", AbstractDiscoveryComponent.getPathSegmentParam(request, "2"));
+        assertEquals("SKU-123", AbstractDiscoveryComponent.getPathSegmentParam(request, "pid"));
     }
 
     @Test
-    void getPathSegmentParam_returnsNull_whenSiteMapItemNull() {
+    void getPathSegmentParam_returnsNull_whenServletRequestNull() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.getResolvedSiteMapItem()).thenReturn(null);
+        when(requestContext.getServletRequest()).thenReturn(null);
 
-        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "1"));
+        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "pid"));
     }
 
     @Test
-    void getPathSegmentParam_returnsNull_whenParamBlank() {
+    void getPathSegmentParam_returnsNull_whenLabelAbsentFromPath() {
         when(request.getRequestContext()).thenReturn(requestContext);
-        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
-        when(resolvedSiteMapItem.getParameter("1")).thenReturn("  ");
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair");
 
-        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "1"));
+        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "pid"));
+    }
+
+    @Test
+    void getPathSegmentParam_returnsNull_whenLabelIsLastSegment() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair/pid");
+
+        assertNull(AbstractDiscoveryComponent.getPathSegmentParam(request, "pid"));
+    }
+
+    // ── resolveUrlParam ───────────────────────────────────────────────────
+
+    @Test
+    void resolveUrlParam_pathInfoContainsLabel_returnsPathValue() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair/pid/SKU-123");
+
+        assertEquals("SKU-123", new TestableComponent(discoveryService).resolveUrlParam(request, "pid"));
+    }
+
+    @Test
+    void resolveUrlParam_pathInfoLabelAbsent_returnsQueryParam() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair");
+
+        assertEquals("SKU-456", new TestableComponent(discoveryService, "pid", "SKU-456").resolveUrlParam(request, "pid"));
     }
 
     // ── getDiscoveryService ───────────────────────────────────────────────
@@ -234,6 +263,38 @@ class AbstractDiscoveryComponentTest {
 
         assertThrows(org.bloomreach.forge.discovery.exception.ConfigurationException.class,
                 () -> new TestableLookupComponent().getDiscoveryService());
+    }
+
+    @Test
+    void lookupService_moduleNotFoundRuntimeException_convertsToConfigurationException() {
+        ComponentManager componentManager = mock(ComponentManager.class);
+        when(componentManager.getComponent(HstDiscoveryService.class, AbstractDiscoveryComponent.MODULE_NAME))
+                .thenThrow(new RuntimeException("ModuleNotFoundException: module not registered"));
+        HstServices.setComponentManager(componentManager);
+
+        assertThrows(org.bloomreach.forge.discovery.exception.ConfigurationException.class,
+                () -> new TestableLookupComponent().getDiscoveryService());
+    }
+
+    @Test
+    void doBeforeRender_unexpectedRuntimeException_doesNotPropagate() {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(false);
+
+        assertDoesNotThrow(() ->
+                new ThrowingRuntimeComponent(new IllegalStateException("broker unavailable"))
+                        .doBeforeRender(request, response));
+    }
+
+    @Test
+    void doBeforeRender_unexpectedRuntimeException_setsWarningInEditMode() throws HstComponentException {
+        when(request.getRequestContext()).thenReturn(requestContext);
+        when(requestContext.isChannelManagerPreviewRequest()).thenReturn(true);
+
+        new ThrowingRuntimeComponent(new IllegalStateException("broker unavailable"))
+                .doBeforeRender(request, response);
+
+        verify(request).setAttribute(eq("brxdis_warning"), anyString());
     }
 
     @Test
@@ -287,6 +348,19 @@ class AbstractDiscoveryComponentTest {
         private final DiscoveryException ex;
 
         ThrowingComponent(DiscoveryException ex) {
+            this.ex = ex;
+        }
+
+        @Override
+        protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response) {
+            throw ex;
+        }
+    }
+
+    private static class ThrowingRuntimeComponent extends AbstractDiscoveryComponent {
+        private final RuntimeException ex;
+
+        ThrowingRuntimeComponent(RuntimeException ex) {
             this.ex = ex;
         }
 

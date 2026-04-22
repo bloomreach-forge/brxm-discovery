@@ -63,4 +63,5 @@ public final class DiscoveryModelKeys {
     public static final String CLEAR_FILTERS_URL  = "clearAllFiltersUrl";
     public static final String PAGE_URLS          = "pageUrls";
     public static final String SORT_URL           = "sortUrl";
+    public static final String SORT_OPTIONS       = "sortOptions";
 }

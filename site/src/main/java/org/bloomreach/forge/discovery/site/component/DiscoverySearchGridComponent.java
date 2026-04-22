@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,7 +47,12 @@ public class DiscoverySearchGridComponent extends AbstractDiscoveryGridComponent
 
         HstDiscoveryService svc = getDiscoveryService();
         SearchResponse searchResponse = svc.search(request, new SearchRequestOptions(
-                info.getPageSize(), blankToNull(info.getDefaultSort()), null, List.of(), null, null));
+                info.getPageSize(),
+                blankToNull(info.getDefaultSort()),
+                blankToNull(info.getCatalogName()),
+                parseStatsFields(info.getStatsFields()),
+                blankToNull(info.getSegment()),
+                blankToNull(info.getExclusionFilter())));
 
         if (info.isShowDidYouMean()) {
             request.setModel(DiscoveryModelKeys.DID_YOU_MEAN, searchResponse.metadata().didYouMean());

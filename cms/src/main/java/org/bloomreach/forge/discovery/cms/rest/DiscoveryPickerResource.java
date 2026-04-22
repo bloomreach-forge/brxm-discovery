@@ -85,7 +85,8 @@ public class DiscoveryPickerResource {
 
     public DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
                                    Function<String, String> httpGateway) {
-        this(moduleSession, configProvider, httpGateway, new DiscoveryPickerResponseMapper());
+        this(moduleSession, configProvider, httpGateway,
+                new DiscoveryPickerResponseMapper(configProvider.get(moduleSession).schemaConfig()));
     }
 
     DiscoveryPickerResource(Session moduleSession, DiscoveryConfigProvider configProvider,
@@ -124,7 +125,8 @@ public class DiscoveryPickerResource {
         DiscoveryCredentials credentials = config.credentials();
         DiscoverySettings settings = config.settings();
         Map<String, List<String>> filters = catId.isBlank() ? Map.of() : Map.of("cat_id", List.of(catId));
-        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), filters, brUid2(), null, requestUrl());
+        SearchQuery query = new SearchQuery(q, page, safePageSize, settings.defaultSort(), filters, brUid2(), null, requestUrl())
+                .withFields(responseMapper.pickerFieldList());
         String url = buildAbsoluteUrl(settings, REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return responseMapper.toSearchResponse(json, page, safePageSize);
@@ -159,7 +161,8 @@ public class DiscoveryPickerResource {
         DiscoveryCredentials credentials = config.credentials();
         // fq=pid:"id1"&fq=pid:"id2" - multiple values produce OR within same field
         SearchQuery query = new SearchQuery("*", 0, pidList.size(), null,
-                Map.of("pid", pidList), brUid2(), null, requestUrl());
+                Map.of("pid", pidList), brUid2(), null, requestUrl())
+                .withFields(responseMapper.pickerFieldList());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, credentials));
         String json = httpGateway.apply(url);
         return responseMapper.toSearchResponse(json, 0, pidList.size());
@@ -198,7 +201,8 @@ public class DiscoveryPickerResource {
         int safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         CategoryQuery query = new CategoryQuery(catId, page, safePageSize,
-                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl());
+                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl())
+                .withFields(responseMapper.pickerFieldList());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toSearchResponse(json, page, safePageSize);
@@ -232,7 +236,8 @@ public class DiscoveryPickerResource {
         }
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         CategoryQuery query = new CategoryQuery(resolvedCategoryId, 0, safeCount,
-                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl());
+                config.settings().defaultSort(), Map.of(), brUid2(), null, requestUrl())
+                .withFields(responseMapper.pickerFieldList());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toSearchResponse(json, 0, safeCount).items();
@@ -250,8 +255,9 @@ public class DiscoveryPickerResource {
             @QueryParam("channelId") @DefaultValue("") String channelId,
             @QueryParam("documentId") @DefaultValue("") String documentId) {
         DiscoveryConfig config = resolveConfig(channelId, documentId);
-        CategoryQuery query = new CategoryQuery("", 0, 0, null, Map.of(), brUid2(), null, requestUrl());
-        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.category(query, config.credentials()));
+        SearchQuery query = new SearchQuery("*", 0, 0, null, Map.of(), brUid2(), null, requestUrl())
+                .withFields(responseMapper.pickerFieldList());
+        String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toCategories(json);
     }
@@ -314,7 +320,7 @@ public class DiscoveryPickerResource {
 
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         RecQuery query = new RecQuery(widgetType, widgetId, productId, catId, null,
-                safeCount, null, null, requestUrl(), null, brUid2(), null);
+                safeCount, responseMapper.pickerFieldList(), null, requestUrl(), null, brUid2(), null);
 
         boolean useV2 = !isBlank(config.credentials().authKey());
         DiscoveryRequestSpec spec = useV2
@@ -349,7 +355,8 @@ public class DiscoveryPickerResource {
 
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         SearchQuery query = new SearchQuery("*", 0, 1, null,
-                Map.of("pid", List.of(resolvedProductId)), brUid2(), null, requestUrl());
+                Map.of("pid", List.of(resolvedProductId)), brUid2(), null, requestUrl())
+                .withFields(responseMapper.pickerFieldList());
         String url = buildAbsoluteUrl(config.settings(), REQUEST_FACTORY.search(query, config.credentials()));
         String json = httpGateway.apply(url);
         return responseMapper.toSearchResponse(json, 0, 1).items();

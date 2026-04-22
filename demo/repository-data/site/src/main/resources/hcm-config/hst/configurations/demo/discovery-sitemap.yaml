@@ -21,11 +21,11 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:sitemap/product:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/product-detail-page
-      /_any_:
+      /_default_:
         jcr:primaryType: hst:sitemapitem
-        /p:
+        /pid:
           jcr:primaryType: hst:sitemapitem
-          /_any_:
+          /_default_:
             jcr:primaryType: hst:sitemapitem
             hst:componentconfigurationid: hst:pages/product-detail-page
     /hst:hst/hst:configurations/demo/hst:sitemap/category-highlight:

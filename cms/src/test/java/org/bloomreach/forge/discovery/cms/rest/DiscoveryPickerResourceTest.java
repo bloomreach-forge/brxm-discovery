@@ -6,6 +6,7 @@ import org.bloomreach.forge.discovery.cms.rest.dto.PickerWidgetDto;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.config.model.DiscoverySchemaConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,9 +61,8 @@ class DiscoveryPickerResourceTest {
 
     @BeforeEach
     void setUp() {
-        resource = new DiscoveryPickerResource(session, configProvider, httpGateway);
-
         lenient().when(configProvider.get(session)).thenReturn(dummyConfig());
+        resource = new DiscoveryPickerResource(session, configProvider, httpGateway);
     }
 
     // ---- search() -------------------------------------------------------
@@ -182,14 +182,14 @@ class DiscoveryPickerResourceTest {
         PickerSearchResponseDto resp = resource.items("", "", "");
         assertEquals(0, resp.items().size());
         assertEquals(0L, resp.total());
-        verifyNoInteractions(configProvider);
+        verifyNoInteractions(httpGateway);
     }
 
     @Test
     void items_returnsEmptyResponseWhenIdsNull() {
         PickerSearchResponseDto resp = resource.items("", "", null);
         assertEquals(0, resp.items().size());
-        verifyNoInteractions(configProvider);
+        verifyNoInteractions(httpGateway);
     }
 
     @Test
@@ -249,14 +249,14 @@ class DiscoveryPickerResourceTest {
     }
 
     @Test
-    void categories_urlContainsSearchTypeCategoryAndRows0WithEmptyQ() {
+    void categories_urlUsesKeywordSearchWithWildcardAndRows0() {
         when(httpGateway.apply(anyString())).thenReturn("{\"category_map\":{}}");
 
         resource.categories("", "");
 
         verify(httpGateway).apply(argThat(url ->
-                url.contains("search_type=category") && url.contains("rows=0")
-                && url.contains("fl=") && url.contains("start=0")));
+                url.contains("search_type=keyword") && url.contains("q=*") && url.contains("rows=0")
+                && url.contains("start=0") && url.contains("fl=pid")));
     }
 
     @Test
@@ -505,6 +505,15 @@ class DiscoveryPickerResourceTest {
     }
 
     @Test
+    void recommendationProducts_includesFieldsParam() {
+        // Regression: Discovery returns HTTP 400 "fl must request pid" when fl/fields is absent.
+        when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
+        resource.recommendationProducts("", GLOBAL_CONFIG_JSON, 4, "");
+        // v1 (default dummyConfig has no authKey) uses 'fl'; the picker field list starts with pid.
+        verify(httpGateway).apply(argThat(url -> url.contains("fl=pid")));
+    }
+
+    @Test
     void recommendationProducts_categoryType_includesCatIdInUrl() {
         when(httpGateway.apply(anyString())).thenReturn(REC_ONE_RESULT_JSON);
         resource.recommendationProducts("", CATEGORY_WITH_CATID_CONFIG_JSON, 4, "");
@@ -697,7 +706,7 @@ class DiscoveryPickerResourceTest {
         // Create resource with seam envResolver so CHAN_API_KEY resolves to a known value
         DiscoveryPickerResource resourceWithSeam = new DiscoveryPickerResource(
                 session, configProvider, httpGateway,
-                new DiscoveryPickerResponseMapper(),
+                new DiscoveryPickerResponseMapper(DiscoverySchemaConfig.DEFAULT),
                 name -> "CHAN_API_KEY".equals(name) ? "chan-api-key" : null);
 
         // documentId resolves to channelId via document path: /content/documents/{siteName}/...

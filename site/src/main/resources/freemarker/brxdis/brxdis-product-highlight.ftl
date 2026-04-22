@@ -56,10 +56,9 @@
           <#assign prodTitle = product.title()!"">
           <#assign prodAttrs = product.attributes()!{}>
           <#assign prodPrice = product.price()>
-          <#assign _rawUrl  = product.url()!>
           <#assign _slug   = slugify(product.title()!"")>
           <#assign _pid    = (product.id()!"")?url('UTF-8')>
-          <#assign prodUrl = _rawUrl?has_content?then(_rawUrl, resolvedProductPage + "/" + _slug + "/p/" + _pid)>
+          <#assign prodUrl = resolvedProductPage + "/" + _slug + "/pid/" + _pid>
           <article class="brxdis-prodhighlight__card" role="listitem">
             <#if bean??>
               <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
@@ -117,8 +116,9 @@
             <#assign prodTitle = product.title()!"">
             <#assign prodAttrs = product.attributes()!{}>
             <#assign prodPrice = product.price()>
-            <#assign _rawUrl = product.url()!>
-            <#assign prodUrl = _rawUrl?has_content?then(_rawUrl, resolvedProductPage + '?pid=' + (product.id()!''))>
+            <#assign _slug   = slugify(product.title()!"")>
+            <#assign _pid    = (product.id()!"")?url('UTF-8')>
+            <#assign prodUrl = resolvedProductPage + "/" + _slug + "/pid/" + _pid>
             <article class="brxdis-prodhighlight__card" role="listitem">
               <div class="brxdis-prodhighlight__img">
                 <#if prodImageUrl?has_content>

@@ -4,14 +4,19 @@
 
 ## Overview
 
-`DiscoveryResultsComponent` is the single component for both search results and category browse pages. It:
+The plugin ships two dedicated grid components:
 
-- Calls the Discovery Search or Browse API via CRISP
-- Builds all navigation URLs server-side (facet toggles, pagination, sort) so templates receive ready-to-use `href` values
-- Exposes data via `request.setModel()` (Page Model API / headless) and `request.setAttribute()` (Freemarker)
-- Handles facets, pagination, sort, did-you-mean, and campaigns in one component
+- **`DiscoverySearchGridComponent`** — keyword search results
+- **`DiscoveryCategoryGridComponent`** — category browse
 
-Set the **Data source** component parameter to `search` or `category` to switch modes.
+Both:
+
+- Call the Discovery Search or Browse API via CRISP
+- Build all navigation URLs server-side (facet toggles, pagination, sort) so templates receive ready-to-use `href` values
+- Expose data via `request.setModel()` (Page Model API / headless) and `request.setAttribute()` (Freemarker)
+- Handle facets, pagination, sort, and campaigns in one component
+
+`DiscoverySearchGridComponent` additionally handles did-you-mean, auto-correct, and keyword redirects.
 
 Credentials are resolved from the shared Discovery config (`env → sys → JCR`) - see [02-discovery-config.md](02-discovery-config.md).
 
@@ -40,17 +45,19 @@ definitions:
             hst:xtype: hst.nomarkup
             /search-results:
               jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchGridComponent
               hst:template: brxdis-results
-              hst:parameternames: [dataSource, pageSize]
-              hst:parametervalues: [search, 12]
+              hst:parameternames: [pageSize]
+              hst:parametervalues: [12]
 ```
 
-**Category page** - same component class, different `dataSource`:
+**Category page** - use `DiscoveryCategoryGridComponent`:
 
 ```yaml
-              hst:parameternames: [dataSource, pageSize]
-              hst:parametervalues: [category, 24]
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryCategoryGridComponent
+              hst:template: brxdis-results
+              hst:parameternames: [pageSize]
+              hst:parametervalues: [24]
 ```
 
 ### Add sitemap entries
@@ -69,17 +76,23 @@ definitions:
       /category:
         jcr:primaryType: hst:sitemapitem
         hst:componentconfigurationid: hst:pages/category-page
-        /_any_:
+        /_any_:                          # {name-slug}
           jcr:primaryType: hst:sitemapitem
           hst:componentconfigurationid: hst:pages/category-page
+          /cid:
+            jcr:primaryType: hst:sitemapitem
+            /_any_:                      # {category-id}
+              jcr:primaryType: hst:sitemapitem
+              hst:componentconfigurationid: hst:pages/category-page
       /product:
         jcr:primaryType: hst:sitemapitem
         hst:componentconfigurationid: hst:pages/product-detail-page
-        /_any_:
+        /_any_:                          # {title-slug}
           jcr:primaryType: hst:sitemapitem
-          /p:
+          hst:componentconfigurationid: hst:pages/product-detail-page
+          /pid:
             jcr:primaryType: hst:sitemapitem
-            /_any_:
+            /_any_:                      # {pid}
               jcr:primaryType: hst:sitemapitem
               hst:componentconfigurationid: hst:pages/product-detail-page
 ```
@@ -103,12 +116,14 @@ Example: `GET /site/search?q=shirt&page=1&sort=price+asc&filter.brand=Nike`
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `category` | String | - | Discovery category ID. Falls back to this when no Category Document is configured on the component. |
+| `cid` | String | - | Discovery category ID. Read as a URL path segment (`/category/{slug}/cid/{id}`) or as a query parameter (`?cid=`). Only used when no Category Document is configured, or when the document is in Dynamic mode with no pinned category ID. The parameter name is configurable via `categoryUrlParam` (default `cid`). |
 | `page` | int | `0` | 0-indexed page number. |
 | `sort` | String | component param | Sort expression. |
 | `filter.{attribute}` | String (repeatable) | - | Facet filter. |
 
-Example: `GET /site/category?category=sale&filter.brand=Adidas`
+Example: `GET /site/category/womens-shoes/cid/117417?filter.brand=Adidas`
+
+Query-param fallback: `GET /site/category?cid=sale&filter.brand=Adidas`
 
 ---
 
@@ -131,6 +146,7 @@ Set in HST config via `@ParametersInfo` (visible in the Channel Manager componen
 | `statsFields` | Advanced | String | `""` | Comma-separated fields to compute min/max/mean stats for (e.g. `price`). |
 | `segment` | Advanced | String | `""` | Discovery visitor segment for personalised results. |
 | `exclusionFilter` | Advanced | String | `""` | Server-side EFQ filter to exclude items from results. |
+| `categoryUrlParam` | Advanced | String | `cid` | URL parameter name for the category ID. Used as both the path-segment label (`/category/{slug}/cid/{id}`) and the query-param fallback (`?cid=`). Only change if your site already uses a different name. |
 
 ---
 
@@ -204,7 +220,7 @@ ${product.attributes()["brand"]!""}
 
 ## Plugin FTL template
 
-`brxdis-results.ftl` is the bundled template for `DiscoveryResultsComponent`. It renders the full page in one template - search form, facet panel, product grid, pagination, sort bar, and did-you-mean - using the pre-built URL models. No `servletRequest` access is needed.
+`brxdis-results.ftl` is the bundled template shared by both `DiscoverySearchGridComponent` and `DiscoveryCategoryGridComponent`. It renders the full page in one template - search form, facet panel, product grid, pagination, sort bar, and did-you-mean - using the pre-built URL models. No `servletRequest` access is needed.
 
 ```yaml
 /brxdis-results:

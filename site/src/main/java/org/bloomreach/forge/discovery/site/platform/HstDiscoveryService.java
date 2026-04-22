@@ -71,8 +71,10 @@ public class HstDiscoveryService {
                 runtimeContext.paramProvider(), runtimeContext.settings(),
                 options.pageSize(), options.sort(), options.catalogName(),
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
-        SearchQuery query = options.statsFields() != null && !options.statsFields().isEmpty()
-                ? baseQuery.withStatsFields(options.statsFields()) : baseQuery;
+        SearchQuery query = baseQuery
+                .withFields(runtimeContext.settings().schemaConfig().defaultFieldList());
+        query = options.statsFields() != null && !options.statsFields().isEmpty()
+                ? query.withStatsFields(options.statsFields()) : query;
         if (query.segment() == null && options.segment() != null && !options.segment().isBlank()) {
             query = query.withSegment(options.segment());
         }
@@ -100,8 +102,10 @@ public class HstDiscoveryService {
                 categoryId, runtimeContext.paramProvider(), runtimeContext.settings(),
                 options.pageSize(), options.sort(),
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
-        CategoryQuery query = options.statsFields() != null && !options.statsFields().isEmpty()
-                ? baseQuery.withStatsFields(options.statsFields()) : baseQuery;
+        CategoryQuery query = baseQuery
+                .withFields(runtimeContext.settings().schemaConfig().defaultFieldList());
+        query = options.statsFields() != null && !options.statsFields().isEmpty()
+                ? query.withStatsFields(options.statsFields()) : query;
         if (query.segment() == null && options.segment() != null && !options.segment().isBlank()) {
             query = query.withSegment(options.segment());
         }
@@ -133,15 +137,17 @@ public class HstDiscoveryService {
             return RecommendationResult.of(List.of());
         }
 
+        String effectiveFields = (fields != null && !fields.isBlank())
+                ? fields : runtimeContext.settings().schemaConfig().defaultFieldList();
         RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, catId, contextPageType,
-                limit, fields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(),
+                limit, effectiveFields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(),
                 runtimeContext.brUid2(), runtimeContext.origRefUrl());
         RecommendationResult fresh = client.recommend(query, runtimeContext.credentials(), runtimeContext.clientContext());
         List<ProductSummary> enriched = applyEnrichment(fresh.products());
         RecommendationResult result = fresh.withProducts(enriched);
         if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
             pixelService.fireWidgetEvent(query, result, runtimeContext.credentials(),
-                    runtimeContext.pageType(), runtimeContext.pageTitle(), runtimeContext.clientIp(),
+                    contextPageType, runtimeContext.pageTitle(), runtimeContext.clientIp(),
                     runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         return result;
@@ -158,6 +164,7 @@ public class HstDiscoveryService {
 
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         Optional<ProductSummary> result = client.fetchProduct(pid, runtimeContext.pageUrl(),
+                runtimeContext.settings().schemaConfig().defaultFieldList(),
                 runtimeContext.credentials(), runtimeContext.clientContext());
         if (result.isEmpty()) {
             return Optional.empty();

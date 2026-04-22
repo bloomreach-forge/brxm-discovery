@@ -6,6 +6,7 @@ import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.DiscoveryRecommendationConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import jakarta.servlet.http.HttpServletRequest;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -29,6 +30,7 @@ class DiscoveryProductRecommendationComponentTest {
     @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstRequestContext requestContext;
+    @Mock HttpServletRequest servletRequest;
 
     @BeforeEach
     void setUp() {
@@ -79,6 +81,34 @@ class DiscoveryProductRecommendationComponentTest {
         build(configOf("w-1", "recs", null, null, null), 8, "url-pid").doBeforeRender(request, response);
 
         verify(discoveryService).recommend(eq(request), eq("w-1"), eq("recs"), eq("url-pid"),
+                isNull(), isNull(), anyInt(), any(), any());
+    }
+
+    @Test
+    void configWithNullPid_pathParamTakesPrecedenceOverQueryParam() {
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair/pid/path-pid");
+        when(discoveryService.recommend(eq(request), eq("w-1"), eq("item"), eq("path-pid"),
+                isNull(), isNull(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+
+        // URL param is "url-pid" but path label wins
+        build(configOf("w-1", "item", null, null, null), 8, "url-pid").doBeforeRender(request, response);
+
+        verify(discoveryService).recommend(eq(request), eq("w-1"), eq("item"), eq("path-pid"),
+                isNull(), isNull(), anyInt(), any(), any());
+        verify(discoveryService, never()).recommend(eq(request), any(), any(), eq("url-pid"),
+                any(), any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void configWithNullPid_fallsBackToQueryParam_whenPathParamAbsent() {
+        // getServletRequest() returns null by default → path label absent → falls back to query param
+        when(discoveryService.recommend(eq(request), eq("w-1"), eq("item"), eq("url-pid"),
+                isNull(), isNull(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+
+        build(configOf("w-1", "item", null, null, null), 8, "url-pid").doBeforeRender(request, response);
+
+        verify(discoveryService).recommend(eq(request), eq("w-1"), eq("item"), eq("url-pid"),
                 isNull(), isNull(), anyInt(), any(), any());
     }
 

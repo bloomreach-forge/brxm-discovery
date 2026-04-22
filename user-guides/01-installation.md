@@ -94,9 +94,12 @@ This JAR provides its core site wiring through an addon module assembly (`META-I
 | `DiscoveryPixelServiceImpl` | Fire-and-forget pixel event calls on an injected executor |
 
 **HST components** (reference by fully-qualified class name in your HST config):
-- `DiscoveryResultsComponent` - search results and category browse (single component for both modes; includes facets, pagination, sort)
+- `DiscoverySearchGridComponent` - keyword search results (includes facets, pagination, sort, did-you-mean)
+- `DiscoveryCategoryGridComponent` - category browse (includes facets, pagination, sort)
 - `DiscoverySearchInputComponent` - standalone search bar with autosuggest
-- `DiscoveryRecommendationComponent` - recommendation widgets (v1 and v2 Pathways API)
+- `DiscoveryProductRecommendationComponent` - product recommendation widgets (v1 and v2 Pathways API)
+- `DiscoveryCategoryRecommendationComponent` - category recommendation widgets
+- `DiscoveryGlobalRecommendationComponent` - global / trending recommendation widgets
 - `DiscoveryProductDetailComponent` - product detail page
 - `DiscoveryProductHighlightComponent` - up to 4 curated product slots
 - `DiscoveryCategoryHighlightComponent` - up to 4 curated category tiles with optional product previews

@@ -53,7 +53,7 @@ public class DiscoveryCategoryRecommendationComponent extends AbstractDiscoveryR
 
         String catId = cfg.contextCategoryId() != null && !cfg.contextCategoryId().isBlank()
                 ? cfg.contextCategoryId()
-                : getPublicRequestParameter(request, info.getCategoryUrlParam());
+                : resolveUrlParam(request, info.getCategoryUrlParam());
 
         if (catId == null || catId.isBlank()) {
             if (isEditMode(request)) {

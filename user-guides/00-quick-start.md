@@ -101,7 +101,7 @@ Leave `brxdis:apiKey` / `brxdis:authKey` blank and inject secrets via env vars. 
 
 ## Step 5 - Wire a search page
 
-`DiscoveryResultsComponent` is the single component for search results pages - it handles data fetching, facets, pagination, and sort all in one. No additional view components are needed.
+`DiscoverySearchGridComponent` is the component for search results pages - it handles data fetching, facets, pagination, and sort all in one. No additional view components are needed.
 
 ### `pages.yaml` (workspace page composition)
 
@@ -120,13 +120,15 @@ definitions:
             hst:xtype: hst.nomarkup
             /search-results:
               jcr:primaryType: hst:containeritemcomponent
-              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryResultsComponent
+              hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchGridComponent
               hst:template: brxdis-results
-              hst:parameternames: [dataSource, pageSize]
-              hst:parametervalues: [search, 12]
+              hst:parameternames: [pageSize]
+              hst:parametervalues: [12]
 ```
 
 That's it - one component, one template. The bundled `brxdis-results` template renders the search form, facet sidebar, product grid, and pagination in one pass.
+
+> For category browse pages use `DiscoveryCategoryGridComponent` with the same template. See [03-search-and-category.md](03-search-and-category.md) for both.
 
 ### Optional: add a standalone search bar to the header
 
@@ -144,7 +146,7 @@ Place `DiscoverySearchInputComponent` in any zone (header, sidebar) to provide a
               hst:parametervalues: [/search, 'Search products...']
 ```
 
-The search bar is independent - it submits to the `resultsPage` path where `DiscoveryResultsComponent` runs the actual search.
+The search bar is independent - it submits to the `resultsPage` path where `DiscoverySearchGridComponent` runs the actual search.
 
 ### `sitemap.yaml`
 

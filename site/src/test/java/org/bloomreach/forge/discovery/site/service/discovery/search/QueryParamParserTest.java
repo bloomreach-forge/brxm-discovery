@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.service.discovery.search;
 
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.RangeSelection;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -255,6 +256,59 @@ class QueryParamParserTest {
         CategoryQuery query = QueryParamParser.toCategoryQuery("cat-1", params, settings, 0, null, null, null, null);
 
         assertEquals(12, query.pageSize());
+    }
+
+    // --- range filters ---
+
+    @Test
+    void toSearchQuery_rangeFilterParams_parsedIntoRangeFilters() {
+        Map<String, String[]> paramMap = new HashMap<>();
+        paramMap.put("facet.range.price.start", new String[]{"10.0"});
+        paramMap.put("facet.range.price.end", new String[]{"100.0"});
+        var params = paramsFromMap(paramMap);
+
+        SearchQuery query = QueryParamParser.toSearchQuery(params, settings, null, null, null);
+
+        assertTrue(query.rangeFilters().containsKey("price"));
+        assertEquals(10.0, query.rangeFilters().get("price").start());
+        assertEquals(100.0, query.rangeFilters().get("price").end());
+    }
+
+    @Test
+    void toSearchQuery_startOnlyRange_includedWithNullEnd() {
+        Map<String, String[]> paramMap = new HashMap<>();
+        paramMap.put("facet.range.price.start", new String[]{"50.0"});
+        var params = paramsFromMap(paramMap);
+
+        SearchQuery query = QueryParamParser.toSearchQuery(params, settings, null, null, null);
+
+        RangeSelection range = query.rangeFilters().get("price");
+        assertNotNull(range);
+        assertEquals(50.0, range.start());
+        assertNull(range.end());
+    }
+
+    @Test
+    void toSearchQuery_nonRangeParams_notIncludedInRangeFilters() {
+        var params = paramsOf("q", "shoes", "filter.brand", "Nike");
+
+        SearchQuery query = QueryParamParser.toSearchQuery(params, settings, null, null, null);
+
+        assertTrue(query.rangeFilters().isEmpty());
+    }
+
+    @Test
+    void toCategoryQuery_rangeFilterParams_parsedIntoRangeFilters() {
+        Map<String, String[]> paramMap = new HashMap<>();
+        paramMap.put("facet.range.price.start", new String[]{"20.0"});
+        paramMap.put("facet.range.price.end", new String[]{"80.0"});
+        var params = paramsFromMap(paramMap);
+
+        CategoryQuery query = QueryParamParser.toCategoryQuery("boots", params, settings, null, null, null);
+
+        assertTrue(query.rangeFilters().containsKey("price"));
+        assertEquals(20.0, query.rangeFilters().get("price").start());
+        assertEquals(80.0, query.rangeFilters().get("price").end());
     }
 
     // --- helpers ---

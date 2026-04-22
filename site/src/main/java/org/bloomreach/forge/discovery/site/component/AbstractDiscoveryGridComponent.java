@@ -1,13 +1,19 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.bloomreach.forge.discovery.config.ConfigDefaults;
+import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.search.model.Facet;
 import org.bloomreach.forge.discovery.search.model.PaginationModel;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
+import org.bloomreach.forge.discovery.site.component.info.DiscoverySortOptionsProvider;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
+import org.hippoecm.hst.site.HstServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +27,8 @@ import java.util.Map;
  * declare mode-specific {@code @ParametersInfo}.
  */
 abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent {
+
+    private static final Logger log = LoggerFactory.getLogger(AbstractDiscoveryGridComponent.class);
 
     /**
      * Populates the common result models (products, pagination, facets, URLs, sort).
@@ -49,6 +57,7 @@ abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent
 
         if (showSort) {
             request.setModel(DiscoveryModelKeys.SORT_URL, buildSortUrl(params));
+            request.setModel(DiscoveryModelKeys.SORT_OPTIONS, resolveSortOptions());
         }
     }
 
@@ -86,5 +95,28 @@ abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent
 
     static String buildSortUrl(Map<String, String[]> params) {
         return DiscoveryUrlBuilder.buildSortUrl(params);
+    }
+
+    private List<Map<String, String>> resolveSortOptions() {
+        try {
+            if (HstServices.isAvailable() && HstServices.getComponentManager() != null) {
+                DiscoveryConfigProvider provider = HstServices.getComponentManager()
+                        .getComponent(DiscoveryConfigProvider.class.getName());
+                if (provider != null) {
+                    return toSortOptionMaps(provider.get().schemaConfig().sortOptions());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("brxm-discovery: Could not resolve sort options from config — using defaults. Cause: {}", e.getMessage());
+        }
+        return toSortOptionMaps(ConfigDefaults.DEFAULT_SORT_OPTIONS);
+    }
+
+    private static List<Map<String, String>> toSortOptionMaps(List<String> entries) {
+        return entries.stream()
+                .map(e -> Map.of(
+                        "value", DiscoverySortOptionsProvider.parseValue(e),
+                        "label", DiscoverySortOptionsProvider.parseLabel(e)))
+                .toList();
     }
 }

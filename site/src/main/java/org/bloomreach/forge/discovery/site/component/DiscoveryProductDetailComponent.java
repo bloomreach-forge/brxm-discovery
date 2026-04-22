@@ -48,16 +48,13 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             return;
         }
 
-        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL param)
+        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL-driven)
         String docPid = document.getProductId();
         String pid;
         if (docPid != null && !docPid.isBlank()) {
             pid = docPid;
         } else {
-            // Path takes precedence: /product/{slug}/p/{pid} → sitemap param "2"
-            String pathPid = getPathSegmentParam(request, "2");
-            pid = pathPid != null ? pathPid
-                    : getPublicRequestParameter(request, info.getProductUrlParam());
+            pid = resolveUrlParam(request, info.getProductUrlParam());
         }
 
         request.setModel(DiscoveryModelKeys.PID, pid != null ? pid : "");
@@ -65,9 +62,11 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
         if (pid == null || pid.isBlank()) {
             DiscoveryRequestCache.markProductDetailRendered(request);
             if (isEditMode(request)) {
+                String param = info.getProductUrlParam();
                 request.setAttribute("brxdis_warning",
-                    "Product document is in Dynamic mode but no PID was found in the URL path " +
-                    "(/product/{slug}/p/{pid}) or '?" + info.getProductUrlParam() + "=' query parameter.");
+                    "Product document is in Dynamic mode but no product ID was found. " +
+                    "Ensure the sitemap maps the URL segment to parameter '" + param +
+                    "', or pass '?" + param + "=' as a query string.");
             }
             request.setModel(DiscoveryModelKeys.PRODUCT, null);
             return;

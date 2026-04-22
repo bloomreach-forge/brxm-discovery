@@ -52,9 +52,9 @@ public class DiscoveryProductRecommendationComponent extends AbstractDiscoveryRe
 
         String pid = cfg.contextProductId() != null && !cfg.contextProductId().isBlank()
                 ? cfg.contextProductId()
-                : getPublicRequestParameter(request, info.getProductUrlParam());
+                : resolveUrlParam(request, info.getProductUrlParam());
 
-        int    limit  = getPublicRequestParameterAsInt(request, LIMIT_PARAM, info.getLimit());
+        int limit = getPublicRequestParameterAsInt(request, LIMIT_PARAM, info.getLimit());
         String fields = getPublicRequestParameter(request, FIELDS_PARAM);
         String filter = getPublicRequestParameter(request, FILTER_PARAM);
 

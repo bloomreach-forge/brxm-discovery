@@ -431,6 +431,10 @@ class DiscoverySearchGridComponentTest {
                 @Override public boolean isShowSort()        { return showSort; }
                 @Override public boolean isShowDidYouMean()  { return true; }
                 @Override public boolean isAutoRedirect()    { return autoRedirect; }
+                @Override public String getCatalogName()     { return ""; }
+                @Override public String getStatsFields()     { return ""; }
+                @Override public String getSegment()         { return ""; }
+                @Override public String getExclusionFilter() { return ""; }
             };
         }
 

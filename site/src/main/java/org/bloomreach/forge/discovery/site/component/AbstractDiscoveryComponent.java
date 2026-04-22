@@ -10,7 +10,6 @@ import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.container.ComponentManager;
-import org.hippoecm.hst.core.container.ComponentsException;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.hippoecm.hst.site.HstServices;
 import org.slf4j.Logger;
@@ -47,6 +46,12 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
             if (isEditMode(request)) {
                 request.setAttribute("brxdis_warning", "Discovery service error: " + e.getMessage());
             }
+        } catch (RuntimeException e) {
+            log.warn("Unexpected runtime error in {} during render: {}",
+                    getClass().getSimpleName(), e.getMessage(), e);
+            if (isEditMode(request)) {
+                request.setAttribute("brxdis_warning", "Discovery unavailable: " + e.getMessage());
+            }
         }
     }
 
@@ -68,8 +73,8 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         T component = null;
         try {
             component = cm.getComponent(type, MODULE_NAME);
-        } catch (ComponentsException e) {
-            log.debug("Service {} not found in addon module {}.", type.getName(), MODULE_NAME);
+        } catch (RuntimeException e) {
+            log.warn("Service {} lookup failed in addon module {}: {}", type.getName(), MODULE_NAME, e.getMessage(), e);
         }
         if (component == null) {
             throw new ConfigurationException("Required HST service is not available: " + type.getName());
@@ -97,19 +102,54 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
         return (s == null || s.isBlank()) ? null : s;
     }
 
+    protected static java.util.List<String> parseStatsFields(String csv) {
+        if (csv == null || csv.isBlank()) return java.util.List.of();
+        return java.util.Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(f -> !f.isEmpty())
+                .toList();
+    }
+
     /**
-     * Reads a numbered path-segment captured by an HST sitemap wildcard ({@code _any_}).
-     * Indices are 1-based, numbered in the order wildcards appear in the matched path.
-     * For example, in {@code /product/{slug}/p/{pid}} the slug is {@code "1"} and the pid is {@code "2"}.
-     * Returns {@code null} if the sitemap item is absent or the parameter is blank.
+     * Resolves a URL-driven context parameter by name.
+     * Checks the sitemap item's named parameter first (covers SEO path segments when the sitemap
+     * defines the name→position mapping), then falls back to a query string parameter with the
+     * same name. Returns {@code null} if neither source provides a non-blank value.
      */
-    protected static String getPathSegmentParam(HstRequest request, String paramIndex) {
+    protected String resolveUrlParam(HstRequest request, String paramName) {
+        String fromPath = getPathSegmentParam(request, paramName);
+        return fromPath != null ? fromPath : blankToNull(getPublicRequestParameter(request, paramName));
+    }
+
+    /**
+     * Scans the servlet path for a label/value pair.
+     *
+     * <p>Given a URL like {@code /category/mens-shoes/category/root-cat-id}, calling
+     * {@code getPathSegmentParam(request, "category")} returns {@code "root-cat-id"} —
+     * the segment that immediately follows the label that equals {@code paramName}.
+     *
+     * <p>No sitemap configuration is needed; the URL structure alone drives resolution.
+     * The admin configures {@code categoryUrlParam = "category"} (or any chosen name) and
+     * the sitemap maps that label into the URL path.
+     *
+     * @param paramName the URL label segment (e.g. {@code "pid"}, {@code "category"})
+     * @return the value segment that follows the label, or {@code null} if absent or blank
+     */
+    protected static String getPathSegmentParam(HstRequest request, String paramName) {
         var ctx = request.getRequestContext();
         if (ctx == null) return null;
-        var smi = ctx.getResolvedSiteMapItem();
-        if (smi == null) return null;
-        String val = smi.getParameter(paramIndex);
-        return (val != null && !val.isBlank()) ? val : null;
+        var sr = ctx.getServletRequest();
+        if (sr == null) return null;
+        String pathInfo = sr.getPathInfo();
+        if (pathInfo == null || pathInfo.isBlank()) return null;
+        String[] segments = pathInfo.split("/");
+        for (int i = 0; i < segments.length - 1; i++) {
+            if (paramName.equals(segments[i])) {
+                String val = segments[i + 1];
+                return (val != null && !val.isBlank()) ? val : null;
+            }
+        }
+        return null;
     }
 
     /**

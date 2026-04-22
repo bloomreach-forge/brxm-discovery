@@ -12,11 +12,7 @@ The plugin also supports optional per-channel overrides through `hst:channelinfo
 
 ## Resolution precedence
 
-For `accountId`, `domainKey`, `apiKey`, `authKey`, and `environment`, resolution is:
-
-```text
-env var -> system property -> JCR
-```
+**Credentials** (`accountId`, `domainKey`, `apiKey`, `authKey`, `environment`) are secrets and runtime values. They resolve via `env var -> system property -> JCR`:
 
 | Setting | Env var | System property | JCR property | Required |
 |---|---|---|---|---|
@@ -28,6 +24,8 @@ env var -> system property -> JCR
 
 `authKey` enables v2 Pathways recommendations. When it is absent, recommendations fall back to v1 automatically.
 
+**Schema config** (`defaultFieldList`, sort options, picker field aliases) is application config, not secrets. It resolves `JCR -> coded default` only — no env var or system property is consulted. Set it in the JCR config node or via per-channel override in `hst:channelinfo`.
+
 ## Optional per-channel overrides
 
 After the global config is resolved, the site layer can apply per-channel overrides from `hst:channelinfo`:
@@ -38,11 +36,15 @@ After the global config is resolved, the site layer can apply per-channel overri
 | `discoveryDomainKey` | Channel-specific domain key |
 | `discoveryApiKeyEnvVar` | Env-var name to read the API key from for this channel |
 | `discoveryAuthKeyEnvVar` | Env-var name to read the auth key from for this channel |
+| `discoveryDefaultFieldList` | Comma-separated `fl` field list for this channel's Discovery catalog (replaces global default) |
 
 That means:
 
 - account ID and domain key can be overridden directly per channel
-- API key and auth key remain secret values in environment variables, while the channel stores only the env-var names
+- API key and auth key remain secret values in environment variables; the channel stores only the env-var names
+- channels pointing at different Discovery accounts or catalogs declare their own field list, so the page model API response is trimmed to what that schema actually provides
+
+The `discoveryDefaultFieldList` value is a **full replacement**. Leave it blank to inherit the global JCR default or the coded default (`pid,title,thumb_image,url,price,brand,sale_price,description`).
 
 Example:
 
@@ -53,22 +55,55 @@ Example:
   discoveryDomainKey: pacifichome
   discoveryApiKeyEnvVar: BRXDIS_API_KEY
   discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
+  # Override field list for this catalog's schema (replaces global default)
+  discoveryDefaultFieldList: 'pid,title,thumb_image,url,price,brand,sale_price,description,pet_type,tags'
 ```
 
 ## Structural settings
 
-These settings are read from the same JCR node:
+These settings are read from the same JCR node. They are not configurable via env var or system property — they are application config, not secrets.
 
 - `brxdis:baseUri`
 - `brxdis:pathwaysBaseUri`
 - `brxdis:autosuggestBaseUri`
 - `brxdis:defaultPageSize`
 - `brxdis:defaultSort`
+- `brxdis:defaultFieldList`
 
 If a base URI property is absent, the default comes from `environment`:
 
 - `PRODUCTION`: `core.dxpapi.com`, `pathways.dxpapi.com`, `suggest.dxpapi.com`
 - `STAGING`: `staging-core.dxpapi.com`, `staging-pathways.dxpapi.com`, `staging-suggest.dxpapi.com`
+
+## Switching to the staging endpoint
+
+Set `environment` to `STAGING` to route all Discovery API calls to the Bloomreach staging tier:
+
+```bash
+# env var (recommended for containers / CI)
+BRXDIS_ENVIRONMENT=STAGING
+
+# system property (useful for local dev with mvn cargo)
+-Dbrxdis.environment=STAGING
+```
+
+Or via the JCR config node (takes effect after the cache invalidates):
+
+```yaml
+brxdis:environment: 'STAGING'
+```
+
+When `environment = STAGING` the plugin automatically substitutes the staging base URIs:
+
+| API | Staging URI |
+|---|---|
+| Core search / category | `https://staging-core.dxpapi.com` |
+| Pathways recommendations | `https://staging-pathways.dxpapi.com` |
+| Autosuggest | `https://staging-suggest.dxpapi.com` |
+
+If you also set `brxdis:baseUri`, `brxdis:pathwaysBaseUri`, or `brxdis:autosuggestBaseUri` explicitly, those always win — the `environment` value only applies when the corresponding URI property is absent.
+
+The change is hot-loaded: a JCR edit to `brxdis:environment` triggers cache invalidation and CRISP resource-space re-initialization without a server restart.
 
 ## Recommended deployment pattern
 
@@ -112,7 +147,7 @@ If your project uses multiple channels, a production-friendly pattern is:
 
 - keep shared defaults and structural settings in the global config node
 - keep secrets in env vars
-- use `hst:channelinfo` only for channel-specific account/domain overrides and env-var names
+- use `hst:channelinfo` for channel-specific account/domain overrides, env-var names, and field list overrides when channels point at different Discovery catalogs
 
 ## JCR config example
 

@@ -226,7 +226,7 @@ class HstDiscoveryServiceTest {
     @Test
     void fetchProduct_firesProductPageViewPixel() {
         var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
-        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+        when(client.fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.of(product));
 
         service.fetchProduct(request, "pid-42");
@@ -237,7 +237,7 @@ class HstDiscoveryServiceTest {
 
     @Test
     void fetchProduct_notFound_doesNotFirePixel() {
-        when(client.fetchProduct(eq("pid-99"), anyString(), eq(validCredentials), any(ClientContext.class)))
+        when(client.fetchProduct(eq("pid-99"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.empty());
 
         service.fetchProduct(request, "pid-99");
@@ -249,7 +249,7 @@ class HstDiscoveryServiceTest {
     @Test
     void fetchProduct_usesRequestCacheOnSecondCall() {
         var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
-        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+        when(client.fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.of(product));
 
         Optional<ProductSummary> first = service.fetchProduct(request, "pid-42");
@@ -257,7 +257,7 @@ class HstDiscoveryServiceTest {
 
         assertTrue(first.isPresent());
         assertSame(first.get(), second.orElseThrow());
-        verify(client, times(1)).fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class));
+        verify(client, times(1)).fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class));
         verify(pixelService, times(1)).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
                 anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
     }
@@ -270,7 +270,7 @@ class HstDiscoveryServiceTest {
         when(servletRequest.getParameter("brxdis_wty")).thenReturn("item");
         when(servletRequest.getParameter("brxdis_wrid")).thenReturn("rid-1");
         when(servletRequest.getParameter("brxdis_wq")).thenReturn("context-1");
-        when(client.fetchProduct(eq("pid-42"), anyString(), eq(validCredentials), any(ClientContext.class)))
+        when(client.fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(Optional.of(product));
 
         service.fetchProduct(request, "pid-42");
@@ -291,7 +291,7 @@ class HstDiscoveryServiceTest {
     void fetchProduct_blankPid_returnsEmptyWithoutCallingClient() {
         assertTrue(service.fetchProduct(request, " ").isEmpty());
 
-        verify(client, never()).fetchProduct(anyString(), anyString(), any(), any());
+        verify(client, never()).fetchProduct(anyString(), anyString(), anyString(), any(), any());
         verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any());
     }

@@ -61,12 +61,12 @@ class DeferredPixelInteractionHandlerTest {
                 "https://suggest.dxpapi.com", "PRODUCTION", 12, "");
         runtimeContext = new DiscoveryRuntimeContext(
                 config, new ClientContext(null, null, null), PixelFlags.DISABLED,
-                null, "uid2", "https://example.com/search", "Search", "search",
+                null, "uid2", "https://example.com/search", "Search",
                 "https://example.com", null, "1.2.3.4");
 
         searchQuery = new SearchQuery("shoes", 0, 12, "", Map.of(), "uid2",
                 "https://ref.com", "https://example.com/search", null,
-                null, List.of(), null, null);
+                null, List.of(), null, null, Map.of(), null);
 
         product = new ProductSummary("pid-1", "Running Shoe", "/shoe", null,
                 BigDecimal.TEN, "USD", Map.of());

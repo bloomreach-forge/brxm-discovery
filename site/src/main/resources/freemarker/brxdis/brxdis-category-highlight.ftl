@@ -1,5 +1,11 @@
 <#assign hst=JspTaglibs["http://www.hippoecm.org/jsp/hst/core"]>
 <@hst.defineObjects/>
+<#function slugify text>
+  <#local s = (text!"")?lower_case>
+  <#local s = s?replace("[^a-z0-9]+", "-", "r")>
+  <#local s = s?replace("^-+|-+$", "", "r")>
+  <#if s?has_content><#return s><#else><#return "category"></#if>
+</#function>
 <#assign resolvedCategoryPage><@hst.link path="/category"/></#assign>
 <#assign resolvedCategoryPage = resolvedCategoryPage?trim>
 <@hst.headContribution keyHint="brxdis-cathighlight-css">
@@ -44,8 +50,10 @@
       <#list categoryBeans as bean>
         <#assign slotNum = bean?index + 1>
         <#if bean??>
+          <#assign _slug = slugify(bean.displayName!"")>
+          <#assign _cid  = (bean.categoryId!"")?url('UTF-8')>
           <a class="brxdis-cathighlight__tile"
-             href="${resolvedCategoryPage}/${(bean.categoryId!"")?url('UTF-8')}"
+             href="${resolvedCategoryPage}/${_slug}/cid/${_cid}"
              aria-label="${bean.displayName!"Category"}">
             <@hst.manageContent hippobean=bean parameterName="document${slotNum}"
                 rootPath="brxdis/categories"/>
@@ -78,8 +86,10 @@
   <#elseif categories?? && categories?has_content>
     <div class="brxdis-cathighlight__grid">
       <#list categories as cat>
+        <#assign _slug = slugify(cat.displayName()!"")>
+        <#assign _cid  = (cat.categoryId()!"")?url('UTF-8')>
         <a class="brxdis-cathighlight__tile"
-           href="${resolvedCategoryPage}/${(cat.categoryId()!"")?url('UTF-8')}"
+           href="${resolvedCategoryPage}/${_slug}/cid/${_cid}"
            aria-label="${cat.displayName()!"Category"}">
           <span class="brxdis-cathighlight__icon">&#128722;</span>
           <span class="brxdis-cathighlight__name">${cat.displayName()!"Unnamed"}</span>

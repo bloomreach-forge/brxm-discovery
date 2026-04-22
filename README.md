@@ -12,7 +12,7 @@ This repository keeps Discovery search, category, recommendations, autosuggest, 
 
 - `cms/`: product picker UI, picker REST endpoints, HCM bootstrap, platform CRISP definitions
 - `site/`: HST components, CRISP-backed client, pixel service, bundled Freemarker templates
-- `shared/`: config model, request builders, shared query models, CRISP config-backed resolver
+- `commons/`: config model, request builders, shared query models, CRISP config-backed resolver
 - `hcm-site/`: site HCM bootstrap for bundled templates
 - `demo/`: runnable reference project
 
@@ -88,7 +88,7 @@ mvn clean test
 ```
 
 ```bash
-mvn -pl shared,cms,site -am test
+mvn -pl commons,cms,site -am test
 ```
 
 ## Troubleshooting

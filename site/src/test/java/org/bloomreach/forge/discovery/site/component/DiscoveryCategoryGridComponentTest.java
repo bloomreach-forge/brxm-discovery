@@ -11,11 +11,11 @@ import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryGridComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import jakarta.servlet.http.HttpServletRequest;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
-import org.hippoecm.hst.core.request.ResolvedSiteMapItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +39,7 @@ class DiscoveryCategoryGridComponentTest {
     @Mock HstResponse response;
     @Mock HstRequestContext requestContext;
     @Mock HstDiscoveryService discoveryService;
-    @Mock ResolvedSiteMapItem resolvedSiteMapItem;
+    @Mock HttpServletRequest servletRequest;
 
     private SearchResult singlePageResult;
     private SearchResult multiPageResult;
@@ -136,12 +136,12 @@ class DiscoveryCategoryGridComponentTest {
 
     @Test
     void document_dynamic_pathParamTakesPrecedenceOverQueryParam() {
-        when(requestContext.getResolvedSiteMapItem()).thenReturn(resolvedSiteMapItem);
-        when(resolvedSiteMapItem.getParameter("1")).thenReturn("path-cat");
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/shop/mens-shoes/cid/path-cat");
         when(discoveryService.browse(eq(request), eq("path-cat"), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
-        // URL param would give "query-cat" but path param "path-cat" must win
+        // URL param would give "query-cat" but path label wins
         new TestableCategoryGridComponent(discoveryService, "", "query-cat",
                 12, "", true, true, true, Map.of())
                 .doBeforeRender(request, response);
@@ -152,7 +152,7 @@ class DiscoveryCategoryGridComponentTest {
 
     @Test
     void document_dynamic_fallsBackToQueryParam_whenPathParamAbsent() {
-        // getResolvedSiteMapItem() returns null by default → path param absent
+        // getServletRequest() returns null by default → path label absent → falls back to query param
         when(discoveryService.browse(eq(request), eq("query-cat"), any(SearchRequestOptions.class)))
                 .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
 
@@ -396,7 +396,10 @@ class DiscoveryCategoryGridComponentTest {
                 @Override public boolean isShowFacets()      { return showFacets; }
                 @Override public boolean isShowPagination()  { return showPagination; }
                 @Override public boolean isShowSort()        { return showSort; }
-                @Override public String getCategoryUrlParam(){ return "category"; }
+                @Override public String getCategoryUrlParam(){ return "cid"; }
+                @Override public String getStatsFields()     { return ""; }
+                @Override public String getSegment()         { return ""; }
+                @Override public String getExclusionFilter() { return ""; }
             };
         }
 
@@ -412,7 +415,7 @@ class DiscoveryCategoryGridComponentTest {
 
         @Override
         public String getPublicRequestParameter(HstRequest request, String name) {
-            if ("category".equals(name)) return urlCategoryId;
+            if ("cid".equals(name)) return urlCategoryId;
             return null;
         }
 

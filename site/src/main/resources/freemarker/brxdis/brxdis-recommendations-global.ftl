@@ -82,7 +82,7 @@
           <#assign prodAttrs = product.attributes()!{}>
           <#assign _recSlug = slugify(product.title()!"")>
           <#assign _recId   = (product.id()!"")?url('UTF-8')>
-          <#assign recommendationHref = resolvedProductPage + "/" + _recSlug + "/p/" + _recId>
+          <#assign recommendationHref = resolvedProductPage + "/" + _recSlug + "/pid/" + _recId>
           <#assign recommendationHref = recommendationHref + "?brxdis_event=widget-click">
           <#if widgetId?has_content>
             <#assign recommendationHref = recommendationHref + "&brxdis_wid=" + widgetId?url('UTF-8')>

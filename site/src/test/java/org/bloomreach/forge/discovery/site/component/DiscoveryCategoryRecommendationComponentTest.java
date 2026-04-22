@@ -6,6 +6,7 @@ import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.DiscoveryRecommendationConfig;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
+import jakarta.servlet.http.HttpServletRequest;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
@@ -29,6 +30,7 @@ class DiscoveryCategoryRecommendationComponentTest {
     @Mock HstResponse response;
     @Mock HstDiscoveryService discoveryService;
     @Mock HstRequestContext requestContext;
+    @Mock HttpServletRequest servletRequest;
 
     @BeforeEach
     void setUp() {
@@ -73,6 +75,34 @@ class DiscoveryCategoryRecommendationComponentTest {
 
     @Test
     void configWithNullCatId_fallsBackToUrlParam() {
+        when(discoveryService.recommend(eq(request), eq("w-1"), eq("category"), isNull(), eq("url-cat"),
+                isNull(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+
+        build(configOf("w-1", null, null), 8, "url-cat").doBeforeRender(request, response);
+
+        verify(discoveryService).recommend(eq(request), eq("w-1"), eq("category"), isNull(), eq("url-cat"),
+                isNull(), anyInt(), any(), any());
+    }
+
+    @Test
+    void configWithNullCatId_pathParamTakesPrecedenceOverQueryParam() {
+        when(requestContext.getServletRequest()).thenReturn(servletRequest);
+        when(servletRequest.getPathInfo()).thenReturn("/shop/mens-shoes/cid/path-cat");
+        when(discoveryService.recommend(eq(request), eq("w-1"), eq("category"), isNull(), eq("path-cat"),
+                isNull(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
+
+        // URL param is "url-cat" but path label wins
+        build(configOf("w-1", null, null), 8, "url-cat").doBeforeRender(request, response);
+
+        verify(discoveryService).recommend(eq(request), eq("w-1"), eq("category"), isNull(), eq("path-cat"),
+                isNull(), anyInt(), any(), any());
+        verify(discoveryService, never()).recommend(eq(request), any(), any(), any(), eq("url-cat"),
+                any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void configWithNullCatId_fallsBackToQueryParam_whenPathParamAbsent() {
+        // getServletRequest() returns null by default → path label absent → falls back to query param
         when(discoveryService.recommend(eq(request), eq("w-1"), eq("category"), isNull(), eq("url-cat"),
                 isNull(), anyInt(), any(), any())).thenReturn(RecommendationResult.of(List.of()));
 
@@ -198,7 +228,7 @@ class DiscoveryCategoryRecommendationComponentTest {
                 @Override public int getLimit()              { return limit; }
                 @Override public boolean isShowPrice()       { return true; }
                 @Override public boolean isShowDescription() { return false; }
-                @Override public String getCategoryUrlParam(){ return "category"; }
+                @Override public String getCategoryUrlParam(){ return "cid"; }
             };
         }
 
@@ -218,7 +248,7 @@ class DiscoveryCategoryRecommendationComponentTest {
         @Override
         public String getPublicRequestParameter(HstRequest request, String name) {
             return switch (name) {
-                case "category" -> urlCatId;
+                case "cid" -> urlCatId;
                 case "limit"    -> limitParam;
                 default         -> null;
             };

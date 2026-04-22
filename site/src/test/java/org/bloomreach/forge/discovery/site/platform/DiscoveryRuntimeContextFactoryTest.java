@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -156,5 +157,38 @@ class DiscoveryRuntimeContextFactoryTest {
 
         verify(request, times(1)).getCookies();
         verify(servletResponse, never()).addHeader(contains("Set-Cookie"), contains("_br_uid_2="));
+    }
+
+    // ── Per-channel field list override ──────────────────────────────────────
+
+    @Test
+    void channelFieldListOverride_replacesGlobalDefault() {
+        DiscoveryChannelInfo channelInfo = mock(DiscoveryChannelInfo.class);
+        lenient().when(channelInfo.getDiscoveryAccountId()).thenReturn("");
+        lenient().when(channelInfo.getDiscoveryDomainKey()).thenReturn("");
+        lenient().when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("");
+        lenient().when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
+        when(channelInfo.getDiscoveryDefaultFieldList()).thenReturn("pid,title,pet_type,tags");
+        when(mount.getChannelInfo()).thenReturn(channelInfo);
+
+        DiscoveryRuntimeContext ctx = factory.get(request);
+
+        assertEquals("pid,title,pet_type,tags", ctx.settings().schemaConfig().defaultFieldList());
+    }
+
+    @Test
+    void channelFieldListOverride_blank_usesGlobalDefault() {
+        DiscoveryChannelInfo channelInfo = mock(DiscoveryChannelInfo.class);
+        lenient().when(channelInfo.getDiscoveryAccountId()).thenReturn("");
+        lenient().when(channelInfo.getDiscoveryDomainKey()).thenReturn("");
+        lenient().when(channelInfo.getDiscoveryApiKeyEnvVar()).thenReturn("");
+        lenient().when(channelInfo.getDiscoveryAuthKeyEnvVar()).thenReturn("");
+        when(channelInfo.getDiscoveryDefaultFieldList()).thenReturn("");
+        when(mount.getChannelInfo()).thenReturn(channelInfo);
+
+        DiscoveryRuntimeContext ctx = factory.get(request);
+
+        assertEquals("pid,title,thumb_image,url,price,brand,sale_price,description",
+                ctx.settings().schemaConfig().defaultFieldList());
     }
 }

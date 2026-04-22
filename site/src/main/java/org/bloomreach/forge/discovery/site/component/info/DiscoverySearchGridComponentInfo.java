@@ -18,6 +18,10 @@ import org.hippoecm.hst.core.parameters.Parameter;
     @FieldGroup(
         value = {"showFacets", "showPagination", "showSort", "showDidYouMean", "autoRedirect"},
         titleKey = "results.display.group"
+    ),
+    @FieldGroup(
+        value = {"catalogName", "statsFields", "segment", "exclusionFilter"},
+        titleKey = "advanced.group"
     )
 })
 public interface DiscoverySearchGridComponentInfo {
@@ -26,7 +30,7 @@ public interface DiscoverySearchGridComponentInfo {
     int getPageSize();
 
     @Parameter(name = "defaultSort", displayName = "Default sort", defaultValue = "")
-    @DropDownList({"", "price asc", "price desc", "name asc", "name desc", "sale_price asc", "sale_price desc"})
+    @DropDownList(valueListProvider = DiscoverySortOptionsProvider.class)
     String getDefaultSort();
 
     @Parameter(name = "showFacets", displayName = "Show facets panel", defaultValue = "true")
@@ -43,4 +47,16 @@ public interface DiscoverySearchGridComponentInfo {
 
     @Parameter(name = "autoRedirect", displayName = "Auto-redirect on corrections", defaultValue = "false")
     boolean isAutoRedirect();
+
+    @Parameter(name = "catalogName", displayName = "Catalog name", defaultValue = "")
+    String getCatalogName();
+
+    @Parameter(name = "statsFields", displayName = "Stats fields (comma-separated)", defaultValue = "")
+    String getStatsFields();
+
+    @Parameter(name = "segment", displayName = "Visitor segment", defaultValue = "")
+    String getSegment();
+
+    @Parameter(name = "exclusionFilter", displayName = "Exclusion filter (EFQ)", defaultValue = "")
+    String getExclusionFilter();
 }

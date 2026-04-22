@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.service.discovery.search;
 
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
+import org.bloomreach.forge.discovery.search.model.RangeSelection;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 
 import java.util.ArrayList;
@@ -51,9 +52,10 @@ public class QueryParamParser {
                 ? sortFallback : settings.defaultSort();
         String sort = firstNonBlank(paramProvider.getParameter("sort"), effectiveSortFallback);
         Map<String, List<String>> filters = parseFilters(paramProvider.getParameterMap());
+        Map<String, RangeSelection> rangeFilters = parseRangeFilters(paramProvider.getParameterMap());
         String segment = paramProvider.getParameter("seg");
-        return new SearchQuery(searchTerm, page, pageSize, sort, filters, brUid2, refUrl, url, catalogName,
-                List.of(), segment != null && !segment.isBlank() ? segment : null, null);
+        return new SearchQuery(searchTerm, page, pageSize, sort, filters, brUid2, refUrl, url, null, catalogName,
+                List.of(), segment != null && !segment.isBlank() ? segment : null, null, rangeFilters, null);
     }
 
     /**
@@ -98,9 +100,10 @@ public class QueryParamParser {
                 ? sortFallback : settings.defaultSort();
         String sort = firstNonBlank(paramProvider.getParameter("sort"), effectiveSortFallback);
         Map<String, List<String>> filters = parseFilters(paramProvider.getParameterMap());
+        Map<String, RangeSelection> rangeFilters = parseRangeFilters(paramProvider.getParameterMap());
         String segment = paramProvider.getParameter("seg");
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url,
-                List.of(), segment != null && !segment.isBlank() ? segment : null, null);
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null,
+                List.of(), segment != null && !segment.isBlank() ? segment : null, null, rangeFilters, null);
     }
 
     /**
@@ -130,6 +133,42 @@ public class QueryParamParser {
             }
         }
         return filters;
+    }
+
+    private static Map<String, RangeSelection> parseRangeFilters(Map<String, String[]> paramMap) {
+        Map<String, Double[]> raw = new HashMap<>();
+        for (Map.Entry<String, String[]> entry : paramMap.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("facet.range.") && entry.getValue().length > 0) {
+                String rest = key.substring("facet.range.".length());
+                if (rest.endsWith(".start")) {
+                    String field = rest.substring(0, rest.length() - ".start".length());
+                    raw.computeIfAbsent(field, k -> new Double[2])[0] = parseDoubleOrNull(entry.getValue()[0]);
+                } else if (rest.endsWith(".end")) {
+                    String field = rest.substring(0, rest.length() - ".end".length());
+                    raw.computeIfAbsent(field, k -> new Double[2])[1] = parseDoubleOrNull(entry.getValue()[0]);
+                }
+            }
+        }
+        Map<String, RangeSelection> result = new HashMap<>();
+        for (Map.Entry<String, Double[]> entry : raw.entrySet()) {
+            Double[] bounds = entry.getValue();
+            if (bounds[0] != null || bounds[1] != null) {
+                result.put(entry.getKey(), new RangeSelection(bounds[0], bounds[1]));
+            }
+        }
+        return result;
+    }
+
+    private static Double parseDoubleOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static int parseIntOrDefault(String value, int defaultValue) {

@@ -15,7 +15,7 @@
     <name>brXM Discovery Plugin</name>
     <description>Bloomreach Discovery integration for brXM</description>
     <modules>
-        <module>shared</module>
+        <module>commons</module>
         <module>cms</module>
         <module>site</module>
         <module>hcm-site</module>
@@ -30,7 +30,7 @@
             <!-- Internal modules -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>brxm-discovery-shared</artifactId>
+                <artifactId>brxm-discovery-commons</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -53,16 +53,19 @@
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-addon-crisp-api</artifactId>
                 <version>${hippo.release.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-addon-crisp-repository</artifactId>
                 <version>${hippo.release.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-addon-crisp-hst</artifactId>
                 <version>${hippo.release.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- HST -->
             <dependency>
@@ -87,12 +90,14 @@
                 <groupId>org.onehippo.cms7.hst.toolkit-resources.addon</groupId>
                 <artifactId>hst-addon-hcm-site</artifactId>
                 <version>${hippo.release.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- Repository -->
             <dependency>
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-repository-api</artifactId>
                 <version>${hippo.release.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- CMS -->
             <dependency>
@@ -153,6 +158,7 @@
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-services</artifactId>
                 <version>${hippo.release.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- Guava -->
             <dependency>

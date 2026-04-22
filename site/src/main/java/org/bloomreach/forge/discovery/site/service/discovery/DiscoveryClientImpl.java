@@ -13,7 +13,6 @@ import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
-import org.onehippo.cms7.crisp.api.broker.ResourceServiceBroker;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHint;
 
 import java.util.Optional;
@@ -28,22 +27,13 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     private final DiscoveryRecommendationClient recommendationClient;
     private final DiscoveryPixelTransport pixelTransport;
 
-    public DiscoveryClientImpl(DiscoveryResponseMapper responseMapper) {
-        this(new DiscoveryResourceExecutor(), responseMapper, new DiscoveryRequestFactory());
+    public DiscoveryClientImpl(DiscoveryResponseMapper responseMapper, DiscoveryRequestFactory requestFactory) {
+        this(new DiscoveryResourceExecutor(), responseMapper, requestFactory);
     }
 
-    /** Test seam: inject broker so tests don't need HippoServiceRegistry. */
-    DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper) {
-        this(new DiscoveryResourceExecutor(broker), responseMapper, new DiscoveryRequestFactory());
-    }
-
-    DiscoveryClientImpl(ResourceServiceBroker broker, DiscoveryResponseMapper responseMapper,
+    /** Test seam: inject executor + factory directly (avoids ResourceServiceBroker on site classloader). */
+    DiscoveryClientImpl(DiscoveryResourceExecutor executor, DiscoveryResponseMapper responseMapper,
                         DiscoveryRequestFactory requestFactory) {
-        this(new DiscoveryResourceExecutor(broker), responseMapper, requestFactory);
-    }
-
-    private DiscoveryClientImpl(DiscoveryResourceExecutor executor, DiscoveryResponseMapper responseMapper,
-                                DiscoveryRequestFactory requestFactory) {
         this.coreApiClient = new DiscoveryCoreApiClient(executor, responseMapper, requestFactory);
         this.recommendationClient = new DiscoveryRecommendationClient(executor, responseMapper, requestFactory);
         this.pixelTransport = new DefaultDiscoveryPixelTransport(executor);
@@ -70,8 +60,8 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryCredentials credentials, ClientContext ctx) {
-        return coreApiClient.fetchProduct(pid, url, credentials, ctx);
+    public Optional<ProductSummary> fetchProduct(String pid, String url, String fields, DiscoveryCredentials credentials, ClientContext ctx) {
+        return coreApiClient.fetchProduct(pid, url, fields, credentials, ctx);
     }
 
     @Override

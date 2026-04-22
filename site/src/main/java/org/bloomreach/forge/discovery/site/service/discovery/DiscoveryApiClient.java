@@ -22,5 +22,5 @@ public interface DiscoveryApiClient {
 
     RecommendationResult recommend(RecQuery query, DiscoveryCredentials credentials, ClientContext ctx);
 
-    Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryCredentials credentials, ClientContext ctx);
+    Optional<ProductSummary> fetchProduct(String pid, String url, String fields, DiscoveryCredentials credentials, ClientContext ctx);
 }

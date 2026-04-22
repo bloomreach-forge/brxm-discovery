@@ -44,7 +44,7 @@ The plugin ships three JCR document types for managing recommendation configurat
 ```
 
 - `contextProductId` / `contextProductName` are present on product-type documents only. A `null` value means "fall back to the URL param at render time (default `?pid=`; configurable via `productUrlParam` component property)".
-- `contextCategoryId` / `contextCategoryName` are present on category-type documents only. A `null` value means "fall back to the URL param (default `?category=`; configurable via `categoryUrlParam` component property)".
+- `contextCategoryId` / `contextCategoryName` are present on category-type documents only. A `null` value means "fall back to the URL at render time — first checks `/{label}/{id}` path segments, then `?{label}=` query param (default label: `cid`; configurable via `categoryUrlParam` component property)".
 - Global/personalized documents carry neither context field.
 
 > **Migration note**: `brxdis:recommendationDocument` (which stored only `brxdis:widgetId`) is removed. Existing documents should be recreated using the appropriate typed document.
@@ -101,7 +101,7 @@ Set in HST config via `@ParametersInfo` (visible in the Channel Manager componen
 
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|
-| `categoryUrlParam` | Advanced | String | `category` | URL query parameter to read the category ID from in Dynamic mode. Only relevant when `contextCategoryId` is blank in the recommendation document. |
+| `categoryUrlParam` | Advanced | String | `cid` | URL parameter name for the category ID in Dynamic mode. Used as both the path-segment label (`/category/{slug}/cid/{id}`) and the query-param fallback (`?cid=`). Only relevant when `contextCategoryId` is blank in the recommendation document. |
 
 ---
 

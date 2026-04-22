@@ -5,6 +5,7 @@ import org.bloomreach.forge.discovery.exception.SearchException;
 import org.onehippo.cms7.crisp.api.exchange.ExchangeHintBuilder;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
@@ -26,6 +27,8 @@ import org.onehippo.cms7.crisp.api.exchange.ExchangeHint;
 import org.onehippo.cms7.crisp.api.resource.Resource;
 import org.onehippo.cms7.crisp.api.resource.ResourceException;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +49,7 @@ class DiscoveryClientTest {
 
     @BeforeEach
     void setUp() {
-        client = new DiscoveryClientImpl(broker, responseMapper);
+        client = new DiscoveryClientImpl(new DiscoveryResourceExecutor(broker), responseMapper, new DiscoveryRequestFactory());
         credentials = new DiscoveryCredentials("acct123", "myDomain", "secret-key", null, "PRODUCTION");
         v2Credentials = new DiscoveryCredentials("acct123", "myDomain", "secret-key", "my-auth-key", "PRODUCTION");
     }
@@ -452,7 +455,7 @@ class DiscoveryClientTest {
     @Test
     void buildSearchPixelPath_includesTitleAndOrigRefUrl() {
         var query = new SearchQuery("shoes", 0, 10, null, null, null, "https://example.com/home",
-                "https://example.com/search?q=shoes", "https://example.com/landing", null, List.of(), null, null);
+                "https://example.com/search?q=shoes", "https://example.com/landing", null, List.of(), null, null, Map.of(), null);
         var result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
 
         String path = client.buildSearchPixelPath(query, result, credentials, "Search Results", null, PixelFlags.DISABLED);
@@ -694,7 +697,18 @@ class DiscoveryClientTest {
         when(responseMapper.toSearchResult(resource, 0, 1))
                 .thenReturn(new SearchResult(List.of(), 0L, 0, 1, Map.of()));
 
-        assertNotNull(client.fetchProduct("pid-1", null, credentials, ClientContext.EMPTY));
+        assertNotNull(client.fetchProduct("pid-1", null, "pid,title", credentials, ClientContext.EMPTY));
+    }
+
+    @Test
+    void fetchProduct_pathContainsFlParam() throws ResourceException {
+        // Regression: Discovery returns HTTP 400 "fl must request pid" when fl is absent.
+        when(broker.resolve(eq("discoverySearchAPI"), contains("fl=pid"), any(ExchangeHint.class)))
+                .thenReturn(resource);
+        when(responseMapper.toSearchResult(resource, 0, 1))
+                .thenReturn(new SearchResult(List.of(), 0L, 0, 1, Map.of()));
+
+        assertNotNull(client.fetchProduct("pid-1", null, "pid,title,thumb_image", credentials, ClientContext.EMPTY));
     }
 
     @Test
@@ -909,5 +923,32 @@ class DiscoveryClientTest {
         client.recommend(query, stagingV2Credentials, ClientContext.EMPTY);
 
         verify(broker).resolve(eq("discoveryPathwaysAPI"), anyString(), any(ExchangeHint.class));
+    }
+
+    // --- proxy exception unwrapping ---
+
+    @Test
+    void search_undeclaredThrowableWrappingResourceException_isUnwrappedToSearchException() throws ResourceException {
+        var query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
+        var cause = new ResourceException("CRISP timeout");
+        when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class)))
+                .thenThrow(new UndeclaredThrowableException(cause));
+
+        SearchException ex = assertThrows(SearchException.class,
+                () -> client.search(query, credentials, ClientContext.EMPTY));
+        assertSame(cause, ex.getCause());
+    }
+
+    @Test
+    void category_undeclaredThrowableWrappingInvocationTargetWrappingResourceException_isUnwrappedToSearchException() throws ResourceException {
+        var query = new CategoryQuery("cat-1", 0, 10, null, null, null, null, null);
+        var rootCause = new ResourceException("CRISP failure");
+        var ite = new InvocationTargetException(rootCause);
+        when(broker.resolve(anyString(), anyString(), any(ExchangeHint.class)))
+                .thenThrow(new UndeclaredThrowableException(ite));
+
+        SearchException ex = assertThrows(SearchException.class,
+                () -> client.category(query, credentials, ClientContext.EMPTY));
+        assertSame(rootCause, ex.getCause());
     }
 }

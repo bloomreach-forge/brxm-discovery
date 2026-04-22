@@ -23,6 +23,7 @@
 <#-- @ftlvariable name="clearAllFiltersUrl" type="java.lang.String" -->
 <#-- @ftlvariable name="pageUrls"           type="java.util.Map" -->
 <#-- @ftlvariable name="sortUrl"            type="java.lang.String" -->
+<#-- @ftlvariable name="sortOptions"        type="java.util.List" -->
 <#-- @ftlvariable name="didYouMean"         type="java.util.List" -->
 <#-- @ftlvariable name="autoCorrectQuery"   type="java.lang.String" -->
 <#-- @ftlvariable name="redirectUrl"        type="java.lang.String" -->
@@ -246,10 +247,9 @@
             <select id="brxdis-sort-sel" class="brxdis-sort__select"
                     data-sort-base="${sortUrl}">
               <option value="">Relevance</option>
-              <option value="price asc">Price: Low to High</option>
-              <option value="price desc">Price: High to Low</option>
-              <option value="reviews">Top Rated</option>
-              <option value="newness">Newest</option>
+              <#list sortOptions![] as opt>
+              <option value="${opt.value}">${opt.label}</option>
+              </#list>
             </select>
           </div>
           <script>
@@ -275,7 +275,7 @@
         <#list products as product>
           <#assign _slug = slugify(product.title()!"")>
           <#assign _pid  = (product.id()!"")?url('UTF-8')>
-          <#assign _href = resolvedProductPage + "/" + _slug + "/p/" + _pid>
+          <#assign _href = resolvedProductPage + "/" + _slug + "/pid/" + _pid>
           <article class="brxdis-card">
             <div class="brxdis-card__img">
               <#if product.imageUrl()?has_content>

@@ -21,7 +21,7 @@ import org.hippoecm.hst.core.parameters.Parameter;
         titleKey = "results.display.group"
     ),
     @FieldGroup(
-        value = {"categoryUrlParam"},
+        value = {"categoryUrlParam", "statsFields", "segment", "exclusionFilter"},
         titleKey = "advanced.group"
     )
 })
@@ -40,7 +40,7 @@ public interface DiscoveryCategoryGridComponentInfo {
     int getPageSize();
 
     @Parameter(name = "defaultSort", displayName = "Default sort", defaultValue = "")
-    @DropDownList({"", "price asc", "price desc", "name asc", "name desc", "sale_price asc", "sale_price desc"})
+    @DropDownList(valueListProvider = DiscoverySortOptionsProvider.class)
     String getDefaultSort();
 
     @Parameter(name = "showFacets", displayName = "Show facets panel", defaultValue = "true")
@@ -52,6 +52,15 @@ public interface DiscoveryCategoryGridComponentInfo {
     @Parameter(name = "showSort", displayName = "Show sort options", defaultValue = "true")
     boolean isShowSort();
 
-    @Parameter(name = "categoryUrlParam", displayName = "URL parameter", defaultValue = "category")
+    @Parameter(name = "categoryUrlParam", displayName = "URL path segment / query param name", defaultValue = "cid")
     String getCategoryUrlParam();
+
+    @Parameter(name = "statsFields", displayName = "Stats fields (comma-separated)", defaultValue = "")
+    String getStatsFields();
+
+    @Parameter(name = "segment", displayName = "Visitor segment", defaultValue = "")
+    String getSegment();
+
+    @Parameter(name = "exclusionFilter", displayName = "Exclusion filter (EFQ)", defaultValue = "")
+    String getExclusionFilter();
 }

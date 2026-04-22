@@ -70,7 +70,6 @@
       brxdis:displayName: Demo Category
       brxdis:productPreviewCount: '3'
       hippo:availability: []
-      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
@@ -115,21 +114,21 @@
     jcr:mixinTypes: ['hippo:named', 'hippo:versionInfo', 'mix:referenceable']
     jcr:uuid: ffd87e1b-3b54-483a-a85f-1c35a2c63cb4
     hippo:name: Product
-    hippo:versionHistory: 5cdfbdc7-285e-4566-9100-738e6c51f99a
+    hippo:versionHistory: 142948f5-3b93-47e1-b442-8a65c174bcb0
     /product[1]:
       jcr:primaryType: brxdis:productDetailDocument
       jcr:mixinTypes: ['mix:referenceable']
       jcr:uuid: 36db02a4-8421-4cc6-8e1c-7d2b2dc87ead
       brxdis:_preview: ''
       brxdis:displayName: Wine
-      brxdis:productId: 95364fam
+      brxdis:productId: '21144'
       hippo:availability: []
       hippostd:retainable: false
       hippostd:state: draft
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-04-13T12:31:32.438+01:00
+      hippostdpubwf:lastModificationDate: 2026-04-23T17:21:54.744+01:00
       hippostdpubwf:lastModifiedBy: admin
     /product[2]:
       jcr:primaryType: brxdis:productDetailDocument
@@ -137,14 +136,14 @@
       jcr:uuid: f86f2184-9383-4d99-a579-a2340ef8bf9d
       brxdis:_preview: ''
       brxdis:displayName: Wine
-      brxdis:productId: 95364fam
+      brxdis:productId: '21144'
       hippo:availability: [preview]
       hippostd:retainable: false
       hippostd:state: unpublished
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-04-13T13:13:24.098+01:00
+      hippostdpubwf:lastModificationDate: 2026-04-23T13:52:53.934+01:00
       hippostdpubwf:lastModifiedBy: admin
     /product[3]:
       jcr:primaryType: brxdis:productDetailDocument
@@ -152,16 +151,16 @@
       jcr:uuid: 733f0208-e1d0-4062-9d22-670d68281dbc
       brxdis:_preview: ''
       brxdis:displayName: Wine
-      brxdis:productId: 26508fam
+      brxdis:productId: '21144'
       hippo:availability: [live]
       hippostd:retainable: false
       hippostd:state: published
       hippostd:transferable: false
       hippostdpubwf:createdBy: ''
       hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
-      hippostdpubwf:lastModificationDate: 2026-04-10T16:32:15.573+01:00
+      hippostdpubwf:lastModificationDate: 2026-04-23T13:52:53.934+01:00
       hippostdpubwf:lastModifiedBy: admin
-      hippostdpubwf:publicationDate: 2026-04-10T16:32:19.787+01:00
+      hippostdpubwf:publicationDate: 2026-04-23T13:52:56.771+01:00
       hippostdpubwf:publishedBy: admin
   /other-recommendation:
     jcr:primaryType: hippo:handle
@@ -178,12 +177,12 @@
         and Tobacco Flower Medallion Stamped Lid Jar Candle","contextCategoryId":null,"contextCategoryName":null}'
       brxdis:displayName: The other one
       hippo:availability: []
+      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
-      hippostd:transferable: false
       hippostdpubwf:createdBy: admin
       hippostdpubwf:creationDate: 2026-03-09T14:23:27.450Z
-      hippostdpubwf:lastModificationDate: 2026-04-13T13:57:01.576+01:00
+      hippostdpubwf:lastModificationDate: 2026-04-22T12:59:45.569+01:00
       hippostdpubwf:lastModifiedBy: admin
     /other-recommendation[2]:
       jcr:primaryType: brxdis:productRecommendationDocument
@@ -387,12 +386,12 @@
       brxdis:displayName: Dynamic Test Category
       brxdis:productPreviewCount: '4'
       hippo:availability: []
+      hippostd:holder: admin
       hippostd:retainable: false
       hippostd:state: draft
-      hippostd:transferable: false
       hippostdpubwf:createdBy: admin
       hippostdpubwf:creationDate: 2026-04-12T21:55:12.138+01:00
-      hippostdpubwf:lastModificationDate: 2026-04-12T21:57:17.930+01:00
+      hippostdpubwf:lastModificationDate: 2026-04-23T13:54:04.485+01:00
       hippostdpubwf:lastModifiedBy: admin
     /category-test[2]:
       jcr:primaryType: brxdis:categoryDocument
@@ -443,7 +442,7 @@
       hippostd:transferable: false
       hippostdpubwf:createdBy: admin
       hippostdpubwf:creationDate: 2026-04-12T22:51:21.381+01:00
-      hippostdpubwf:lastModificationDate: 2026-04-13T13:56:19.135+01:00
+      hippostdpubwf:lastModificationDate: 2026-04-23T17:24:34.111+01:00
       hippostdpubwf:lastModifiedBy: admin
     /dynamic-product[2]:
       jcr:primaryType: brxdis:productDetailDocument

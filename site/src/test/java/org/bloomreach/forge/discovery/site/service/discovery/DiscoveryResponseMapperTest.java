@@ -69,6 +69,49 @@ class DiscoveryResponseMapperTest {
     }
 
     @Test
+    void toSearchResult_unknownFeedFields_flowThroughToAttributes() throws Exception {
+        String json = """
+                {
+                  "response": {
+                    "numFound": 1,
+                    "docs": [
+                      {"pid":"AG-10001","title":"Flakes","url":"https://site/AG-10001",
+                       "thumb_image":"https://img/AG-10001.jpg","price":9.99,
+                       "pet_type":"Fish & Aquatic","review_count":256,
+                       "tags":["color-enhancing","tropical"]}
+                    ]
+                  }
+                }
+                """;
+        stubResource(json);
+
+        var product = mapper.toSearchResult(resource, 0, 10).products().get(0);
+
+        assertEquals("Fish & Aquatic", product.attributes().get("pet_type"));
+        assertEquals(256, ((Number) product.attributes().get("review_count")).intValue());
+        assertFalse(product.attributes().containsKey("pid"), "pid should not be in attributes");
+        assertFalse(product.attributes().containsKey("title"), "title should not be in attributes");
+    }
+
+    @Test
+    void toSearchResult_standardFeedHasNoBrandOrSalePrice_noNpe() throws Exception {
+        String json = """
+                {
+                  "response": {
+                    "numFound": 1,
+                    "docs": [{"pid":"X1","title":"Item","url":"https://site","price":5.0}]
+                  }
+                }
+                """;
+        stubResource(json);
+
+        var product = mapper.toSearchResult(resource, 0, 10).products().get(0);
+
+        assertFalse(product.attributes().containsKey("brand"));
+        assertFalse(product.attributes().containsKey("sale_price"));
+    }
+
+    @Test
     void toSearchResult_emptyDocs_returnsEmptyProductList() throws Exception {
         stubResource("""
                 {"response": {"numFound": 0, "docs": []}}
@@ -249,7 +292,8 @@ class DiscoveryResponseMapperTest {
     }
 
     @Test
-    void toSearchResult_omitsBlankAttributeValues() throws Exception {
+    void toSearchResult_nullJsonValues_excludedFromAttributes() throws Exception {
+        // null JSON values are excluded; blank strings pass through (template decides)
         stubResource("""
                 {
                   "response": {
@@ -266,8 +310,9 @@ class DiscoveryResponseMapperTest {
         SearchResult result = mapper.toSearchResult(resource, 0, 10);
 
         var attrs = result.products().get(0).attributes();
-        assertFalse(attrs.containsKey("brand"), "Blank brand should be omitted");
-        assertFalse(attrs.containsKey("description"), "Null description should be omitted");
+        assertTrue(attrs.containsKey("brand"), "Blank brand string passes through");
+        assertEquals("", attrs.get("brand"));
+        assertFalse(attrs.containsKey("description"), "Null description is excluded from attributes");
     }
 
     @Test
@@ -287,7 +332,7 @@ class DiscoveryResponseMapperTest {
         SearchResult result = mapper.toSearchResult(resource, 0, 10);
 
         var attrs = result.products().get(0).attributes();
-        assertEquals(0, new BigDecimal("19.99").compareTo((BigDecimal) attrs.get("sale_price")));
+        assertEquals(19.99, ((Number) attrs.get("sale_price")).doubleValue(), 0.001);
     }
 
     @Test
@@ -310,7 +355,7 @@ class DiscoveryResponseMapperTest {
         var attrs = result.products().get(0).attributes();
         assertEquals("Adidas", attrs.get("brand"));
         assertEquals("Sport shirt", attrs.get("description"));
-        assertEquals(0, new BigDecimal("14.99").compareTo((BigDecimal) attrs.get("sale_price")));
+        assertEquals(14.99, ((Number) attrs.get("sale_price")).doubleValue(), 0.001);
     }
 
     // ── toRecommendationResult ──────────────────────────────────────────────────

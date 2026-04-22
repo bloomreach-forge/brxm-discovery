@@ -87,8 +87,8 @@ final class DiscoveryCoreApiClient {
         }
     }
 
-    Optional<ProductSummary> fetchProduct(String pid, String url, DiscoveryCredentials credentials, ClientContext ctx) {
-        String path = requestFactory.productLookup(pid, url, credentials).toRelativePath();
+    Optional<ProductSummary> fetchProduct(String pid, String url, String fields, DiscoveryCredentials credentials, ClientContext ctx) {
+        String path = requestFactory.productLookup(pid, url, fields, credentials).toRelativePath();
         DiscoveryRequestLogging.RequestLogContext requestLog = DiscoveryRequestLogging.requestLog(path);
         log.debug("Discovery fetchProduct [request_id={}]: {}", requestLog.requestId(), requestLog.redactedPath());
         try {
