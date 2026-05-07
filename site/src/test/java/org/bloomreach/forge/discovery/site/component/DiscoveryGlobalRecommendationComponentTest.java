@@ -122,7 +122,7 @@ class DiscoveryGlobalRecommendationComponentTest {
 
     @Test
     void productsAndWidgetId_setOnModel() {
-        List<ProductSummary> products = List.of(new ProductSummary("p1", "Trending Shoe", null, null, null, null, null));
+        List<ProductSummary> products = List.of(new ProductSummary("p1", "Trending Shoe", null, null, null, null, null, List.of()));
         when(discoveryService.recommend(any(), any(), any(), any(), any(), any(), anyInt(), any(), any()))
                 .thenReturn(RecommendationResult.of(products));
 
@@ -136,7 +136,7 @@ class DiscoveryGlobalRecommendationComponentTest {
 
     private static DiscoveryRecommendationConfig configOf(String widgetId, String widgetType) {
         return new DiscoveryRecommendationConfig(widgetId, widgetId, widgetType,
-                null, null, null, null);
+                null, null, null, null, null, null);
     }
 
     private TestableGlobalComponent build(DiscoveryRecommendationConfig cfg, int limit) {

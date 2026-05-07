@@ -2,16 +2,28 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [develop]
     types: [opened, synchronize, reopened]
   push:
-    branches: [main]
+    branches: [develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  doc-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for stale doc tokens
+        run: |
+          ! grep -rE \
+            'brxm-discovery-shared|DiscoverySearchComponent\b|DiscoveryFacetComponent|DiscoveryGridComponent\b|brxdis-search[^-]|brxdis-facets|spa-integration-official|[Tt]hree recommendation' \
+            user-guides/ README.md \
+            && echo "No stale tokens found." \
+            || (echo "ERROR: stale documentation token(s) found — see above" && exit 1)
+
   fork-notice:
     if: >-
       github.event_name == 'pull_request' &&
@@ -31,7 +43,7 @@ jobs:
       contents: write
       checks: write
       pull-requests: write
-    uses: bloomreach-forge/ci-workflows/.github/workflows/brxm-ci.yml@v1.0.4
+    uses: bloomreach-forge/ci-workflows/.github/workflows/brxm-ci.yml@v2.0.0
     with:
       run-demo-build: false
       demo-pom-path: demo/pom.xml

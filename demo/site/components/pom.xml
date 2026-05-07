@@ -33,16 +33,6 @@
       <type>pom</type>
     </dependency>
 
-    <!-- CRISP HST integration: required at runtime for ResourceServiceBroker and ResourceException -->
-    <dependency>
-      <groupId>org.onehippo.cms7</groupId>
-      <artifactId>hippo-addon-crisp-hst</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.onehippo.cms7</groupId>
-      <artifactId>hippo-addon-crisp-api</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>org.freemarker</groupId>
       <artifactId>freemarker</artifactId>

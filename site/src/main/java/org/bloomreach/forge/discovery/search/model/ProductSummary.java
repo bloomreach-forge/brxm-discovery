@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.search.model;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 public record ProductSummary(
@@ -10,6 +11,7 @@ public record ProductSummary(
         String imageUrl,
         BigDecimal price,
         String currency,
-        Map<String, Object> attributes
+        Map<String, Object> attributes,
+        List<VariantSummary> variants
 ) {
 }

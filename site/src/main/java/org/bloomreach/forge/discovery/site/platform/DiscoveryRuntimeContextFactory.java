@@ -2,6 +2,8 @@ package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.config.DiscoveryChannelConfigReader;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
+import org.bloomreach.forge.discovery.site.service.discovery.ClientContextExtractor;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlagsResolver;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
@@ -63,6 +65,8 @@ public final class DiscoveryRuntimeContextFactory {
         DiscoveryConfig config = applyChannelOverrides(rawConfig, requestContext);
         logCredentials(config.credentials());
         validateCredentials(config.credentials());
+        String channelCatalogName = channelCatalogName(requestContext);
+        String pixelConsentCookie = pixelConsentCookie(requestContext);
         String pageUrl = pageUrl(request);
         String refUrl = Objects.requireNonNullElse(request.getHeader("Referer"), pageUrl);
         DiscoveryRuntimeContext runtimeContext = new DiscoveryRuntimeContext(
@@ -75,7 +79,9 @@ public final class DiscoveryRuntimeContextFactory {
                 pageTitle(request),
                 refUrl,
                 originalRefUrl(request, refUrl),
-                ClientContextExtractor.extractClientIp(request)
+                ClientContextExtractor.extractClientIp(request),
+                channelCatalogName,
+                pixelConsentCookie
         );
         requestContext.setAttribute(ATTR, runtimeContext);
         return runtimeContext;
@@ -102,6 +108,26 @@ public final class DiscoveryRuntimeContextFactory {
                     credentials.accountId(), credentials.domainKey(),
                     maskSecret(credentials.apiKey()), maskSecret(credentials.authKey()));
         }
+    }
+
+    private static String channelCatalogName(HstRequestContext ctx) {
+        Mount mount = ctx.getResolvedMount().getMount();
+        DiscoveryChannelInfo channelInfo = mount.getChannelInfo();
+        if (channelInfo == null) {
+            return null;
+        }
+        String name = channelInfo.getDiscoveryCatalogName();
+        return (name != null && !name.isBlank()) ? name : null;
+    }
+
+    private static String pixelConsentCookie(HstRequestContext ctx) {
+        Mount mount = ctx.getResolvedMount().getMount();
+        DiscoveryChannelInfo channelInfo = mount.getChannelInfo();
+        if (channelInfo == null) {
+            return null;
+        }
+        String name = channelInfo.getDiscoveryPixelConsentCookie();
+        return (name != null && !name.isBlank()) ? name : null;
     }
 
     private DiscoveryConfig applyChannelOverrides(DiscoveryConfig config, HstRequestContext ctx) {

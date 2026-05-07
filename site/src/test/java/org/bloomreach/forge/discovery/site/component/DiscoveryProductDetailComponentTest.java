@@ -4,6 +4,8 @@ import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetailComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
+import java.util.List;
+
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import jakarta.servlet.http.HttpServletRequest;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
@@ -106,7 +108,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void document_dynamic_withUrlParam_fetchesProduct() {
-        ProductSummary product = new ProductSummary("p-1", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("p-1", "Test", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
         dynamic("p-1").doBeforeRender(request, response);
@@ -123,11 +125,11 @@ class DiscoveryProductDetailComponentTest {
         verify(request).setModel("product", null);
     }
 
-    // ── Dynamic mode — path segment takes precedence over query param ─────────
+    // ── Dynamic mode - path segment takes precedence over query param ─────────
 
     @Test
     void document_dynamic_pathParamTakesPrecedenceOverQueryParam() {
-        ProductSummary product = new ProductSummary("path-pid", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("path-pid", "Test", null, null, null, null, Map.of(), List.of());
         when(requestContext.getServletRequest()).thenReturn(servletRequest);
         when(servletRequest.getPathInfo()).thenReturn("/product/blue-chair/pid/path-pid");
         when(discoveryService.fetchProduct(eq(request), eq("path-pid"))).thenReturn(Optional.of(product));
@@ -142,7 +144,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void document_dynamic_fallsBackToQueryParam_whenPathParamAbsent() {
-        ProductSummary product = new ProductSummary("query-pid", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("query-pid", "Test", null, null, null, null, Map.of(), List.of());
         // getServletRequest() returns null by default → path label absent → falls back to query param
         when(discoveryService.fetchProduct(eq(request), eq("query-pid"))).thenReturn(Optional.of(product));
 
@@ -155,7 +157,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void document_pinned_usesPinnedId() {
-        ProductSummary product = new ProductSummary("p99", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("p99", "Test", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p99"))).thenReturn(Optional.of(product));
 
         pinned("p99").doBeforeRender(request, response);
@@ -165,7 +167,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void document_pinned_ignoresUrlParam() {
-        ProductSummary product = new ProductSummary("doc-pid", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("doc-pid", "Test", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("doc-pid"))).thenReturn(Optional.of(product));
 
         new TestableProductDetailComponent(discoveryService, "doc-pid", "url-pid", "pid")
@@ -179,7 +181,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void productFound_setsModel() {
-        ProductSummary product = new ProductSummary("p-1", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("p-1", "Test", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
         pinned("p-1").doBeforeRender(request, response);
@@ -211,7 +213,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void document_dynamic_customUrlParam_used() {
-        ProductSummary product = new ProductSummary("some-sku", "Test", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("some-sku", "Test", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("some-sku"))).thenReturn(Optional.of(product));
 
         new TestableProductDetailComponent(discoveryService, "", "some-sku", "sku")
@@ -224,7 +226,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void marksBandPresent_whenProductFound() {
-        ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
         pinned("p-1").doBeforeRender(request, response);
@@ -243,7 +245,7 @@ class DiscoveryProductDetailComponentTest {
 
     @Test
     void putsToCacheWhenProductFound() {
-        ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p-1"))).thenReturn(Optional.of(product));
 
         pinned("p-1").doBeforeRender(request, response);

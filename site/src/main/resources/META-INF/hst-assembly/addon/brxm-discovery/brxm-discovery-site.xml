@@ -11,35 +11,98 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
                            http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
 
-    <!-- Internal helpers -->
+    <!-- Config: delegates to CMS-registered provider or starts a local fallback -->
 
     <bean id="brxmdis.configReader"
           class="org.bloomreach.forge.discovery.config.DiscoveryConfigReader"/>
-
-    <bean id="brxmdis.responseMapper"
-          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryResponseMapper">
-        <constructor-arg>
-            <bean class="com.fasterxml.jackson.databind.ObjectMapper"/>
-        </constructor-arg>
-    </bean>
-
-    <bean id="brxmdis.requestFactory"
-          class="org.bloomreach.forge.discovery.request.DiscoveryRequestFactory"/>
-
-    <bean id="brxmdis.discoveryClient"
-          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl"
-          lazy-init="true">
-        <constructor-arg ref="brxmdis.responseMapper"/>
-        <constructor-arg ref="brxmdis.requestFactory"/>
-    </bean>
-
-    <!-- Public services - bean IDs match Class.getName() for getComponent() lookups -->
 
     <bean id="brxmdis.configProvider"
           class="org.bloomreach.forge.discovery.site.config.DiscoveryConfigProviderBridge"
           init-method="start"
           destroy-method="close">
         <constructor-arg ref="brxmdis.configReader"/>
+    </bean>
+
+    <!-- Transport: shared HTTP/2 client with virtual-thread executor -->
+
+    <bean id="brxmdis.httpClient"
+          class="org.bloomreach.forge.discovery.transport.DiscoveryHttpClientFactory"
+          factory-method="create"/>
+
+    <bean id="brxmdis.transport"
+          class="org.bloomreach.forge.discovery.transport.HttpClientDiscoveryTransport">
+        <constructor-arg ref="brxmdis.httpClient"/>
+    </bean>
+
+    <!-- Internal helpers -->
+
+    <bean id="brxmdis.requestFactory"
+          class="org.bloomreach.forge.discovery.request.DiscoveryRequestFactory"/>
+
+    <bean id="brxmdis.objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper"/>
+
+    <!-- Domain mappers -->
+
+    <bean id="brxmdis.searchResponseMapper"
+          class="org.bloomreach.forge.discovery.site.service.discovery.search.SearchResponseMapper">
+        <constructor-arg ref="brxmdis.objectMapper"/>
+    </bean>
+
+    <bean id="brxmdis.autosuggestResponseMapper"
+          class="org.bloomreach.forge.discovery.site.service.discovery.autosuggest.AutosuggestResponseMapper">
+        <constructor-arg ref="brxmdis.objectMapper"/>
+    </bean>
+
+    <bean id="brxmdis.recommendationResponseMapper"
+          class="org.bloomreach.forge.discovery.site.service.discovery.recommendation.RecommendationResponseMapper">
+        <constructor-arg ref="brxmdis.objectMapper"/>
+    </bean>
+
+    <!-- Domain API clients -->
+
+    <bean id="brxmdis.searchApiClient"
+          class="org.bloomreach.forge.discovery.site.service.discovery.search.SearchApiClientImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.transport"/>
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.searchResponseMapper"/>
+        <constructor-arg ref="brxmdis.requestFactory"/>
+    </bean>
+
+    <bean id="brxmdis.autosuggestApiClient"
+          class="org.bloomreach.forge.discovery.site.service.discovery.autosuggest.AutosuggestApiClientImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.transport"/>
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.autosuggestResponseMapper"/>
+        <constructor-arg ref="brxmdis.requestFactory"/>
+    </bean>
+
+    <bean id="brxmdis.recommendationApiClient"
+          class="org.bloomreach.forge.discovery.site.service.discovery.recommendation.RecommendationApiClientImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.transport"/>
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.recommendationResponseMapper"/>
+        <constructor-arg ref="brxmdis.requestFactory"/>
+    </bean>
+
+    <bean id="brxmdis.pixelClientTransport"
+          class="org.bloomreach.forge.discovery.site.service.discovery.DefaultDiscoveryPixelTransport"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.transport"/>
+        <constructor-arg ref="brxmdis.configProvider"/>
+    </bean>
+
+    <!-- Public services - bean IDs match Class.getName() for getComponent() lookups -->
+
+    <bean id="brxmdis.discoveryClient"
+          class="org.bloomreach.forge.discovery.site.service.discovery.DiscoveryClientImpl"
+          lazy-init="true">
+        <constructor-arg ref="brxmdis.searchApiClient"/>
+        <constructor-arg ref="brxmdis.autosuggestApiClient"/>
+        <constructor-arg ref="brxmdis.recommendationApiClient"/>
+        <constructor-arg ref="brxmdis.pixelClientTransport"/>
     </bean>
 
     <bean id="brxmdis.pixelExecutor"
@@ -75,13 +138,100 @@
           class="org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache"
           lazy-init="true"/>
 
+    <!--
+      Optional SPI beans — register these in your own site assembly to activate:
+        brxmdis.pixelConsentProvider  (PixelConsentProvider) — custom consent resolution (complex CMPs)
+        brxmdis.sorEnrichmentProvider (SoREnrichmentProvider) — system-of-record product enrichment
+    -->
+
     <bean id="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
           class="org.bloomreach.forge.discovery.site.platform.HstDiscoveryService"
           lazy-init="true">
         <constructor-arg ref="brxmdis.discoveryClient"/>
         <constructor-arg ref="brxmdis.runtimeContextFactory"/>
         <constructor-arg ref="brxmdis.pixelService"/>
-        <constructor-arg><null/></constructor-arg>
+        <constructor-arg><null/></constructor-arg> <!-- SoREnrichmentProvider: override with brxmdis.sorEnrichmentProvider -->
+        <constructor-arg><null/></constructor-arg> <!-- PixelConsentProvider: override with brxmdis.pixelConsentProvider -->
+    </bean>
+
+    <!-- Delivery REST: visual search proxy -->
+
+    <bean id="brxmdis.multipartHttpClient"
+          class="org.bloomreach.forge.discovery.rest.transport.DiscoveryMultipartHttpClientImpl">
+        <constructor-arg ref="brxmdis.httpClient"/>
+    </bean>
+
+    <bean id="brxmdis.visualSearchResource"
+          class="org.bloomreach.forge.discovery.site.rest.visual.DiscoveryVisualSearchResource">
+        <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.multipartHttpClient"/>
+        <constructor-arg ref="brxmdis.objectMapper"/>
+    </bean>
+
+    <!-- HST pipeline valve: routes /_brxdis-api/** to DiscoveryVisualSearchResource -->
+    <bean id="brxmdis.visualSearchServiceValve"
+          class="org.hippoecm.hst.core.container.JaxrsRestServiceValve"
+          init-method="initialize" destroy-method="destroy">
+        <constructor-arg>
+            <bean class="org.hippoecm.hst.jaxrs.cxf.CXFJaxrsService">
+                <constructor-arg value="brxmdisVisualSearchService"/>
+                <property name="servletPath" value=""/>
+                <property name="jaxrsServerFactoryBean">
+                    <bean class="org.apache.cxf.jaxrs.JAXRSServerFactoryBean">
+                        <property name="address" value="/"/>
+                        <property name="providers">
+                            <list>
+                                <bean class="com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider"/>
+                                <bean class="org.bloomreach.forge.discovery.rest.mapper.DiscoveryExceptionMapper"/>
+                            </list>
+                        </property>
+                        <property name="resourceProviders">
+                            <list>
+                                <bean class="org.apache.cxf.jaxrs.lifecycle.SingletonResourceProvider">
+                                    <constructor-arg ref="brxmdis.visualSearchResource"/>
+                                </bean>
+                            </list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </constructor-arg>
+        <property name="valveName" value="brxmdis.visualSearchServiceValve"/>
+    </bean>
+
+    <!-- Register BrxdisVisualSearchPipeline into the parent context's Pipelines map -->
+    <bean class="org.hippoecm.hst.site.container.TypeDeterminedMethodInvokingFactoryBean">
+        <constructor-arg value="org.hippoecm.hst.core.container.Pipeline"/>
+        <property name="targetObject">
+            <bean class="org.springframework.beans.factory.config.PropertyPathFactoryBean">
+                <property name="targetObject" ref="org.hippoecm.hst.core.container.Pipelines"/>
+                <property name="propertyPath" value="pipelines"/>
+            </bean>
+        </property>
+        <property name="targetMethod" value="put"/>
+        <property name="arguments">
+            <list>
+                <value>BrxdisVisualSearchPipeline</value>
+                <bean class="org.hippoecm.hst.core.container.HstSitePipeline">
+                    <property name="initializationValves">
+                        <list>
+                            <ref bean="initializationValve"/>
+                        </list>
+                    </property>
+                    <property name="processingValves">
+                        <list>
+                            <ref bean="pageInfoRenderingValve"/>
+                            <ref bean="brxmdis.visualSearchServiceValve"/>
+                        </list>
+                    </property>
+                    <property name="cleanupValves">
+                        <list>
+                            <ref bean="cleanupValve"/>
+                        </list>
+                    </property>
+                </bean>
+            </list>
+        </property>
     </bean>
 
 </beans>

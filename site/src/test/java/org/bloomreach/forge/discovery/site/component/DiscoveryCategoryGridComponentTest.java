@@ -10,7 +10,6 @@ import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryGridComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import jakarta.servlet.http.HttpServletRequest;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -44,10 +43,11 @@ class DiscoveryCategoryGridComponentTest {
     private SearchResult singlePageResult;
     private SearchResult multiPageResult;
     private SearchResult facetedResult;
+    private SearchResult multiFacetResult;
 
     @BeforeEach
     void setUp() {
-        var product = new ProductSummary("p1", "Shoe", "/shoe", null, BigDecimal.TEN, "USD", Map.of());
+        var product = new ProductSummary("p1", "Shoe", "/shoe", null, BigDecimal.TEN, "USD", Map.of(), List.of());
         singlePageResult = new SearchResult(List.of(product), 5L, 0, 12, Map.of());
         multiPageResult = new SearchResult(List.of(product), 30L, 0, 12, Map.of());
         facetedResult = new SearchResult(
@@ -55,6 +55,13 @@ class DiscoveryCategoryGridComponentTest {
                 Map.of("color", new Facet("color", "text", List.of(
                         new FacetValue("red",  5L, null, null, null, null, null, null),
                         new FacetValue("blue", 3L, null, null, null, null, null, null))))
+        );
+        multiFacetResult = new SearchResult(
+                List.of(product), 10L, 0, 12,
+                Map.of(
+                    "color", new Facet("color", "text", List.of(new FacetValue("red", 5L, null, null, null, null, null, null))),
+                    "size",  new Facet("size",  "text", List.of(new FacetValue("M",   4L, null, null, null, null, null, null)))
+                )
         );
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
     }
@@ -132,7 +139,7 @@ class DiscoveryCategoryGridComponentTest {
         verify(request).setAttribute(eq("brxdis_warning"), anyString());
     }
 
-    // ── Dynamic mode — path segment takes precedence over query param ─────────
+    // ── Dynamic mode - path segment takes precedence over query param ─────────
 
     @Test
     void document_dynamic_pathParamTakesPrecedenceOverQueryParam() {
@@ -143,7 +150,7 @@ class DiscoveryCategoryGridComponentTest {
 
         // URL param would give "query-cat" but path label wins
         new TestableCategoryGridComponent(discoveryService, "", "query-cat",
-                12, "", true, true, true, Map.of())
+                12, "", true, true, true, Map.of(), "")
                 .doBeforeRender(request, response);
 
         verify(discoveryService).browse(eq(request), eq("path-cat"), any(SearchRequestOptions.class));
@@ -305,44 +312,93 @@ class DiscoveryCategoryGridComponentTest {
                 "Sort URL must strip sort param, got: " + captor.getValue());
     }
 
+    // ── Facet scoping ──────────────────────────────────────────────────────
+
+    @Test
+    void facetFields_empty_showsAllFacets() {
+        when(discoveryService.browse(eq(request), any(), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(multiFacetResult, SearchMetadata.empty()));
+
+        buildWithFacetFields("cat-123", "").doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Facet>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq("facets"), captor.capture());
+        assertTrue(captor.getValue().containsKey("color"), "Expected 'color' facet");
+        assertTrue(captor.getValue().containsKey("size"),  "Expected 'size' facet");
+    }
+
+    @Test
+    void facetFields_subset_showsOnlyNamedFacets() {
+        when(discoveryService.browse(eq(request), any(), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(multiFacetResult, SearchMetadata.empty()));
+
+        buildWithFacetFields("cat-123", "size").doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Facet>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq("facets"), captor.capture());
+        assertTrue(captor.getValue().containsKey("size"),   "Expected 'size' facet");
+        assertFalse(captor.getValue().containsKey("color"), "'color' facet must be excluded");
+    }
+
+    @Test
+    void facetFields_unknownField_showsEmptyFacets() {
+        when(discoveryService.browse(eq(request), any(), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(multiFacetResult, SearchMetadata.empty()));
+
+        buildWithFacetFields("cat-123", "brand").doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Facet>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq("facets"), captor.capture());
+        assertTrue(captor.getValue().isEmpty(), "Expected empty facets map for unknown field");
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     /** Pinned document with non-blank categoryId; no URL param. */
     private TestableCategoryGridComponent build(String categoryId, int pageSize, String sort) {
         return new TestableCategoryGridComponent(discoveryService, categoryId, null,
-                pageSize, sort, true, true, true, Map.of());
+                pageSize, sort, true, true, true, Map.of(), "");
     }
 
     /** Pinned document; varies display flags. */
     private TestableCategoryGridComponent buildWith(String categoryId,
             boolean showFacets, boolean showPagination, boolean showSort) {
         return new TestableCategoryGridComponent(discoveryService, categoryId, null,
-                12, "", showFacets, showPagination, showSort, Map.of());
+                12, "", showFacets, showPagination, showSort, Map.of(), "");
     }
 
     /** Pinned document; varies display flags + servlet params. */
     private TestableCategoryGridComponent buildWithParams(String categoryId,
             Map<String, String[]> params, boolean showFacets, boolean showPagination, boolean showSort) {
         return new TestableCategoryGridComponent(discoveryService, categoryId, null,
-                12, "", showFacets, showPagination, showSort, params);
+                12, "", showFacets, showPagination, showSort, params, "");
     }
 
     /** No document attached; no URL param. */
     private TestableCategoryGridComponent buildNoDoc() {
         return new TestableCategoryGridComponent(discoveryService, null, null,
-                12, "", true, true, true, Map.of());
+                12, "", true, true, true, Map.of(), "");
     }
 
     /** No document attached; URL param provides a categoryId. */
     private TestableCategoryGridComponent buildNoDocWithUrl(String urlCategoryId) {
         return new TestableCategoryGridComponent(discoveryService, null, urlCategoryId,
-                12, "", true, true, true, Map.of());
+                12, "", true, true, true, Map.of(), "");
     }
 
     /** Document in dynamic mode (blank categoryId); URL param provides the categoryId. */
     private TestableCategoryGridComponent buildDynamic(String urlCategoryId, int pageSize, String sort) {
         return new TestableCategoryGridComponent(discoveryService, "", urlCategoryId,
-                pageSize, sort, true, true, true, Map.of());
+                pageSize, sort, true, true, true, Map.of(), "");
+    }
+
+    /** Pinned document; scoped facet fields. */
+    private TestableCategoryGridComponent buildWithFacetFields(String categoryId, String facetFields) {
+        return new TestableCategoryGridComponent(discoveryService, categoryId, null,
+                12, "", true, false, false, Map.of(), facetFields);
     }
 
     // ── Testable subclass ──────────────────────────────────────────────────
@@ -364,12 +420,13 @@ class DiscoveryCategoryGridComponentTest {
         private final boolean showPagination;
         private final boolean showSort;
         private final Map<String, String[]> servletParams;
+        private final String facetFields;
 
         TestableCategoryGridComponent(HstDiscoveryService service,
                 String docCategoryId, String urlCategoryId,
                 int pageSize, String sort,
                 boolean showFacets, boolean showPagination, boolean showSort,
-                Map<String, String[]> servletParams) {
+                Map<String, String[]> servletParams, String facetFields) {
             this.service = service;
             this.docCategoryId = docCategoryId;
             this.urlCategoryId = urlCategoryId;
@@ -379,6 +436,7 @@ class DiscoveryCategoryGridComponentTest {
             this.showPagination = showPagination;
             this.showSort = showSort;
             this.servletParams = servletParams;
+            this.facetFields = facetFields;
         }
 
         @Override
@@ -397,9 +455,11 @@ class DiscoveryCategoryGridComponentTest {
                 @Override public boolean isShowPagination()  { return showPagination; }
                 @Override public boolean isShowSort()        { return showSort; }
                 @Override public String getCategoryUrlParam(){ return "cid"; }
+                @Override public String getCatalogName()     { return ""; }
                 @Override public String getStatsFields()     { return ""; }
                 @Override public String getSegment()         { return ""; }
                 @Override public String getExclusionFilter() { return ""; }
+                @Override public String getFacetFields()     { return facetFields; }
             };
         }
 

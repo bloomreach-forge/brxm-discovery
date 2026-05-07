@@ -19,8 +19,15 @@ public final class ConfigDefaults {
     public static final String BASE_URI_JCR = "brxdis:baseUri";
     public static final String PATHWAYS_BASE_URI_JCR = "brxdis:pathwaysBaseUri";
     public static final String AUTOSUGGEST_BASE_URI_JCR = "brxdis:autosuggestBaseUri";
+    public static final String PIXEL_BASE_URI_JCR = "brxdis:pixelBaseUri";
+    public static final String PIXEL_BASE_URI_EU_JCR = "brxdis:pixelBaseUriEU";
     public static final String DEFAULT_PAGE_SIZE_JCR = "brxdis:defaultPageSize";
     public static final String DEFAULT_SORT_JCR = "brxdis:defaultSort";
+
+    public static final String PIXEL_BASE_URI_SYS    = "brxdis.pixelBaseUri";
+    public static final String PIXEL_BASE_URI_EU_SYS = "brxdis.pixelBaseUriEU";
+    public static final String PIXEL_BASE_URI_ENV    = "BRXDIS_PIXEL_BASEURI";
+    public static final String PIXEL_BASE_URI_EU_ENV = "BRXDIS_PIXEL_BASEURI_EU";
 
     public static final String ACCOUNT_ID_SYS = "brxdis.accountId";
     public static final String DOMAIN_KEY_SYS = "brxdis.domainKey";

@@ -1,6 +1,7 @@
 package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
+import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchInputComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -113,6 +115,54 @@ class DiscoverySearchInputComponentTest {
         verify(request).setModel("query", "boots");
     }
 
+    // ── Visual search ──────────────────────────────────────────────────────
+
+    @Test
+    void visualSearch_noChannelInfo_setsEnabledFalseAndOmitsUrls() {
+        // no channel info configured → null from getChannelInfo
+        build(null, false, 5, "", 2, 250).doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", false);
+        verify(request, never()).setModel(eq("visualSearchUploadUrl"), any());
+        verify(request, never()).setModel(eq("visualSearchWidgetId"), any());
+    }
+
+    @Test
+    void visualSearch_disabled_setsEnabledFalseAndOmitsUrls() {
+        buildVs(false, null).doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", false);
+        verify(request, never()).setModel(eq("visualSearchUploadUrl"), any());
+        verify(request, never()).setModel(eq("visualSearchWidgetId"), any());
+    }
+
+    @Test
+    void visualSearch_enabled_blankWidgetId_omitsUrls() {
+        buildVs(true, "").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", true);
+        verify(request, never()).setModel(eq("visualSearchUploadUrl"), any());
+        verify(request, never()).setModel(eq("visualSearchWidgetId"), any());
+    }
+
+    @Test
+    void visualSearch_enabledWithWidgetId_setsUploadUrlAndWidgetId() {
+        when(request.getContextPath()).thenReturn("");
+        buildVs(true, "cam123").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", true);
+        verify(request).setModel("visualSearchUploadUrl", "/_brxdis-api/visual-search/cam123/upload");
+        verify(request).setModel("visualSearchWidgetId", "cam123");
+    }
+
+    @Test
+    void visualSearch_enabledWithWidgetId_prefixesContextPath() {
+        when(request.getContextPath()).thenReturn("/site");
+        buildVs(true, "cam123").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchUploadUrl", "/site/_brxdis-api/visual-search/cam123/upload");
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
@@ -121,6 +171,32 @@ class DiscoverySearchInputComponentTest {
             int suggestionsLimit, String resultsPage, int minChars, int debounceMs) {
         return new TestableSearchInput(discoveryService, query, suggestionsEnabled,
                 suggestionsLimit, resultsPage, minChars, debounceMs);
+    }
+
+    /** VS tests: override getChannelInfo in anonymous subclass with controlled stub. */
+    private TestableSearchInput buildVs(boolean enabled, String widgetId) {
+        return new TestableSearchInput(discoveryService, null, false, 5, "", 2, 250) {
+            @Override
+            protected DiscoveryChannelInfo getChannelInfo(HstRequest req) {
+                if (!enabled) return null;
+                return new DiscoveryChannelInfo() {
+                    @Override public String getDiscoveryAccountId()            { return ""; }
+                    @Override public String getDiscoveryDomainKey()            { return ""; }
+                    @Override public String getDiscoveryApiKeyEnvVar()         { return ""; }
+                    @Override public String getDiscoveryAuthKeyEnvVar()        { return ""; }
+                    @Override public String getDiscoveryDefaultFieldList()     { return ""; }
+                    @Override public String getDiscoveryCatalogName()          { return ""; }
+                    @Override public boolean getDiscoveryPixelsEnabled()       { return true; }
+                    @Override public String getDiscoveryPixelConsentCookie()   { return ""; }
+                    @Override public boolean getDiscoveryPixelTestData()       { return false; }
+                    @Override public boolean getDiscoveryPixelDebug()          { return false; }
+                    @Override public String getPixelRegion()                   { return "US"; }
+                    @Override public boolean getDiscoveryVisualSearchEnabled() { return true; }
+                    @Override public String getDiscoveryVisualSearchWidgetId() { return widgetId != null ? widgetId : ""; }
+                    @Override public Map<String, Object> getProperties()       { return Map.of(); }
+                };
+            }
+        };
     }
 
     private static class TestableSearchInput extends DiscoverySearchInputComponent {

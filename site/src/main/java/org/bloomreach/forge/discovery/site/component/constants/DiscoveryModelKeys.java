@@ -56,6 +56,11 @@ public final class DiscoveryModelKeys {
     public static final String CATEGORY_BEANS     = "categoryBeans";
     public static final String PREVIEW_PRODUCTS   = "previewProducts";
 
+    // Visual Search
+    public static final String VISUAL_SEARCH_ENABLED    = "visualSearchEnabled";
+    public static final String VISUAL_SEARCH_UPLOAD_URL = "visualSearchUploadUrl";
+    public static final String VISUAL_SEARCH_WIDGET_ID  = "visualSearchWidgetId";
+
     // URL builders (AbstractDiscoveryGridComponent)
     public static final String DATA_SOURCE_MODE   = "dataSourceMode";
     public static final String FACET_URLS         = "facetUrls";

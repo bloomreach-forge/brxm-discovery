@@ -42,7 +42,7 @@ class DiscoveryProductHighlightComponentTest {
 
     @Test
     void oneDoc_fetchesProductInFirstSlot() {
-        ProductSummary product = new ProductSummary("p1", "Product", null, null, null, null, Map.of());
+        ProductSummary product = new ProductSummary("p1", "Product", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p1"))).thenReturn(Optional.of(product));
 
         new TestableProductHighlightComponent(discoveryService, "p1").doBeforeRender(request, response);
@@ -57,8 +57,8 @@ class DiscoveryProductHighlightComponentTest {
 
     @Test
     void multipleDocsSamePid_fetchesEachInAlignedSlots() {
-        ProductSummary p1 = new ProductSummary("p1", "P1", null, null, null, null, Map.of());
-        ProductSummary p2 = new ProductSummary("p2", "P2", null, null, null, null, Map.of());
+        ProductSummary p1 = new ProductSummary("p1", "P1", null, null, null, null, Map.of(), List.of());
+        ProductSummary p2 = new ProductSummary("p2", "P2", null, null, null, null, Map.of(), List.of());
         when(discoveryService.fetchProduct(eq(request), eq("p1"))).thenReturn(Optional.of(p1));
         when(discoveryService.fetchProduct(eq(request), eq("p2"))).thenReturn(Optional.of(p2));
 

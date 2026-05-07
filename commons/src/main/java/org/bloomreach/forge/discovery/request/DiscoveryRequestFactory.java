@@ -6,6 +6,7 @@ import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.RangeSelection;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
+import org.bloomreach.forge.discovery.visual.model.VisualSearchQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +77,7 @@ public final class DiscoveryRequestFactory {
                 .queryParamIfNotBlank("fl", query.fields())
                 .queryParamIfNotBlank("catalog_name", query.catalogName());
 
+        builder.queryParam("facet.version", "3.0");
         appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
         appendPagination(builder, query.page(), query.pageSize());
         appendSort(builder, query.sort());
@@ -84,6 +86,7 @@ public final class DiscoveryRequestFactory {
         appendStatsFields(builder, query.statsFields());
         appendSegment(builder, query.segment());
         appendEfq(builder, query.efq());
+        builder.queryParamIfNotBlank("view_id", query.viewId());
         return builder.build();
     }
 
@@ -93,8 +96,10 @@ public final class DiscoveryRequestFactory {
                 .queryParam("search_type", SEARCH_TYPE_CATEGORY)
                 .queryParam("q", query.categoryId() != null && !query.categoryId().isBlank() ? query.categoryId() : "*")
                 .queryParam("request_id", nextRequestId())
-                .queryParamIfNotBlank("fl", query.fields());
+                .queryParamIfNotBlank("fl", query.fields())
+                .queryParamIfNotBlank("catalog_name", query.catalogName());
 
+        builder.queryParam("facet.version", "3.0");
         appendTracking(builder, query.brUid2(), query.refUrl(), query.url());
         appendPagination(builder, query.page(), query.pageSize());
         appendSort(builder, query.sort());
@@ -103,6 +108,7 @@ public final class DiscoveryRequestFactory {
         appendStatsFields(builder, query.statsFields());
         appendSegment(builder, query.segment());
         appendEfq(builder, query.efq());
+        builder.queryParamIfNotBlank("view_id", query.viewId());
         return builder.build();
     }
 
@@ -160,8 +166,25 @@ public final class DiscoveryRequestFactory {
                 .queryParamIfNotBlank("context.page_type", query.contextPageType())
                 .queryParam("rows", query.limit())
                 .queryParamIfNotBlank("fields", query.fields())
-                .queryParamIfNotBlank("filter", query.filters());
+                .queryParamIfNotBlank("filter", query.filters())
+                .queryParamIfNotBlank("query", query.query())
+                .queryParamIfNotBlank("view_id", query.viewId());
         return builder.build();
+    }
+
+    public DiscoveryRequestSpec visualSearch(VisualSearchQuery query, DiscoveryCredentials credentials) {
+        return DiscoveryRequestSpec.builder("/api/v2/widgets/visual/search/" + query.widgetId())
+                .queryParam("account_id", credentials.accountId())
+                .queryParam("domain_key", credentials.domainKey())
+                .queryParam("request_id", nextRequestId())
+                .queryParamIfNotBlank("image_id", query.imageId())
+                .queryParamIfNotBlank("object_id", query.objectId())
+                .queryParam("rows", query.rows())
+                .queryParamIfNotBlank("fields", query.fields())
+                .queryParamIfNotBlank("url", query.url())
+                .queryParamIfNotBlank("ref_url", query.refUrl())
+                .queryParamIfNotBlank("_br_uid_2", query.brUid2())
+                .build();
     }
 
     public DiscoveryRequestSpec merchantWidgets(DiscoveryCredentials credentials) {

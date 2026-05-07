@@ -2,11 +2,18 @@ package org.bloomreach.forge.discovery.site.platform;
 
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
+import org.bloomreach.forge.discovery.site.component.SearchRequestOptions;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelInteractionHandler;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelConsentProvider;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.CategoryPageView;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.ProductPageView;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.SearchPageView;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.TrackingContext;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.WidgetView;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamParser;
 import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
@@ -17,11 +24,15 @@ import org.bloomreach.forge.discovery.search.model.SearchQuery;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.service.discovery.sor.SoREnrichmentProvider;
+import org.bloomreach.forge.discovery.visual.model.VisualSearchQuery;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.servlet.http.Cookie;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,16 +58,26 @@ public class HstDiscoveryService {
     private final DeferredPixelInteractionHandler deferredHandler;
     private final SoREnrichmentProvider enrichmentProvider;
     private final DiscoveryRuntimeContextFactory runtimeContextFactory;
+    private final PixelConsentProvider consentProvider;
 
     public HstDiscoveryService(DiscoveryApiClient client,
                                DiscoveryRuntimeContextFactory runtimeContextFactory,
                                DiscoveryPixelService pixelService,
                                SoREnrichmentProvider enrichmentProvider) {
+        this(client, runtimeContextFactory, pixelService, enrichmentProvider, null);
+    }
+
+    public HstDiscoveryService(DiscoveryApiClient client,
+                               DiscoveryRuntimeContextFactory runtimeContextFactory,
+                               DiscoveryPixelService pixelService,
+                               SoREnrichmentProvider enrichmentProvider,
+                               PixelConsentProvider consentProvider) {
         this.client = client;
         this.pixelService = pixelService;
         this.deferredHandler = pixelService != null ? new DeferredPixelInteractionHandler(pixelService) : null;
         this.enrichmentProvider = enrichmentProvider;
         this.runtimeContextFactory = runtimeContextFactory;
+        this.consentProvider = consentProvider;
     }
 
     // ── Request-based API (used by HST components) ─────────────────────────────
@@ -67,9 +88,10 @@ public class HstDiscoveryService {
 
     public SearchResponse search(HstRequest request, SearchRequestOptions options) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
+        String catalogName = options.catalogName() != null ? options.catalogName() : runtimeContext.catalogName();
         SearchQuery baseQuery = QueryParamParser.toSearchQuery(
                 runtimeContext.paramProvider(), runtimeContext.settings(),
-                options.pageSize(), options.sort(), options.catalogName(),
+                options.pageSize(), options.sort(), catalogName,
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
         SearchQuery query = baseQuery
                 .withFields(runtimeContext.settings().schemaConfig().defaultFieldList());
@@ -83,10 +105,12 @@ public class HstDiscoveryService {
         }
         SearchResponse response = client.search(query, runtimeContext.credentials(), runtimeContext.clientContext());
         response = applyEnrichment(response);
-        if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+        if (shouldFirePixels(request, runtimeContext)) {
             deferredHandler.handleSearchInteraction(request, runtimeContext, query);
-            pixelService.fireSearchEvent(query, response.result(), runtimeContext.credentials(),
-                    runtimeContext.pageTitle(), runtimeContext.clientIp(),
+            TrackingContext searchTracking = new TrackingContext(
+                    query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), runtimeContext.pageTitle());
+            pixelService.fire(new SearchPageView(searchTracking, query.query(), response.result().products()),
+                    runtimeContext.credentials(), runtimeContext.clientIp(),
                     runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         return response;
@@ -98,12 +122,16 @@ public class HstDiscoveryService {
 
     public SearchResponse browse(HstRequest request, String categoryId, SearchRequestOptions options) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
+        String catalogName = options.catalogName() != null ? options.catalogName() : runtimeContext.catalogName();
         CategoryQuery baseQuery = QueryParamParser.toCategoryQuery(
                 categoryId, runtimeContext.paramProvider(), runtimeContext.settings(),
                 options.pageSize(), options.sort(),
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
         CategoryQuery query = baseQuery
                 .withFields(runtimeContext.settings().schemaConfig().defaultFieldList());
+        if (catalogName != null) {
+            query = query.withCatalogName(catalogName);
+        }
         query = options.statsFields() != null && !options.statsFields().isEmpty()
                 ? query.withStatsFields(options.statsFields()) : query;
         if (query.segment() == null && options.segment() != null && !options.segment().isBlank()) {
@@ -114,9 +142,11 @@ public class HstDiscoveryService {
         }
         SearchResponse response = client.category(query, runtimeContext.credentials(), runtimeContext.clientContext());
         response = applyEnrichment(response);
-        if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
-            pixelService.fireCategoryEvent(query, response.result(), runtimeContext.credentials(),
-                    runtimeContext.pageTitle(), runtimeContext.clientIp(),
+        if (shouldFirePixels(request, runtimeContext)) {
+            TrackingContext browseTracking = new TrackingContext(
+                    query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), runtimeContext.pageTitle());
+            pixelService.fire(new CategoryPageView(browseTracking, query.categoryId(), response.result().products()),
+                    runtimeContext.credentials(), runtimeContext.clientIp(),
                     runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         return response;
@@ -126,6 +156,14 @@ public class HstDiscoveryService {
                                            String widgetId, String widgetType,
                                            String contextProductId, String catId,
                                            String contextPageType,
+                                           int limit, String fields, String filter) {
+        return recommend(request, widgetId, widgetType, contextProductId, catId, contextPageType, null, limit, fields, filter);
+    }
+
+    public RecommendationResult recommend(HstRequest request,
+                                           String widgetId, String widgetType,
+                                           String contextProductId, String catId,
+                                           String contextPageType, String contextQuery,
                                            int limit, String fields, String filter) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
         String effectiveWidgetId = widgetId != null ? widgetId : "";
@@ -141,16 +179,35 @@ public class HstDiscoveryService {
                 ? fields : runtimeContext.settings().schemaConfig().defaultFieldList();
         RecQuery query = new RecQuery(widgetType, effectiveWidgetId, contextProductId, catId, contextPageType,
                 limit, effectiveFields, filter, runtimeContext.pageUrl(), runtimeContext.refUrl(),
-                runtimeContext.brUid2(), runtimeContext.origRefUrl());
+                runtimeContext.brUid2(), runtimeContext.origRefUrl(), contextQuery, null);
         RecommendationResult fresh = client.recommend(query, runtimeContext.credentials(), runtimeContext.clientContext());
         List<ProductSummary> enriched = applyEnrichment(fresh.products());
         RecommendationResult result = fresh.withProducts(enriched);
-        if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
-            pixelService.fireWidgetEvent(query, result, runtimeContext.credentials(),
-                    contextPageType, runtimeContext.pageTitle(), runtimeContext.clientIp(),
+        if (shouldFirePixels(request, runtimeContext)) {
+            String resolvedWidgetId = result.widgetId() != null && !result.widgetId().isBlank()
+                    ? result.widgetId() : query.widgetId();
+            String resolvedWidgetType = result.widgetType() != null && !result.widgetType().isBlank()
+                    ? result.widgetType() : query.widgetType();
+            TrackingContext widgetTracking = new TrackingContext(
+                    query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), runtimeContext.pageTitle());
+            pixelService.fire(new WidgetView(widgetTracking, resolvedWidgetId, resolvedWidgetType,
+                            result.widgetResultId(), query.contextProductId(), contextPageType, result.products()),
+                    runtimeContext.credentials(), runtimeContext.clientIp(),
                     runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         return result;
+    }
+
+    public List<ProductSummary> visualSearch(HstRequest request,
+                                              String widgetId, String imageId,
+                                              String objectId, int rows) {
+        DiscoveryRuntimeContext ctx = runtimeContextFactory.get(request);
+        VisualSearchQuery query = new VisualSearchQuery(
+                widgetId, imageId, objectId, rows,
+                ctx.settings().schemaConfig().defaultFieldList(),
+                ctx.pageUrl(), ctx.refUrl(), ctx.brUid2());
+        List<ProductSummary> products = client.visualSearch(query, ctx.credentials(), ctx.clientContext());
+        return applyEnrichment(products);
     }
 
     public Optional<ProductSummary> fetchProduct(HstRequest request, String pid) {
@@ -171,19 +228,21 @@ public class HstDiscoveryService {
         }
 
         ProductSummary product = result.get();
-        if (pixelService != null && runtimeContext.pixelFlags().enabled()) {
+        if (shouldFirePixels(request, runtimeContext)) {
             deferredHandler.handleProductInteraction(request, runtimeContext, product);
-            pixelService.fireProductPageViewEvent(pid, product.title(), runtimeContext.brUid2(),
-                    runtimeContext.refUrl(), runtimeContext.origRefUrl(), runtimeContext.pageUrl(),
-                    runtimeContext.pageTitle(), runtimeContext.credentials(),
-                    runtimeContext.clientIp(), runtimeContext.clientContext(), runtimeContext.pixelFlags());
+            TrackingContext productTracking = new TrackingContext(
+                    runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.origRefUrl(),
+                    runtimeContext.pageUrl(), runtimeContext.pageTitle());
+            pixelService.fire(new ProductPageView(productTracking, pid, product.title()),
+                    runtimeContext.credentials(), runtimeContext.clientIp(),
+                    runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
         if (enrichmentProvider != null) {
             List<ProductSummary> enriched = enrichmentProvider.enrich(List.of(product));
             if (enriched.isEmpty()) {
                 return Optional.empty();
             }
-            product = enriched.get(0);
+            product = enriched.getFirst();
         }
         DiscoveryRequestCache.putFetchedProduct(request, pid, product);
         return Optional.of(product);
@@ -193,7 +252,7 @@ public class HstDiscoveryService {
 
     public AutosuggestResult autosuggest(HstRequest request, String query, int limit) {
         DiscoveryRuntimeContext runtimeContext = runtimeContextFactory.get(request);
-        AutosuggestQuery suggestQuery = new AutosuggestQuery(query, limit, null,
+        AutosuggestQuery suggestQuery = new AutosuggestQuery(query, limit, runtimeContext.catalogName(),
                 runtimeContext.brUid2(), runtimeContext.refUrl(), runtimeContext.pageUrl());
         return client.autosuggest(suggestQuery, runtimeContext.credentials(), runtimeContext.clientContext());
     }
@@ -216,6 +275,23 @@ public class HstDiscoveryService {
     }
 
     // ── Internals ──────────────────────────────────────────────────────────────
+
+    /**
+     * Single gate for all pixel firing decisions.
+     * Resolution order:
+     * 1. pixelService null or channel kill-switch off → suppress
+     * 2. PixelConsentProvider registered → delegate to it
+     * 3. discoveryPixelConsentCookie set → check request cookie presence
+     * 4. No consent requirement configured → fire unconditionally
+     */
+    private boolean shouldFirePixels(HstRequest request, DiscoveryRuntimeContext ctx) {
+        if (pixelService == null || !ctx.pixelFlags().enabled()) return false;
+        if (consentProvider != null) return consentProvider.hasConsent(request);
+        String cookieName = ctx.pixelConsentCookie();
+        if (cookieName == null) return true;
+        Cookie[] cookies = request.getCookies();
+        return cookies != null && Arrays.stream(cookies).anyMatch(c -> cookieName.equals(c.getName()));
+    }
 
     private SearchResponse applyEnrichment(SearchResponse response) {
         if (enrichmentProvider == null) return response;

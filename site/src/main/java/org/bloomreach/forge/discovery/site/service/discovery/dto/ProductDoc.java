@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,6 +26,7 @@ public final class ProductDoc {
     @JsonProperty("thumb_image") private String thumbImage;
     @JsonProperty("price")       private BigDecimal price;
     @JsonProperty("currency")    private String currency;
+    @JsonProperty("variants")    private List<VariantDoc> variants = new ArrayList<>();
 
     private final Map<String, Object> extras = new HashMap<>();
 
@@ -41,7 +44,8 @@ public final class ProductDoc {
     public BigDecimal price()   { return price; }
     public String currency()    { return currency; }
 
-    public Map<String, Object> extras() { return Map.copyOf(extras); }
+    public List<VariantDoc> variants()    { return List.copyOf(variants); }
+    public Map<String, Object> extras()   { return Map.copyOf(extras); }
 
     public Optional<Object> get(String key) { return Optional.ofNullable(extras.get(key)); }
 }

@@ -3,6 +3,7 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.exception.DiscoveryException;
 import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
+import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.hippoecm.hst.component.support.bean.BaseHstComponent;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
@@ -15,7 +16,7 @@ import org.hippoecm.hst.site.HstServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Optional;
 
 /**
  * Base class for Discovery HST components.
@@ -25,6 +26,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractDiscoveryComponent.class);
     static final String MODULE_NAME = "org.bloomreach.forge.discovery.site";
+    private static final String CHANNEL_INFO_ATTR = "brxdis.channelInfo";
 
     /**
      * Sets {@code editMode} on the FTL model, then delegates to
@@ -61,7 +63,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
      */
     protected void doDiscoveryBeforeRender(HstRequest request, HstResponse response)
             throws HstComponentException {
-        // no-op — subclasses override to add component-specific render logic
+        // no-op - subclasses override to add component-specific render logic
     }
 
     protected <T> T lookupService(Class<T> type) {
@@ -111,6 +113,14 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
     }
 
     /**
+     * Resolves a "pinned or dynamic" ID: returns {@code pinnedId} when non-blank,
+     * otherwise falls back to the URL parameter named {@code urlParam}.
+     */
+    protected String resolvePinnedOrDynamic(String pinnedId, HstRequest request, String urlParam) {
+        return blankToNull(pinnedId) != null ? pinnedId : resolveUrlParam(request, urlParam);
+    }
+
+    /**
      * Resolves a URL-driven context parameter by name.
      * Checks the sitemap item's named parameter first (covers SEO path segments when the sitemap
      * defines the name→position mapping), then falls back to a query string parameter with the
@@ -125,7 +135,7 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
      * Scans the servlet path for a label/value pair.
      *
      * <p>Given a URL like {@code /category/mens-shoes/category/root-cat-id}, calling
-     * {@code getPathSegmentParam(request, "category")} returns {@code "root-cat-id"} —
+     * {@code getPathSegmentParam(request, "category")} returns {@code "root-cat-id"} -
      * the segment that immediately follows the label that equals {@code paramName}.
      *
      * <p>No sitemap configuration is needed; the URL structure alone drives resolution.
@@ -186,6 +196,43 @@ public abstract class AbstractDiscoveryComponent extends BaseHstComponent {
      */
     protected HstDiscoveryService getDiscoveryService() {
         return lookupService(HstDiscoveryService.class);
+    }
+
+    /**
+     * Returns the {@link DiscoveryChannelInfo} for the current mount, or {@code null}
+     * if the mount is not configured with that channel info type.
+     *
+     * <p>Result is memoized on the {@link HstRequestContext} because HST's
+     * {@code ChannelUtils.getChannelInfo} allocates a new JDK dynamic proxy on every
+     * call - there is no caching inside the platform. On a page with N Discovery
+     * components this would otherwise create N proxies per request.
+     *
+     * <p>Overridable for testing.
+     */
+    protected DiscoveryChannelInfo getChannelInfo(HstRequest request) {
+        HstRequestContext ctx = request.getRequestContext();
+        if (ctx == null) return null;
+
+        @SuppressWarnings("unchecked")
+        Optional<DiscoveryChannelInfo> cached =
+                (Optional<DiscoveryChannelInfo>) ctx.getAttribute(CHANNEL_INFO_ATTR);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
+
+        var resolved = ctx.getResolvedMount();
+        DiscoveryChannelInfo info = resolved != null ? resolved.getMount().getChannelInfo() : null;
+        ctx.setAttribute(CHANNEL_INFO_ATTR, Optional.ofNullable(info));
+        return info;
+    }
+
+    /**
+     * Resolves the visual search widget ID from channel info.
+     * Prefers the JCR document picker value; falls back to the manually entered widget ID.
+     * Returns {@code null} when neither source yields a non-blank ID.
+     */
+    protected String resolveVisualSearchWidgetId(HstRequest request, DiscoveryChannelInfo channelInfo) {
+        return blankToNull(channelInfo.getDiscoveryVisualSearchWidgetId());
     }
 
     protected static int parseIntOrDefault(String value, int defaultValue) {

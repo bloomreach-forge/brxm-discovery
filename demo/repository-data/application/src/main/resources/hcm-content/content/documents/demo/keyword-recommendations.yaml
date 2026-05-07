@@ -1,0 +1,50 @@
+/content/documents/demo/keyword-recommendations:
+  jcr:primaryType: hippo:handle
+  jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
+  jcr:uuid: f6a7b8c9-d0e1-2345-f012-345678901234
+  hippo:versionHistory: a1b2c3d4-e5f6-7890-bcde-f12345678901
+  /keyword-recommendations[1]:
+    jcr:primaryType: brxdis:keywordRecommendationDocument
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: b8c9d0e1-f2a3-4567-0123-456789012345
+    brxdis:_preview: ''
+    brxdis:config: '{"widgetId":"","widgetType":"keyword","contextQueryMode":"url"}'
+    brxdis:displayName: Keyword Recommendations (search-driven)
+    hippo:availability: [live]
+    hippostd:retainable: false
+    hippostd:state: published
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2026-05-03T10:00:00.000+01:00
+    hippostdpubwf:lastModifiedBy: admin
+    hippostdpubwf:publicationDate: 2026-05-03T10:00:00.000+01:00
+    hippostdpubwf:publishedBy: admin
+  /keyword-recommendations[2]:
+    jcr:primaryType: brxdis:keywordRecommendationDocument
+    jcr:mixinTypes: ['mix:referenceable', 'mix:versionable']
+    jcr:uuid: c9d0e1f2-a3b4-5678-1234-567890123456
+    brxdis:_preview: ''
+    brxdis:config: '{"widgetId":"","widgetType":"keyword","contextQueryMode":"url"}'
+    brxdis:displayName: Keyword Recommendations (search-driven)
+    hippo:availability: [preview]
+    hippostd:retainable: false
+    hippostd:state: unpublished
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2026-05-03T10:00:00.000+01:00
+    hippostdpubwf:lastModifiedBy: admin
+  /keyword-recommendations[3]:
+    jcr:primaryType: brxdis:keywordRecommendationDocument
+    jcr:mixinTypes: ['mix:referenceable']
+    jcr:uuid: d0e1f2a3-b4c5-6789-2345-678901234567
+    brxdis:_preview: ''
+    brxdis:config: '{"widgetId":"","widgetType":"keyword","contextQueryMode":"url"}'
+    brxdis:displayName: Keyword Recommendations (search-driven)
+    hippo:availability: []
+    hippostd:retainable: false
+    hippostd:state: draft
+    hippostd:transferable: false
+    hippostdpubwf:createdBy: ''
+    hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+    hippostdpubwf:lastModificationDate: 2026-05-03T10:00:00.000+01:00
+    hippostdpubwf:lastModifiedBy: admin

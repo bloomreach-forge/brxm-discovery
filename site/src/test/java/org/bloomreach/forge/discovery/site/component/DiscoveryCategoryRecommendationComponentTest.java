@@ -171,7 +171,7 @@ class DiscoveryCategoryRecommendationComponentTest {
 
     @Test
     void productsAndWidgetId_setOnModel() {
-        List<ProductSummary> products = List.of(new ProductSummary("p1", "Shoe", null, null, null, null, null));
+        List<ProductSummary> products = List.of(new ProductSummary("p1", "Shoe", null, null, null, null, null, List.of()));
         when(discoveryService.recommend(any(), any(), any(), any(), any(), any(), anyInt(), any(), any()))
                 .thenReturn(RecommendationResult.of(products));
 
@@ -186,7 +186,7 @@ class DiscoveryCategoryRecommendationComponentTest {
     private static DiscoveryRecommendationConfig configOf(String widgetId, String contextCategoryId,
                                                            String contextCategoryName) {
         return new DiscoveryRecommendationConfig(widgetId, widgetId, "category",
-                null, null, contextCategoryId, contextCategoryName);
+                null, null, contextCategoryId, contextCategoryName, null, null);
     }
 
     private TestableCategoryComponent build(DiscoveryRecommendationConfig cfg, int limit, String urlCatId) {

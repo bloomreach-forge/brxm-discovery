@@ -185,6 +185,11 @@
         ? "Category: " + (cfg.contextCategoryName || cfg.contextCategoryId)
         : "Category: auto from URL";
     }
+    if (type === "keyword" || type === "search") {
+      return cfg.contextQueryMode === "url"
+        ? "Query: auto from URL"
+        : "Query: " + (cfg.contextQuery || "(none)");
+    }
     return null;
   }
 

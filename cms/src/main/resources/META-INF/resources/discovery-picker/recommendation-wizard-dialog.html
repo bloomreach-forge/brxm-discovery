@@ -286,7 +286,7 @@
     }
     .review-context-hint { font-size: 12px; color: var(--text-muted); }
 
-    /* ── Review live preview ────────────────────────────────────────────────── */
+    /* ── Review Product Sample ────────────────────────────────────────────────── */
     #review-preview {
       margin-top: 16px;
       background: var(--surface);
@@ -455,6 +455,40 @@
   </div>
 </section>
 
+<!-- Step 2b: Keyword query -->
+<section id="step-keyword" class="step-section" hidden>
+  <div class="step-header">
+    <h2>Search Query</h2>
+    <p>How should this widget find products?</p>
+  </div>
+  <div id="keyword-body">
+    <div class="radio-group">
+      <label class="radio-option selected" id="kw-radio-specific-label">
+        <input type="radio" name="kw-mode" id="kw-radio-specific" value="specific" checked/>
+        <div class="radio-option-text">
+          <span class="radio-option-title">Specific keyword</span>
+          <span class="radio-option-hint">Always use a fixed search query, regardless of the current page.</span>
+        </div>
+      </label>
+      <label class="radio-option" id="kw-radio-url-label">
+        <input type="radio" name="kw-mode" id="kw-radio-url" value="url"/>
+        <div class="radio-option-text">
+          <span class="radio-option-title">From search query (URL)</span>
+          <span class="radio-option-hint">At runtime, reads the <code>?q=</code> URL parameter. Useful on search results pages.</span>
+        </div>
+      </label>
+    </div>
+    <div id="kw-input-row" style="padding: 6px 20px 14px;">
+      <input id="kw-query-input" type="text" autocomplete="off"
+             style="width:100%; box-sizing:border-box; padding:7px 10px;
+                    border:1.5px solid var(--border); border-radius:var(--radius);
+                    font-family:var(--font); font-size:13px; color:var(--text);
+                    background:var(--surface); outline:none;"
+             placeholder="e.g. summer boots"/>
+    </div>
+  </div>
+</section>
+
 <!-- Step 3: Review -->
 <section id="step-3" class="step-section" hidden>
   <div class="step-header">
@@ -465,7 +499,7 @@
     <div class="review-card" id="review-card"></div>
     <div id="review-preview">
       <div class="rp-header">
-        <span class="rp-title">Live Preview</span>
+        <span class="rp-title">Product Sample</span>
         <span class="rp-subtitle">Sample results for this configuration</span>
       </div>
       <div id="rp-test-bar" style="display:none">
@@ -501,6 +535,7 @@ syncBodyToViewport();
 
   var ITEM_TYPES         = ["item", "recs", "mlt", "co_viewed", "co_bought", "rt_recs"];
   var PERSONALIZED_TYPES = ["jfy", "past_purchases", "recently_viewed", "personalized"];
+  var KEYWORD_TYPES      = ["keyword", "search"];
 
   /* ── Shared state ─────────────────────────────────────────────────────────── */
   var ui                = null;
@@ -519,7 +554,9 @@ syncBodyToViewport();
     contextProductId:    null,
     contextProductName:  null,
     contextCategoryId:   null,
-    contextCategoryName: null
+    contextCategoryName: null,
+    contextQuery:        null,   // fixed keyword; null when contextQueryMode === "url"
+    contextQueryMode:    null    // "specific" | "url"
   };
 
   /* ── DOM refs ─────────────────────────────────────────────────────────────── */
@@ -585,6 +622,8 @@ syncBodyToViewport();
       state.contextProductName  = existing.contextProductName  || null;
       state.contextCategoryId   = existing.contextCategoryId   || null;
       state.contextCategoryName = existing.contextCategoryName || null;
+      state.contextQuery        = existing.contextQuery        || null;
+      state.contextQueryMode    = existing.contextQueryMode    || null;
     }
 
     loadWidgets();
@@ -1034,6 +1073,56 @@ syncBodyToViewport();
     });
   }
 
+  /* ── Step 2b: Keyword query ───────────────────────────────────────────────── */
+  var kwRadioSpecific      = document.getElementById("kw-radio-specific");
+  var kwRadioSpecificLabel = document.getElementById("kw-radio-specific-label");
+  var kwRadioUrl           = document.getElementById("kw-radio-url");
+  var kwRadioUrlLabel      = document.getElementById("kw-radio-url-label");
+  var kwQueryInput         = document.getElementById("kw-query-input");
+  var kwInputRow           = document.getElementById("kw-input-row");
+
+  function initStepKeyword() {
+    var mode = state.contextQueryMode || "specific";
+    setKeywordMode(mode);
+    kwQueryInput.value = state.contextQuery || "";
+    updateKeywordNextButton();
+  }
+
+  function setKeywordMode(mode) {
+    state.contextQueryMode = mode;
+    if (mode === "url") {
+      kwRadioUrl.checked              = true;
+      kwRadioSpecific.checked         = false;
+      kwRadioUrlLabel.classList.add("selected");
+      kwRadioSpecificLabel.classList.remove("selected");
+      kwInputRow.style.display        = "none";
+      nextBtn.disabled                = false;
+    } else {
+      kwRadioSpecific.checked         = true;
+      kwRadioUrl.checked              = false;
+      kwRadioSpecificLabel.classList.add("selected");
+      kwRadioUrlLabel.classList.remove("selected");
+      kwInputRow.style.display        = "";
+      updateKeywordNextButton();
+    }
+  }
+
+  function updateKeywordNextButton() {
+    if (state.contextQueryMode === "specific") {
+      nextBtn.disabled = !kwQueryInput.value.trim();
+    } else {
+      nextBtn.disabled = false;
+    }
+  }
+
+  kwRadioSpecific.addEventListener("change", function () {
+    if (kwRadioSpecific.checked) setKeywordMode("specific");
+  });
+  kwRadioUrl.addEventListener("change", function () {
+    if (kwRadioUrl.checked) setKeywordMode("url");
+  });
+  kwQueryInput.addEventListener("input", updateKeywordNextButton);
+
   /* ── Step 3: Review ───────────────────────────────────────────────────────── */
   function renderReview() {
     reviewCard.replaceChildren();
@@ -1062,6 +1151,11 @@ syncBodyToViewport();
         ? (state.contextCategoryName || state.contextCategoryId) + " (" + state.contextCategoryId + ")"
         : "Auto from URL (parameter: category)";
       addReviewRow("Category", catText);
+    } else if (KEYWORD_TYPES.indexOf(type) >= 0) {
+      var kwText = state.contextQueryMode === "url"
+        ? "Auto from URL (?q=)"
+        : (state.contextQuery || "(no query)");
+      addReviewRow("Query", kwText);
     } else {
       var noCtx = document.createElement("span");
       noCtx.className = "review-context-hint";
@@ -1093,7 +1187,7 @@ syncBodyToViewport();
     reviewCard.appendChild(row);
   }
 
-  /* ── Review live preview ──────────────────────────────────────────────────── */
+  /* ── Review Product Sample ──────────────────────────────────────────────────── */
   function fetchReviewPreview() {
     var grid   = document.getElementById("rp-grid");
     var status = document.getElementById("rp-status");
@@ -1109,19 +1203,22 @@ syncBodyToViewport();
     var type     = state.widgetType || "";
     var isItem   = ITEM_TYPES.indexOf(type) >= 0;
     var isCat    = type === "category";
+    var isKw     = KEYWORD_TYPES.indexOf(type) >= 0;
     var effectiveProductId  = state.contextProductId  || null;
     var effectiveCategoryId = state.contextCategoryId || null;
+    var effectiveQuery      = (isKw && state.contextQueryMode === "url") ? null : state.contextQuery || null;
 
     if ((isItem && !effectiveProductId) || (isCat && !effectiveCategoryId)) {
       // URL-param mode: show test bar so user can supply a context ID for preview,
       // but always proceed with the API call regardless (server returns empty when absent).
-      rpTestPrompt.textContent = isItem ? "Test with a product ID" : "Test with a category ID";
-      rpTestInput.placeholder  = isItem ? "e.g. SKU-123" : "e.g. cat-456";
+      rpTestPrompt.textContent = isItem ? "Test with a product ID" : (isKw ? "Test with a search query" : "Test with a category ID");
+      rpTestInput.placeholder  = isItem ? "e.g. SKU-123" : (isKw ? "e.g. summer boots" : "e.g. cat-456");
       rpTestBar.style.display  = "";
       var testId = rpTestInput.value.trim();
       if (testId) {
-        if (isItem) effectiveProductId  = testId;
-        else        effectiveCategoryId = testId;
+        if (isItem)     effectiveProductId  = testId;
+        else if (isKw)  effectiveQuery      = testId;
+        else            effectiveCategoryId = testId;
       }
     } else {
       rpTestBar.style.display = "none";
@@ -1139,7 +1236,9 @@ syncBodyToViewport();
       contextProductId:    effectiveProductId,
       contextProductName:  state.contextProductName  || null,
       contextCategoryId:   effectiveCategoryId,
-      contextCategoryName: state.contextCategoryName || null
+      contextCategoryName: state.contextCategoryName || null,
+      contextQuery:        effectiveQuery,
+      contextQueryMode:    isKw ? (state.contextQueryMode || "specific") : null
     });
 
     var url = buildApiUrl(ui, "/discovery/picker/recommendation-products", {
@@ -1177,10 +1276,19 @@ syncBodyToViewport();
   backBtn.addEventListener("click", function () {
     if (currentStep === 2) {
       goToStep(1);
+    } else if (currentStep === "keyword") {
+      goToStep(1);
     } else if (currentStep === 3) {
       var type = state.widgetType || "";
-      var needsContext = ITEM_TYPES.indexOf(type) >= 0 || type === "category";
-      goToStep(needsContext ? 2 : 1);
+      var needsItemOrCat = ITEM_TYPES.indexOf(type) >= 0 || type === "category";
+      var needsKeyword   = KEYWORD_TYPES.indexOf(type) >= 0;
+      if (needsItemOrCat) {
+        goToStep(2);
+      } else if (needsKeyword) {
+        goToStep("keyword");
+      } else {
+        goToStep(1);
+      }
     }
   });
 
@@ -1188,20 +1296,39 @@ syncBodyToViewport();
     if (currentStep === 1) {
       if (!state.widgetId) return;
       var type = state.widgetType || "";
-      var needsContext = ITEM_TYPES.indexOf(type) >= 0 || type === "category";
-      if (needsContext) {
+      var needsItemOrCat = ITEM_TYPES.indexOf(type) >= 0 || type === "category";
+      var needsKeyword   = KEYWORD_TYPES.indexOf(type) >= 0;
+      if (needsItemOrCat) {
         initStep2();
         goToStep(2);
-      } else {
-        // Clear context state for global/personalized
+      } else if (needsKeyword) {
+        // Clear non-keyword context state
         state.contextProductId    = null;
         state.contextProductName  = null;
         state.contextCategoryId   = null;
         state.contextCategoryName = null;
+        initStepKeyword();
+        goToStep("keyword");
+      } else {
+        // Clear all context state for global/personalized
+        state.contextProductId    = null;
+        state.contextProductName  = null;
+        state.contextCategoryId   = null;
+        state.contextCategoryName = null;
+        state.contextQuery        = null;
+        state.contextQueryMode    = null;
         renderReview();
         goToStep(3);
       }
     } else if (currentStep === 2) {
+      renderReview();
+      goToStep(3);
+    } else if (currentStep === "keyword") {
+      if (state.contextQueryMode !== "url") {
+        state.contextQuery = kwQueryInput.value.trim() || null;
+      } else {
+        state.contextQuery = null;
+      }
       renderReview();
       goToStep(3);
     }
@@ -1213,6 +1340,8 @@ syncBodyToViewport();
   });
 
   saveBtn.addEventListener("click", function () {
+    var type = state.widgetType || "";
+    var isKw = KEYWORD_TYPES.indexOf(type) >= 0;
     var result = JSON.stringify({
       widgetId:             state.widgetId,
       widgetName:           state.widgetName,
@@ -1221,7 +1350,9 @@ syncBodyToViewport();
       contextProductId:     state.contextProductId    || null,
       contextProductName:   state.contextProductName  || null,
       contextCategoryId:    state.contextCategoryId   || null,
-      contextCategoryName:  state.contextCategoryName || null
+      contextCategoryName:  state.contextCategoryName || null,
+      contextQuery:         isKw ? (state.contextQuery || null) : null,
+      contextQueryMode:     isKw ? (state.contextQueryMode || "specific") : null
     });
     ui.dialog.close(result);
   });
@@ -1235,16 +1366,19 @@ syncBodyToViewport();
       rpTestInput.value = "";
     }
 
-    document.getElementById("step-1").hidden = (n !== 1);
-    document.getElementById("step-2").hidden = (n !== 2);
-    document.getElementById("step-3").hidden = (n !== 3);
+    document.getElementById("step-1").hidden       = (n !== 1);
+    document.getElementById("step-2").hidden       = (n !== 2);
+    document.getElementById("step-keyword").hidden = (n !== "keyword");
+    document.getElementById("step-3").hidden       = (n !== 3);
 
-    // Step indicator
-    updateStepNode("node-1", n > 1 ? "done" : (n === 1 ? "active" : ""));
-    updateStepNode("node-2", n > 2 ? "done" : (n === 2 ? "active" : ""));
+    // Step indicator: "keyword" step is visually the same position as step 2
+    var past1 = (n === 2 || n === "keyword" || n === 3);
+    var past2 = (n === 3);
+    updateStepNode("node-1", past1 ? "done" : (n === 1 ? "active" : ""));
+    updateStepNode("node-2", past2 ? "done" : (n === 2 || n === "keyword" ? "active" : ""));
     updateStepNode("node-3", n === 3 ? "active" : "");
-    document.getElementById("conn-1").classList.toggle("done", n > 1);
-    document.getElementById("conn-2").classList.toggle("done", n > 2);
+    document.getElementById("conn-1").classList.toggle("done", past1);
+    document.getElementById("conn-2").classList.toggle("done", past2);
 
     // Back button
     backBtn.disabled = (n === 1);
@@ -1256,12 +1390,19 @@ syncBodyToViewport();
     } else {
       nextBtn.style.display = "";
       saveBtn.style.display = "none";
-      nextBtn.disabled = (n === 1 && !state.widgetId);
+      if (n === 1) {
+        nextBtn.disabled = !state.widgetId;
+      } else if (n === "keyword") {
+        updateKeywordNextButton();
+      } else {
+        nextBtn.disabled = false;
+      }
     }
 
-    if (n === 1) setNavStatus("", state.widgetId ? "Selected: " + state.widgetName : "Click a row to select a widget.");
-    if (n === 2) setNavStatus("", "");
-    if (n === 3) setNavStatus("", "");
+    if (n === 1)         setNavStatus("", state.widgetId ? "Selected: " + state.widgetName : "Click a row to select a widget.");
+    if (n === 2)         setNavStatus("", "");
+    if (n === "keyword") setNavStatus("", "");
+    if (n === 3)         setNavStatus("", "");
   }
 
   function updateStepNode(id, state) {

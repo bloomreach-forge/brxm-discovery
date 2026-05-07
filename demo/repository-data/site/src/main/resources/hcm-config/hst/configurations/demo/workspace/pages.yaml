@@ -10,15 +10,16 @@ definitions:
           jcr:primaryType: hst:containercomponent
           hst:xtype: hst.vBox
           hippo:identifier: d07a2957-2734-47f4-aa31-cca55f743905
+          hst:lastmodified: 2026-05-04T10:53:53.672+01:00
           /search-input:
             jcr:primaryType: hst:containeritemcomponent
             hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoverySearchInputComponent
             hst:label: Discovery Search Input
             hst:template: brxdis-search-input
             hst:xtype: hst.Item
-            hst:parameternames: [placeholder, resultsPage, suggestionsEnabled, suggestionsLimit,
-              minChars, debounceMs]
-            hst:parametervalues: [Search products..., search, 'true', '5', '2', '250']
+            hst:parameternames: [resultsPage, debounceMs, suggestionsLimit, com.onehippo.cms7.targeting.TargetingParameterUtil.hide,
+              suggestionsEnabled, placeholder, minChars]
+            hst:parametervalues: [search, '250', '5', 'off', 'on', Search products..., '2']
           /home-content:
             jcr:primaryType: hst:containeritemcomponent
             hst:template: home-page
@@ -238,3 +239,18 @@ definitions:
             hst:xtype: hst.Item
             hst:parameternames: [document, limit, showPrice, showDescription]
             hst:parametervalues: [test/trending, '8', 'true', 'false']
+      /keyword-recommendations-page:
+        jcr:primaryType: hst:component
+        hst:referencecomponent: hst:abstractpages/base
+        /main:
+          jcr:primaryType: hst:containercomponent
+          hst:xtype: hst.vBox
+          hippo:identifier: e5f6a7b8-c9d0-1234-ef01-234567890124
+          /keyword-recommendations:
+            jcr:primaryType: hst:containeritemcomponent
+            hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryKeywordRecommendationComponent
+            hst:label: Discovery Recommendations - Keyword
+            hst:template: brxdis-recommendations-global
+            hst:xtype: hst.Item
+            hst:parameternames: [document, limit, showPrice, showDescription]
+            hst:parametervalues: [keyword-recommendations, '8', 'true', 'false']

@@ -4,7 +4,6 @@ import org.bloomreach.forge.discovery.site.beans.DiscoveryProductDetailBean;
 import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryProductDetailComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.DiscoveryRequestCache;
-import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -41,22 +40,13 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
                 DiscoveryProductDetailBean.class);
         request.setModel(DiscoveryModelKeys.DOCUMENT, document);
 
-        // Document is required - no silent URL-param fallback without a document
         if (document == null) {
             DiscoveryRequestCache.markProductDetailRendered(request);
             request.setModel(DiscoveryModelKeys.PRODUCT, null);
             return;
         }
 
-        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL-driven)
-        String docPid = document.getProductId();
-        String pid;
-        if (docPid != null && !docPid.isBlank()) {
-            pid = docPid;
-        } else {
-            pid = resolveUrlParam(request, info.getProductUrlParam());
-        }
-
+        String pid = resolvePinnedOrDynamic(document.getProductId(), request, info.getProductUrlParam());
         request.setModel(DiscoveryModelKeys.PID, pid != null ? pid : "");
 
         if (pid == null || pid.isBlank()) {
@@ -72,16 +62,17 @@ public class DiscoveryProductDetailComponent extends AbstractDiscoveryComponent 
             return;
         }
 
-        HstDiscoveryService svc = getDiscoveryService();
-        Optional<ProductSummary> found = svc.fetchProduct(request, pid);
+        fetchAndSetProduct(request, pid);
+    }
+
+    private void fetchAndSetProduct(HstRequest request, String pid) {
+        Optional<ProductSummary> found = getDiscoveryService().fetchProduct(request, pid);
         ProductSummary product = found.orElse(null);
         request.setModel(DiscoveryModelKeys.PRODUCT, product);
-
         DiscoveryRequestCache.markProductDetailRendered(request);
         if (product != null) {
             DiscoveryRequestCache.putProductResult(request, product);
         }
-
         log.debug("PDP pid='{}' product={}", pid, product != null ? product.id() : "null");
     }
 }

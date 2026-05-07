@@ -17,20 +17,22 @@ public record CategoryQuery(
         String segment,
         String efq,
         Map<String, RangeSelection> rangeFilters,
-        String fields
+        String fields,
+        String viewId,
+        String catalogName
 ) {
     /** Backwards-compatible constructor (statsFields; no segment, efq). */
     public CategoryQuery(String categoryId, int page, int pageSize, String sort,
                          Map<String, List<String>> filters,
                          String brUid2, String refUrl, String url, List<String> statsFields) {
-        this(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null, statsFields, null, null, Map.of(), null);
+        this(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null, statsFields, null, null, Map.of(), null, null, null);
     }
 
     /** Backwards-compatible constructor (no statsFields, segment, efq). */
     public CategoryQuery(String categoryId, int page, int pageSize, String sort,
                          Map<String, List<String>> filters,
                          String brUid2, String refUrl, String url) {
-        this(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null, List.of(), null, null, Map.of(), null);
+        this(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null, List.of(), null, null, Map.of(), null, null, null);
     }
 
     /** Backwards-compatible constructor (pre-origRefUrl canonical signature). */
@@ -38,26 +40,34 @@ public record CategoryQuery(
                          Map<String, List<String>> filters,
                          String brUid2, String refUrl, String url,
                          List<String> statsFields, String segment, String efq) {
-        this(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null, statsFields, segment, efq, Map.of(), null);
+        this(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null, statsFields, segment, efq, Map.of(), null, null, null);
     }
 
     public CategoryQuery withStatsFields(List<String> statsFields) {
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields);
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
     }
 
     public CategoryQuery withSegment(String segment) {
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields);
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
     }
 
     public CategoryQuery withEfq(String efq) {
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields);
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
     }
 
     public CategoryQuery withRangeFilters(Map<String, RangeSelection> rangeFilters) {
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields);
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
     }
 
     public CategoryQuery withFields(String fields) {
-        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields);
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
+    }
+
+    public CategoryQuery withViewId(String viewId) {
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
+    }
+
+    public CategoryQuery withCatalogName(String catalogName) {
+        return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, origRefUrl, statsFields, segment, efq, rangeFilters, fields, viewId, catalogName);
     }
 }

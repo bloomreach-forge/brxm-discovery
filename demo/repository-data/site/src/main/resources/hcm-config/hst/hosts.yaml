@@ -15,3 +15,8 @@ definitions:
           hst:pagemodelapi: resourceapi
           hst:parameternames: [discoveryConfigPath]
           hst:parametervalues: ['/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig/channels/demo']
+          /_brxdis-api:
+            jcr:primaryType: hst:mount
+            hst:ismapped: false
+            hst:types: rest
+            hst:namedpipeline: BrxdisVisualSearchPipeline

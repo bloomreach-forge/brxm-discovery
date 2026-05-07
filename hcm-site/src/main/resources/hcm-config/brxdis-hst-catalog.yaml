@@ -29,6 +29,15 @@ definitions:
         hst:xtype: hst.Item
         hst:parameternames: [document, limit, showPrice, showDescription]
         hst:parametervalues: ['', '8', 'true', 'false']
+      /keyword-recommendations:
+        jcr:primaryType: hst:containeritemcomponent
+        hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryKeywordRecommendationComponent
+        hst:iconpath: images/brxm-discovery/catalog-component-icons/brxdis-recommendations.svg
+        hst:label: Discovery Recommendations - Keyword
+        hst:template: brxdis-recommendations-global
+        hst:xtype: hst.Item
+        hst:parameternames: [document, limit, showPrice, showDescription]
+        hst:parametervalues: ['', '8', 'true', 'false']
       /product-detail:
         jcr:primaryType: hst:containeritemcomponent
         hst:componentclassname: org.bloomreach.forge.discovery.site.component.DiscoveryProductDetailComponent

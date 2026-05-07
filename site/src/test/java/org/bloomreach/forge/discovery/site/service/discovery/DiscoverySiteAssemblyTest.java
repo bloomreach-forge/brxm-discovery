@@ -26,7 +26,9 @@ class DiscoverySiteAssemblyTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertTrue(xml.contains("id=\"brxmdis.discoveryClient\""));
-        assertTrue(xml.contains("<constructor-arg ref=\"brxmdis.responseMapper\"/>"));
+        assertTrue(xml.contains("id=\"brxmdis.searchApiClient\""));
+        assertTrue(xml.contains("id=\"brxmdis.autosuggestApiClient\""));
+        assertTrue(xml.contains("id=\"brxmdis.recommendationApiClient\""));
         assertTrue(xml.contains("id=\"org.bloomreach.forge.discovery.site.platform.HstDiscoveryService\""));
         assertTrue(xml.contains("id=\"brxmdis.configProvider\""));
 

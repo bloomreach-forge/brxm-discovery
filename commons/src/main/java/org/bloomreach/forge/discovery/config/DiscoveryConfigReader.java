@@ -182,8 +182,26 @@ public class DiscoveryConfigReader {
                 ConfigDefaults.resolveAutosuggestBaseUri(structuralOrNull(node, ConfigDefaults.AUTOSUGGEST_BASE_URI_JCR), environment),
                 structuralInt(node, DEFAULT_PAGE_SIZE),
                 structural(node, DEFAULT_SORT),
-                readSchemaConfig(node)
+                readSchemaConfig(node),
+                resolvePixelBaseUri(node),
+                resolvePixelBaseUriEU(node)
         );
+    }
+
+    private String resolvePixelBaseUri(Optional<Node> node) throws RepositoryException {
+        String fromEnv = envLookup.apply(ConfigDefaults.PIXEL_BASE_URI_ENV);
+        if (fromEnv != null && !fromEnv.isBlank()) return fromEnv;
+        String fromSys = System.getProperty(ConfigDefaults.PIXEL_BASE_URI_SYS);
+        if (fromSys != null && !fromSys.isBlank()) return fromSys;
+        return structuralOrNull(node, ConfigDefaults.PIXEL_BASE_URI_JCR);
+    }
+
+    private String resolvePixelBaseUriEU(Optional<Node> node) throws RepositoryException {
+        String fromEnv = envLookup.apply(ConfigDefaults.PIXEL_BASE_URI_EU_ENV);
+        if (fromEnv != null && !fromEnv.isBlank()) return fromEnv;
+        String fromSys = System.getProperty(ConfigDefaults.PIXEL_BASE_URI_EU_SYS);
+        if (fromSys != null && !fromSys.isBlank()) return fromSys;
+        return structuralOrNull(node, ConfigDefaults.PIXEL_BASE_URI_EU_JCR);
     }
 
     private DiscoverySchemaConfig readSchemaConfig(Optional<Node> node) throws RepositoryException {

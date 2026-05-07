@@ -4,8 +4,11 @@
   discoveryApiKeyEnvVar: BRXDIS_API_KEY
   discoveryAuthKeyEnvVar: BRXDIS_AUTH_KEY
   discoveryConfigPath: /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig/channels/demo
+  discoveryDefaultFieldList: ''
   discoveryDomainKey: pacifichome
   discoveryPixelDebug: false
   discoveryPixelRegion: US
   discoveryPixelTestData: false
   discoveryPixelsEnabled: true
+  discoveryVisualSearchEnabled: true
+  discoveryVisualSearchWidgetId: p9pvn3g9

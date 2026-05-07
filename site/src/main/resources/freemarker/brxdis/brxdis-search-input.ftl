@@ -15,14 +15,17 @@
 <#assign resolvedProductPage><@hst.link path="/product"/></#assign>
 <#assign resolvedProductPage = resolvedProductPage?trim>
 
-<#-- @ftlvariable name="suggestionsEnabled" type="java.lang.Boolean" -->
-<#-- @ftlvariable name="resultsPage"        type="java.lang.String" -->
-<#-- @ftlvariable name="minChars"           type="java.lang.Integer" -->
-<#-- @ftlvariable name="debounceMs"         type="java.lang.Integer" -->
-<#-- @ftlvariable name="placeholder"        type="java.lang.String" -->
-<#-- @ftlvariable name="query"              type="java.lang.String" -->
-<#-- @ftlvariable name="autosuggestResult"  type="org.bloomreach.forge.discovery.search.model.AutosuggestResult" -->
-<#-- @ftlvariable name="editMode"           type="java.lang.Boolean" -->
+<#-- @ftlvariable name="suggestionsEnabled"   type="java.lang.Boolean" -->
+<#-- @ftlvariable name="resultsPage"         type="java.lang.String" -->
+<#-- @ftlvariable name="minChars"            type="java.lang.Integer" -->
+<#-- @ftlvariable name="debounceMs"          type="java.lang.Integer" -->
+<#-- @ftlvariable name="placeholder"         type="java.lang.String" -->
+<#-- @ftlvariable name="query"               type="java.lang.String" -->
+<#-- @ftlvariable name="autosuggestResult"   type="org.bloomreach.forge.discovery.search.model.AutosuggestResult" -->
+<#-- @ftlvariable name="editMode"            type="java.lang.Boolean" -->
+<#-- @ftlvariable name="visualSearchEnabled"   type="java.lang.Boolean" -->
+<#-- @ftlvariable name="visualSearchUploadUrl" type="java.lang.String" -->
+<#-- @ftlvariable name="visualSearchWidgetId"  type="java.lang.String" -->
 
 <@hst.headContribution keyHint="brxdis-search-input-css">
 <style>
@@ -49,6 +52,10 @@
 .brxdis-as__prod-title{font-size:.75rem;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .brxdis-as__prod-price{font-size:.8125rem;font-weight:700;margin-top:.125rem}
 .brxdis-as__empty{padding:1.5rem;text-align:center;color:#9ca3af;font-size:.875rem}
+.brxdis-sb__vs-btn{padding:.625rem .75rem;background:#f3f4f6;border:1.5px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:1.125rem;line-height:1;transition:background .15s,border-color .15s;flex-shrink:0}
+.brxdis-sb__vs-btn:hover{background:#eff6ff;border-color:#93c5fd}
+.brxdis-sb__vs-spinner{display:none;width:16px;height:16px;border:2px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:brxdis-spin .6s linear infinite;margin:auto}
+@keyframes brxdis-spin{to{transform:rotate(360deg)}}
 </style>
 </@hst.headContribution>
 
@@ -56,7 +63,10 @@
      data-suggestions-enabled="${(suggestionsEnabled!true)?c}"
      data-min-chars="${minChars!2}"
      data-debounce="${debounceMs!250}"
-     data-results-page="${resolvedResultsPage}">
+     data-results-page="${resolvedResultsPage}"
+     data-vs-enabled="${(visualSearchEnabled!false)?c}"
+     data-vs-upload-url="${(visualSearchUploadUrl!'')}"
+     data-vs-widget-id="${(visualSearchWidgetId!'')}">
 
   <form class="brxdis-sb__form" method="get" action="${resolvedResultsPage}">
     <input type="hidden" name="brxdis_event" value="search-submit"/>
@@ -69,6 +79,13 @@
            autocomplete="off"
            aria-label="${placeholder!"Search"}"/>
     <button class="brxdis-sb__submit" type="submit">Search</button>
+<#if (visualSearchUploadUrl!"")?has_content>
+    <button type="button" class="brxdis-sb__vs-btn" id="brxdis-vs-cam-btn" title="Search by image">
+      <span id="brxdis-vs-cam-icon">&#128247;</span>
+      <span class="brxdis-sb__vs-spinner" id="brxdis-vs-sb-spinner"></span>
+    </button>
+    <input type="file" id="brxdis-vs-sb-file" accept="image/*" style="display:none">
+</#if>
   </form>
 
   <div id="brxdis-sb-panel" class="brxdis-as__panel" hidden>
@@ -83,6 +100,8 @@
   'use strict';
   var wrapper = document.currentScript.previousElementSibling;
   if (!wrapper) return;
+
+  // ── Autosuggest ──────────────────────────────────────────────────────────
   var enabled    = wrapper.dataset.suggestionsEnabled === 'true';
   var minChars   = parseInt(wrapper.dataset.minChars,  10) || 2;
   var debounce   = parseInt(wrapper.dataset.debounce,  10) || 250;
@@ -90,47 +109,87 @@
   var input      = wrapper.querySelector('#brxdis-sb-input');
   var panel      = wrapper.querySelector('#brxdis-sb-panel');
 
-  if (!enabled || !input || !panel) return;
-
-  var timer = null;
-
-  function showPanel(html) {
-    var doc = new DOMParser().parseFromString(html, 'text/html');
-    var src = doc.getElementById('brxdis-sb-panel');
-    if (!src) return;
-    panel.replaceChildren.apply(panel, Array.from(src.childNodes));
-    panel.removeAttribute('hidden');
+  if (enabled && input && panel) {
+    var timer = null;
+    function showPanel(html) {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var src = doc.getElementById('brxdis-sb-panel');
+      if (!src) return;
+      panel.replaceChildren.apply(panel, Array.from(src.childNodes));
+      panel.removeAttribute('hidden');
+    }
+    function hidePanel() {
+      panel.setAttribute('hidden', '');
+      panel.replaceChildren();
+    }
+    function fetchSuggestions(q) {
+      var url = (resultsUrl || window.location.pathname)
+              + '?q=' + encodeURIComponent(q)
+              + '&brxdis_suggest=1';
+      fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+        .then(showPanel)
+        .catch(hidePanel);
+    }
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = input.value.trim();
+      if (q.length < minChars) { hidePanel(); return; }
+      timer = setTimeout(function () { fetchSuggestions(q); }, debounce);
+    });
+    document.addEventListener('click', function (e) {
+      if (!wrapper.contains(e.target)) hidePanel();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hidePanel();
+    });
   }
 
-  function hidePanel() {
-    panel.setAttribute('hidden', '');
-    panel.replaceChildren();
+  // ── Visual search ─────────────────────────────────────────────────────────
+  var camBtn   = wrapper.querySelector('#brxdis-vs-cam-btn');
+  var fileIn   = wrapper.querySelector('#brxdis-vs-sb-file');
+  var spinner  = wrapper.querySelector('#brxdis-vs-sb-spinner');
+  var camIcon  = wrapper.querySelector('#brxdis-vs-cam-icon');
+
+  if (camBtn && fileIn) {
+    var uploadUrl = wrapper.dataset.vsUploadUrl || '';
+    var widgetId  = wrapper.dataset.vsWidgetId  || '';
+
+    camBtn.addEventListener('click', function () {
+      fileIn.click();
+    });
+
+    fileIn.addEventListener('change', function () {
+      var file = fileIn.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      camIcon.style.display = 'none';
+      spinner.style.display = 'inline-block';
+      camBtn.disabled = true;
+
+      var fd = new FormData();
+      fd.append('image', file);
+      fetch(uploadUrl, { method: 'POST', body: fd, headers: { Accept: 'application/json' } })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (d) {
+          var imageId = d.imageId;
+          if (!imageId) throw new Error('No imageId in response');
+          window.location.href = resultsUrl
+            + (resultsUrl.indexOf('?') >= 0 ? '&' : '?')
+            + 'imageId=' + encodeURIComponent(imageId)
+            + '&widgetId=' + encodeURIComponent(widgetId);
+        })
+        .catch(function (err) {
+          camIcon.style.display = '';
+          spinner.style.display = 'none';
+          camBtn.disabled = false;
+          fileIn.value = '';
+          console.error('Visual search upload failed:', err);
+        });
+    });
   }
-
-  function fetchSuggestions(q) {
-    var url = (resultsUrl || window.location.pathname)
-            + '?q=' + encodeURIComponent(q)
-            + '&brxdis_suggest=1';
-    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
-      .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
-      .then(showPanel)
-      .catch(hidePanel);
-  }
-
-  input.addEventListener('input', function () {
-    clearTimeout(timer);
-    var q = input.value.trim();
-    if (q.length < minChars) { hidePanel(); return; }
-    timer = setTimeout(function () { fetchSuggestions(q); }, debounce);
-  });
-
-  document.addEventListener('click', function (e) {
-    if (!wrapper.contains(e.target)) hidePanel();
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') hidePanel();
-  });
 }());
 </script>
 

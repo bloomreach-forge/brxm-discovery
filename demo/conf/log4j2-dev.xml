@@ -29,14 +29,6 @@
             </Policies>
         </RollingFile>
 
-        <!-- crisp-profile.log -->
-        <RollingFile name="crisp-profile" fileName="${sys:catalina.base}/logs/crisp-profile.log" filePattern="${sys:catalina.base}/logs/crisp-profile.log.%d{yyyy-MM-dd}">
-            <PatternLayout pattern="%d{dd.MM.yyyy HH:mm:ss} %-5p %t %m%n"/>
-            <Policies>
-                <TimeBasedTriggeringPolicy/>
-            </Policies>
-        </RollingFile>
-
         <!-- console -->
         <Console name="console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{dd.MM.yyyy HH:mm:ss} %-5p %t [%C{1}.%M:%L] %m%n"/>
@@ -81,11 +73,6 @@
         <!-- DiagnosticReportingValve only logs when diagnostics enabled in hst:hosts config in repo hence
              can be here on level 'info' -->
         <Logger name="org.hippoecm.hst.core.container.DiagnosticReportingValve" level="info"/>
-
-        <!-- crisp-profile logging -->
-        <Logger additivity="false" name="org.onehippo.cms7.crisp.core.profile.ResourceResolverProfiler" level="info">
-            <AppenderRef ref="crisp-profile"/>
-        </Logger>
 
         <Logger name="freemarker" level="warn"/>
 
@@ -146,9 +133,8 @@
         <!-- Spring bean creation debug: surfaces full BeanCreationException cause chain -->
         <Logger name="org.springframework.beans.factory" level="debug"/>
 
-        <!-- CRISP HTTP debug: shows request URL, status code, response body -->
-        <Logger name="org.onehippo.cms7.crisp" level="debug"/>
-        <Logger name="org.springframework.web.client" level="debug"/>
+        <Logger name="jdk.internal.httpclient" level="debug"/>
+        <Logger name="sun.net.www.protocol.http" level="debug"/>
         <Logger name="com.onehippo.cms7.targeting" level="warn"/>
         <Logger name="com.onehippo.cms.wpm.hst.configuration.branch" level="warn"/>
         <Logger name="com.onehippo.cms7.services.wpm.project" level="warn"/>

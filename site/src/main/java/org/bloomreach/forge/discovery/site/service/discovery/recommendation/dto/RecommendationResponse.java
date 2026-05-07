@@ -1,0 +1,21 @@
+package org.bloomreach.forge.discovery.site.service.discovery.recommendation.dto;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.bloomreach.forge.discovery.site.service.discovery.dto.ApiResponseBody;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record RecommendationResponse(
+        @JsonProperty("response") ApiResponseBody response,
+        @JsonProperty("metadata") WidgetMetadata metadata
+) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record WidgetMetadata(@JsonProperty("widget") WidgetInfo widget) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record WidgetInfo(
+            @JsonProperty("id") String id,
+            @JsonProperty("type") String type,
+            @JsonProperty("rid") String rid
+    ) {}
+}

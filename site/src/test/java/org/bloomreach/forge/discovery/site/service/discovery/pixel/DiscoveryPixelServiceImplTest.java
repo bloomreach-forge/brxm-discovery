@@ -1,23 +1,18 @@
 package org.bloomreach.forge.discovery.site.service.discovery.pixel;
 
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
-import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryPixelTransport;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
-import org.bloomreach.forge.discovery.search.model.CategoryQuery;
-import org.bloomreach.forge.discovery.search.model.ProductSummary;
-import org.bloomreach.forge.discovery.search.model.SearchQuery;
-import org.bloomreach.forge.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.PixelEvent;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.SearchPageView;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.TrackingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.onehippo.cms7.crisp.api.resource.ResourceException;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -27,152 +22,91 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DiscoveryPixelServiceImplTest {
 
-    @Mock DiscoveryPixelTransport client;
+    @Mock DiscoveryPixelTransport transport;
 
     private DiscoveryPixelServiceImpl service;
     private DiscoveryCredentials credentials;
+    private PixelEvent event;
+
+    private static final PixelFlags ENABLED      = new PixelFlags(true,  false, false, "US");
+    private static final ClientContext BROWSER    = new ClientContext("Mozilla/5.0 (Macintosh)", null, null);
+    private static final ClientContext AXIOS_CTX  = new ClientContext("axios/1.13.5", null, null);
+    private static final ClientContext NULL_UA    = new ClientContext(null, null, null);
 
     @BeforeEach
     void setUp() {
-        // Synchronous executor so pixel fires inline - no async race in tests
-        service = new DiscoveryPixelServiceImpl(client, Runnable::run);
+        service     = new DiscoveryPixelServiceImpl(transport, Runnable::run);
         credentials = new DiscoveryCredentials("acct", "domain", "key", null, "PRODUCTION");
-    }
-
-    private static final PixelFlags ENABLED = new PixelFlags(true, false, false, "US");
-
-    @Test
-    void fireSearchEvent_delegatesToClientAndFires() {
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(query, result, credentials, null, null, ENABLED))
-                .thenReturn("/api/v1/pixel/?type=SearchResponse");
-
-        service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
-
-        verify(client).buildSearchPixelPath(query, result, credentials, null, null, ENABLED);
-        verify(client).firePixelEvent("/api/v1/pixel/?type=SearchResponse", ClientContext.EMPTY, ENABLED);
+        event       = new SearchPageView(new TrackingContext(null, null, null, null, null), "shoes", List.of());
     }
 
     @Test
-    void fireCategoryEvent_delegatesToClientAndFires() {
-        CategoryQuery query = new CategoryQuery("cat-1", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildCategoryPixelPath(query, result, credentials, null, null, ENABLED))
-                .thenReturn("/api/v1/pixel/?type=CategoryView");
+    void fire_enabled_browserUA_buildPathAndFireCalled() {
+        when(transport.buildPath(event, credentials, null, ENABLED)).thenReturn("/pix.gif?type=pageview");
 
-        service.fireCategoryEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
+        service.fire(event, credentials, null, BROWSER, ENABLED);
 
-        verify(client).buildCategoryPixelPath(query, result, credentials, null, null, ENABLED);
-        verify(client).firePixelEvent("/api/v1/pixel/?type=CategoryView", ClientContext.EMPTY, ENABLED);
+        verify(transport).buildPath(event, credentials, null, ENABLED);
+        verify(transport).fire("/pix.gif?type=pageview", BROWSER, ENABLED);
     }
 
     @Test
-    void fireWidgetEvent_withRecommendationResult_delegates() {
-        RecQuery query = new RecQuery("item", "w-1", null, null, 8, null, null, null, null, null);
-        RecommendationResult result = RecommendationResult.of(List.of());
-        when(client.buildWidgetPixelPath(query, result, credentials, null, null, null, ENABLED))
-                .thenReturn("/pix.gif?type=event&group=widget");
+    void fire_disabled_nothingCalled() {
+        service.fire(event, credentials, null, BROWSER, PixelFlags.DISABLED);
 
-        service.fireWidgetEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
-
-        verify(client).buildWidgetPixelPath(query, result, credentials, null, null, null, ENABLED);
-        verify(client).firePixelEvent("/pix.gif?type=event&group=widget", ClientContext.EMPTY, ENABLED);
+        verifyNoInteractions(transport);
     }
 
     @Test
-    void fireProductPageViewEvent_delegatesAndFires() {
-        when(client.buildProductPageViewPixelPath("pid-42", "Shoe", "uid", "http://ref.com", null, "http://page.com", null,
-                credentials, null, ENABLED))
-                .thenReturn("/pix.gif?type=pageview&ptype=product&prod_id=pid-42");
+    void fire_axiosUA_blocked_nothingCalled() {
+        service.fire(event, credentials, null, AXIOS_CTX, ENABLED);
 
-        service.fireProductPageViewEvent("pid-42", "Shoe", "uid", "http://ref.com", "http://page.com", credentials, null, ClientContext.EMPTY, ENABLED);
-
-        verify(client).buildProductPageViewPixelPath("pid-42", "Shoe", "uid", "http://ref.com", null, "http://page.com", null,
-                credentials, null, ENABLED);
-        verify(client).firePixelEvent("/pix.gif?type=pageview&ptype=product&prod_id=pid-42", ClientContext.EMPTY, ENABLED);
+        verifyNoInteractions(transport);
     }
 
     @Test
-    void fireSearchEvent_passesClientIp() {
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(query, result, credentials, null, "10.0.0.1", ENABLED))
-                .thenReturn("/pix.gif?type=pageview");
+    void fire_nullUA_allowed_pixelFires() {
+        when(transport.buildPath(event, credentials, null, ENABLED)).thenReturn("/pix.gif");
 
-        service.fireSearchEvent(query, result, credentials, "10.0.0.1", ClientContext.EMPTY, ENABLED);
+        service.fire(event, credentials, null, NULL_UA, ENABLED);
 
-        verify(client).buildSearchPixelPath(query, result, credentials, null, "10.0.0.1", ENABLED);
+        verify(transport).buildPath(event, credentials, null, ENABLED);
     }
 
     @Test
-    void fireSearchEvent_clientThrows_doesNotPropagate() {
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(any(), any(), any(), nullable(String.class), nullable(String.class), any(PixelFlags.class)))
-                .thenReturn("/api/v1/pixel/?type=SearchResponse");
-        doThrow(new RuntimeException("broker down")).when(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
+    void fire_passesClientIpToTransport() {
+        when(transport.buildPath(eq(event), eq(credentials), eq("10.0.0.1"), eq(ENABLED))).thenReturn("/pix.gif");
 
-        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
+        service.fire(event, credentials, "10.0.0.1", BROWSER, ENABLED);
+
+        verify(transport).buildPath(event, credentials, "10.0.0.1", ENABLED);
     }
 
     @Test
-    void firePixelEvent_jsonParseError_doesNotPropagate() {
-        // CRISP throws ResourceException("JSON processing error.") for image/gif responses on HTTP 200.
-        // The service must not propagate this - the pixel was recorded successfully.
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(any(), any(), any(), nullable(String.class), nullable(String.class), any(PixelFlags.class)))
-                .thenReturn("/api/v1/pixel/?type=SearchResponse");
-        doThrow(new ResourceException("JSON processing error.")).when(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
+    void fire_transportFireThrows_doesNotPropagate() {
+        when(transport.buildPath(any(), any(), nullable(String.class), any())).thenReturn("/pix.gif");
+        doThrow(new RuntimeException("broker down")).when(transport).fire(anyString(), any(), any());
 
-        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
+        assertDoesNotThrow(() -> service.fire(event, credentials, null, BROWSER, ENABLED));
     }
 
     @Test
-    void fireSearchEvent_disabled_doesNotFirePixel() {
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+    void fire_transportBuildPathThrows_doesNotPropagate() {
+        when(transport.buildPath(any(), any(), nullable(String.class), any()))
+                .thenThrow(new IllegalStateException("bad state"));
 
-        service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, PixelFlags.DISABLED);
+        assertDoesNotThrow(() -> service.fire(event, credentials, null, BROWSER, ENABLED));
 
-        verify(client, never()).buildSearchPixelPath(any(), any(), any(), nullable(String.class), nullable(String.class), any(PixelFlags.class));
-        verify(client, never()).firePixelEvent(anyString(), any(), any(PixelFlags.class));
+        verify(transport, never()).fire(anyString(), any(), any());
     }
 
     @Test
-    void fireSearchEvent_enabled_firesPixel() {
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(any(), any(), any(), nullable(String.class), nullable(String.class), any(PixelFlags.class)))
-                .thenReturn("/pix.gif?type=pageview");
-
-        service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED);
-
-        verify(client).firePixelEvent(anyString(), any(), any(PixelFlags.class));
-    }
-
-    @Test
-    void fireSearchEvent_rejectedExecution_doesNotPropagate() {
+    void fire_rejectedExecution_doesNotPropagate() {
         DiscoveryPixelServiceImpl asyncService =
-                new DiscoveryPixelServiceImpl(client, task -> { throw new RejectedExecutionException("queue full"); });
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
+                new DiscoveryPixelServiceImpl(transport, task -> { throw new RejectedExecutionException("queue full"); });
 
-        assertDoesNotThrow(() -> asyncService.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
+        assertDoesNotThrow(() -> asyncService.fire(event, credentials, null, BROWSER, ENABLED));
 
-        verify(client, never()).firePixelEvent(anyString(), any(), any(PixelFlags.class));
-    }
-
-    @Test
-    void fireSearchEvent_pathBuildThrows_doesNotPropagate() {
-        SearchQuery query = new SearchQuery("shoes", 0, 10, null, null, null, null, null);
-        SearchResult result = new SearchResult(List.of(), 0L, 0, 10, Map.of());
-        when(client.buildSearchPixelPath(any(), any(), any(), nullable(String.class), nullable(String.class), any(PixelFlags.class)))
-                .thenThrow(new IllegalStateException("bad pixel state"));
-
-        assertDoesNotThrow(() -> service.fireSearchEvent(query, result, credentials, null, ClientContext.EMPTY, ENABLED));
-
-        verify(client, never()).firePixelEvent(anyString(), any(), any(PixelFlags.class));
+        verifyNoInteractions(transport);
     }
 }

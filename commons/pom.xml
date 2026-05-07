@@ -34,17 +34,10 @@
             <artifactId>hippo-services</artifactId>
         </dependency>
 
-        <!-- CRISP API/core (shared config-backed resolver) -->
+        <!-- JAX-RS 3.1 (DiscoveryExceptionMapper) -->
         <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-addon-crisp-api</artifactId>
-        </dependency>
-        <!-- CRISP core (shared config-backed resolver) -->
-        <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-addon-crisp-core</artifactId>
-            <version>${hippo.release.version}</version>
-            <scope>provided</scope>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
         </dependency>
 
         <!-- Logging -->
@@ -71,6 +64,13 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
+        </dependency>
+        <!-- JAX-RS RuntimeDelegate impl needed to build Response objects in tests -->
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-frontend-jaxrs</artifactId>
+            <version>${cxf.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

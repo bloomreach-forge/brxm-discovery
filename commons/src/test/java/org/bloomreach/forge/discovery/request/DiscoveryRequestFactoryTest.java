@@ -150,6 +150,28 @@ class DiscoveryRequestFactoryTest {
         assertTrue(request.queryParameters().stream().noneMatch(parameter -> parameter.name().equals("auth_key")));
     }
 
+    // ---- facet.version --------------------------------------------------------
+
+    @Test
+    void search_alwaysSendsFacetVersionV3() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-fv");
+        SearchQuery query = new SearchQuery("shoes", 0, 12, null, Map.of(), "uid", null, "https://site.example");
+
+        DiscoveryRequestSpec request = factory.search(query, CREDENTIALS);
+
+        assertEquals("3.0", valueOf(request, "facet.version"));
+    }
+
+    @Test
+    void category_alwaysSendsFacetVersionV3() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-fv-cat");
+        CategoryQuery query = new CategoryQuery("sale", 0, 12, null, Map.of(), "uid", null, "https://site.example");
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals("3.0", valueOf(request, "facet.version"));
+    }
+
     // ---- range filters --------------------------------------------------------
 
     @Test
@@ -193,6 +215,140 @@ class DiscoveryRequestFactoryTest {
         DiscoveryRequestSpec request = factory.search(query, CREDENTIALS);
 
         assertEquals(0, countOf(request, "fq"));
+    }
+
+    // ---- view_id ---------------------------------------------------------------
+
+    @Test
+    void search_withViewId_sendsViewIdParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-vid");
+        SearchQuery query = new SearchQuery("shoes", 0, 12, null, Map.of(), "uid", null, "https://site.example")
+                .withViewId("en_US");
+
+        DiscoveryRequestSpec request = factory.search(query, CREDENTIALS);
+
+        assertEquals("en_US", valueOf(request, "view_id"));
+    }
+
+    @Test
+    void search_noViewId_omitsViewIdParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-no-vid");
+        SearchQuery query = new SearchQuery("shoes", 0, 12, null, Map.of(), "uid", null, "https://site.example");
+
+        DiscoveryRequestSpec request = factory.search(query, CREDENTIALS);
+
+        assertEquals(0, countOf(request, "view_id"));
+    }
+
+    @Test
+    void category_withViewId_sendsViewIdParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-vid-cat");
+        CategoryQuery query = new CategoryQuery("sale", 0, 12, null, Map.of(), "uid", null, "https://site.example")
+                .withViewId("fr_CA");
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals("fr_CA", valueOf(request, "view_id"));
+    }
+
+    @Test
+    void category_noViewId_omitsViewIdParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-no-vid-cat");
+        CategoryQuery query = new CategoryQuery("sale", 0, 12, null, Map.of(), "uid", null, "https://site.example");
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals(0, countOf(request, "view_id"));
+    }
+
+    @Test
+    void recommendationV2_withViewId_sendsViewIdParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-vid-rec");
+        RecQuery query = new RecQuery("mlt", "widget-1", "prod-1", "pdp", 6, null, null, "https://page", null, "uid")
+                .withViewId("de_DE");
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals("de_DE", valueOf(request, "view_id"));
+    }
+
+    @Test
+    void recommendationV2_noViewId_omitsViewIdParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-no-vid-rec");
+        RecQuery query = new RecQuery("mlt", "widget-1", "prod-1", "pdp", 6, null, null, "https://page", null, "uid");
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals(0, countOf(request, "view_id"));
+    }
+
+    // ---- CategoryQuery wither methods: factory maps them to query params ------
+
+    @Test
+    void category_withSegment_appendsSegmentParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-seg");
+        CategoryQuery query = new CategoryQuery("boots", 0, 12, null, Map.of(), "uid", null, "https://site.example")
+                .withSegment("vip");
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals("vip", valueOf(request, "segment"));
+    }
+
+    @Test
+    void category_withEfq_appendsEfqParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-efq");
+        CategoryQuery query = new CategoryQuery("boots", 0, 12, null, Map.of(), "uid", null, "https://site.example")
+                .withEfq("inventory:true");
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals("inventory:true", valueOf(request, "efq"));
+    }
+
+    @Test
+    void category_withStatsFields_appendsStatsFieldParams() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-stats");
+        CategoryQuery query = new CategoryQuery("boots", 0, 12, null, Map.of(), "uid", null, "https://site.example")
+                .withStatsFields(List.of("price", "sale_price"));
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals(2L, countOf(request, "stats.field"));
+    }
+
+    @Test
+    void category_noSegmentOrEfq_noSegmentOrEfqParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-no-seg");
+        CategoryQuery query = new CategoryQuery("boots", 0, 12, null, Map.of(), "uid", null, "https://site.example");
+
+        DiscoveryRequestSpec request = factory.category(query, CREDENTIALS);
+
+        assertEquals(0L, countOf(request, "segment"));
+        assertEquals(0L, countOf(request, "efq"));
+    }
+
+    // ---- RecQuery backwards-compat constructors --------------------------------
+
+    @Test
+    void recQuery_v1Compat_setsOnlyWidgetIdProductIdPageTypeAndLimit() {
+        RecQuery q = new RecQuery("w-1", "prod-1", "pdp", 6);
+
+        assertEquals("w-1", q.widgetId());
+        assertEquals("prod-1", q.contextProductId());
+        assertEquals("pdp", q.contextPageType());
+        assertEquals(6, q.limit());
+    }
+
+    @Test
+    void recQuery_preOrigRefUrlCompat_populatesFieldsAndLeavesOrigRefUrlNull() {
+        RecQuery q = new RecQuery("mlt", "w-2", "prod-2", "pdp", 5, "pid,title", "brand:A", "https://page", "https://ref", "uid");
+
+        assertEquals("mlt", q.widgetType());
+        assertEquals("w-2", q.widgetId());
+        assertEquals("prod-2", q.contextProductId());
+        assertEquals("pdp", q.contextPageType());
+        assertEquals("brand:A", q.filters());
     }
 
     // ---- toV2WidgetType: algorithm type → family type mapping -----------------
@@ -255,7 +411,7 @@ class DiscoveryRequestFactoryTest {
     @Test
     void recommendationV2_bestsellerWidget_usesGlobalPath() {
         DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-bs");
-        RecQuery query = new RecQuery("bestseller", "widget-2", null, null, null, 8, null, null, "https://page", null, "uid", null);
+        RecQuery query = new RecQuery("bestseller", "widget-2", null, null, null, 8, null, null, "https://page", null, "uid", null, null, null);
 
         DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
 
@@ -265,7 +421,7 @@ class DiscoveryRequestFactoryTest {
     @Test
     void recommendationV2_pastPurchasesWidget_usesPersonalizedPath() {
         DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-pp");
-        RecQuery query = new RecQuery("past_purchases", "widget-3", null, null, null, 8, null, null, "https://page", null, "uid", null);
+        RecQuery query = new RecQuery("past_purchases", "widget-3", null, null, null, 8, null, null, "https://page", null, "uid", null, null, null);
 
         DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
 
@@ -289,6 +445,42 @@ class DiscoveryRequestFactoryTest {
                 .build();
 
         assertEquals("/api/v1/core/?q=shoes&rows=10", spec.toRelativePath());
+    }
+
+    // ---- keyword widget: query param ------------------------------------------
+
+    @Test
+    void recommendationV2_withQuery_appendsQueryParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-kw");
+        RecQuery query = new RecQuery("keyword", "w-kw", null, null, null, 8, null, null,
+                "https://page", "https://ref", "uid", null, "summer boots", null);
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals("/api/v2/widgets/keyword/w-kw", request.path());
+        assertEquals("summer boots", valueOf(request, "query"));
+    }
+
+    @Test
+    void recommendationV2_nullQuery_omitsQueryParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-kw-null");
+        RecQuery query = new RecQuery("keyword", "w-kw", null, null, null, 8, null, null,
+                "https://page", "https://ref", "uid", null, null, null);
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals(0, countOf(request, "query"));
+    }
+
+    @Test
+    void recommendationV2_blankQuery_omitsQueryParam() {
+        DiscoveryRequestFactory factory = new DiscoveryRequestFactory(() -> "req-kw-blank");
+        RecQuery query = new RecQuery("keyword", "w-kw", null, null, null, 8, null, null,
+                "https://page", "https://ref", "uid", null, "   ", null);
+
+        DiscoveryRequestSpec request = factory.recommendationV2(query, CREDENTIALS);
+
+        assertEquals(0, countOf(request, "query"));
     }
 
     private static String valueOf(DiscoveryRequestSpec request, String name) {

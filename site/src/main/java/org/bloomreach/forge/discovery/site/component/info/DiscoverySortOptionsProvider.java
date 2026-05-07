@@ -30,7 +30,7 @@ public class DiscoverySortOptionsProvider implements ValueListProvider {
         this.fixedEntries = null;
     }
 
-    /** Package-private constructor for tests — bypasses HstServices. */
+    /** Package-private constructor for tests - bypasses HstServices. */
     DiscoverySortOptionsProvider(List<String> entries) {
         this.fixedEntries = List.copyOf(entries);
     }
@@ -65,7 +65,7 @@ public class DiscoverySortOptionsProvider implements ValueListProvider {
                 return provider.get().schemaConfig().sortOptions();
             }
         } catch (Exception e) {
-            log.warn("brxm-discovery: Could not resolve sort options from config — using defaults. Cause: {}", e.getMessage());
+            log.warn("brxm-discovery: Could not resolve sort options from config - using defaults. Cause: {}", e.getMessage());
         }
         return ConfigDefaults.DEFAULT_SORT_OPTIONS;
     }

@@ -29,6 +29,7 @@
 <#-- @ftlvariable name="redirectUrl"        type="java.lang.String" -->
 <#-- @ftlvariable name="redirectQuery"      type="java.lang.String" -->
 <#-- @ftlvariable name="campaign"           type="org.bloomreach.forge.discovery.search.model.Campaign" -->
+<#-- @ftlvariable name="visualSearchEnabled"   type="java.lang.Boolean" -->
 
 <@hst.headContribution keyHint="brxdis-results-css">
 <style>
@@ -103,6 +104,7 @@
 .brxdis-hint{border:2px dashed #e5e7eb;padding:.75rem 1rem;border-radius:8px;font-size:.8125rem;color:#6b7280;text-align:center;margin:.5rem 0}
 </style>
 </@hst.headContribution>
+
 
 <div class="brxdis-results">
 
@@ -226,8 +228,12 @@
   <#-- ── Main content ────────────────────────────────────────────────────── -->
   <div class="brxdis-results__main">
 
-    <#-- Category page title -->
-    <#if (dataSourceMode!"") == "category" && (displayName?has_content || categoryId?has_content)>
+    <#-- Page title by mode -->
+    <#if (dataSourceMode!"") == "visual-search">
+      <div class="brxdis-results__header">
+        <h1 class="brxdis-results__title">Visually similar items</h1>
+      </div>
+    <#elseif (dataSourceMode!"") == "category" && (displayName?has_content || categoryId?has_content)>
       <div class="brxdis-results__header">
         <h1 class="brxdis-results__title">${displayName!categoryId!""}</h1>
       </div>
@@ -297,6 +303,10 @@
           </article>
         </#list>
       </div>
+    <#elseif (dataSourceMode!"") == "visual-search">
+      <div class="brxdis-empty">
+        <p>&#128247; No visually similar products found. Try a different image or object.</p>
+      </div>
     <#elseif (dataSourceMode!"") == "search" && (query!"") != "">
       <div class="brxdis-empty">
         <p>&#128269; No products found for "<strong>${query}</strong>". Try different keywords or clear filters.</p>
@@ -357,3 +367,4 @@
   </div>
 </div>
 </div>
+

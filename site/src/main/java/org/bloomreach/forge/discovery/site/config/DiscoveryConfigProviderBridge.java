@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  * Site config provider that delegates to the CMS module's instance when available.
  *
  * <p>If {@link HippoServiceRegistry} has a registered {@link DiscoveryConfigProvider} (set by the
- * CMS picker module at startup), all calls are delegated to it — no extra JCR session or
+ * CMS picker module at startup), all calls are delegated to it - no extra JCR session or
  * observation listener is opened from the site.  When no CMS instance is registered (site-only
  * deployment) a local {@link CachingDiscoveryConfigProvider} is started as a fallback.
  */
@@ -35,7 +35,7 @@ public class DiscoveryConfigProviderBridge implements DiscoveryConfigProvider, A
              () -> new CachingDiscoveryConfigProvider(reader));
     }
 
-    /** Seam for tests — inject registry lookup and fallback factory directly. */
+    /** Seam for tests - inject registry lookup and fallback factory directly. */
     DiscoveryConfigProviderBridge(Supplier<DiscoveryConfigProvider> registryLookup,
                                   Supplier<CachingDiscoveryConfigProvider> fallbackFactory) {
         this.registryLookup = registryLookup;
@@ -53,10 +53,10 @@ public class DiscoveryConfigProviderBridge implements DiscoveryConfigProvider, A
                 own.start();
                 fallback = own;
                 delegate = own;
-                log.info("brxm-discovery: no CMS config provider found in HippoServiceRegistry — started local fallback");
+                log.info("brxm-discovery: no CMS config provider found in HippoServiceRegistry - started local fallback");
             }
         } catch (Exception e) {
-            log.warn("brxm-discovery: config provider bridge failed to start — config reads will fail until corrected. Cause: {}",
+            log.warn("brxm-discovery: config provider bridge failed to start - config reads will fail until corrected. Cause: {}",
                     e.getMessage());
         }
     }

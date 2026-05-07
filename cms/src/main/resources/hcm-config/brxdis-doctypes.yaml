@@ -27,6 +27,15 @@ definitions:
         $now, './hippostd:holder', $holder]
       jcr:language: xpath
       jcr:statement: //element(*,hipposysedit:namespacefolder)/element(*,mix:referenceable)/element(*,hipposysedit:templatetype)/hipposysedit:prototypes/element(hipposysedit:prototype,brxdis:categoryRecommendationDocument)
+    /hippo:configuration/hippo:queries/hippo:templates/new-brxdis-keywordRecommendationDocument:
+      jcr:primaryType: hippostd:templatequery
+      hippostd:icon: adddocument_ico
+      hippostd:modify: [./_name, $name, './hippotranslation:locale', $inherited, './hippotranslation:id',
+        $uuid, './hippostdpubwf:createdBy', $holder, './hippostdpubwf:creationDate',
+        $now, './hippostdpubwf:lastModifiedBy', $holder, './hippostdpubwf:lastModificationDate',
+        $now, './hippostd:holder', $holder]
+      jcr:language: xpath
+      jcr:statement: //element(*,hipposysedit:namespacefolder)/element(*,mix:referenceable)/element(*,hipposysedit:templatetype)/hipposysedit:prototypes/element(hipposysedit:prototype,brxdis:keywordRecommendationDocument)
     /hippo:configuration/hippo:queries/hippo:templates/new-brxdis-globalRecommendationDocument:
       jcr:primaryType: hippostd:templatequery
       hippostd:icon: adddocument_ico
@@ -483,6 +492,93 @@ definitions:
               /cluster.options:
                 jcr:primaryType: frontend:pluginconfig
                 ui.extension: discoveryRecommendationPreview
+      /keywordRecommendationDocument:
+        jcr:primaryType: hipposysedit:templatetype
+        jcr:mixinTypes: ['editor:editable', 'mix:referenceable']
+        /hipposysedit:nodetype:
+          jcr:primaryType: hippo:handle
+          jcr:mixinTypes: ['hippo:named', 'mix:referenceable']
+          hippo:name: Discovery Keyword Recommendation
+          /hipposysedit:nodetype:
+            jcr:primaryType: hipposysedit:nodetype
+            jcr:mixinTypes: ['hipposysedit:remodel']
+            hipposysedit:supertype: ['hippo:document', 'hippostdpubwf:document']
+            hipposysedit:uri: 'http://www.bloomreach.com/forge/discovery/nt/1.0'
+            /displayName:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:displayName
+              hipposysedit:type: String
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+            /config:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:config
+              hipposysedit:type: OpenUiString
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+            /_preview:
+              jcr:primaryType: hipposysedit:field
+              hipposysedit:path: brxdis:_preview
+              hipposysedit:type: OpenUiString
+              hipposysedit:mandatory: false
+              hipposysedit:multiple: false
+              hipposysedit:ordered: false
+              hipposysedit:primary: false
+        /hipposysedit:prototypes:
+          jcr:primaryType: hipposysedit:prototypeset
+          /hipposysedit:prototype:
+            jcr:primaryType: brxdis:keywordRecommendationDocument
+            hippostd:holder: holder
+            hippostd:state: draft
+            hippostdpubwf:createdBy: ''
+            hippostdpubwf:creationDate: 2013-09-16T18:03:51.692+02:00
+            hippostdpubwf:lastModificationDate: 2013-09-16T18:03:51.691+02:00
+            hippostdpubwf:lastModifiedBy: ''
+            brxdis:displayName: ''
+            brxdis:config: ''
+            brxdis:_preview: ''
+        /editor:templates:
+          jcr:primaryType: editor:templateset
+          /_default_:
+            jcr:primaryType: frontend:plugincluster
+            frontend:properties: ['mode']
+            frontend:references: ['wicket.model', 'engine', 'model.compareTo']
+            frontend:services: ['wicket.id']
+            type: brxdis:keywordRecommendationDocument
+            /root:
+              jcr:primaryType: frontend:plugin
+              plugin.class: 'org.hippoecm.frontend.service.render.ListViewPlugin'
+              item: '${cluster.id}.field'
+            /displayName:
+              jcr:primaryType: frontend:plugin
+              caption: 'Display Name'
+              field: displayName
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+            /config:
+              jcr:primaryType: frontend:plugin
+              caption: 'Recommendation'
+              field: config
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+                ui.extension: discoveryKeywordRecommendationWizard
+            /preview:
+              jcr:primaryType: frontend:plugin
+              caption: 'Preview'
+              field: _preview
+              plugin.class: 'org.hippoecm.frontend.editor.plugins.field.PropertyFieldPlugin'
+              wicket.id: '${cluster.id}.field'
+              /cluster.options:
+                jcr:primaryType: frontend:pluginconfig
+                ui.extension: discoveryRecommendationPreview
     # ============================================================================
     # Type display name translations (CMS folder listing type column)
     # ============================================================================
@@ -511,6 +607,11 @@ definitions:
       /en:
         jcr:primaryType: hipposys:resourcebundle
         jcr:name: Global Recommendation Document
+    /hippo:configuration/hippo:translations/hippo:types/brxdis:keywordRecommendationDocument:
+      jcr:primaryType: hipposys:resourcebundles
+      /en:
+        jcr:primaryType: hipposys:resourcebundle
+        jcr:name: Keyword Recommendation Document
     # Template query display labels shown in the "Add new document" dialog
     /hippo:configuration/hippo:translations/hippo:templates/en:
       new-brxdis-categoryDocument: Category Document
@@ -518,3 +619,4 @@ definitions:
       new-brxdis-productRecommendationDocument: Product Recommendation Document
       new-brxdis-categoryRecommendationDocument: Category Recommendation Document
       new-brxdis-globalRecommendationDocument: Global Recommendation Document
+      new-brxdis-keywordRecommendationDocument: Keyword Recommendation Document

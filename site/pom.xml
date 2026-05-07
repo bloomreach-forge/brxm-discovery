@@ -28,16 +28,6 @@
             <artifactId>brxm-discovery-commons</artifactId>
         </dependency>
 
-        <!-- CRISP -->
-        <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-addon-crisp-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-addon-crisp-hst</artifactId>
-        </dependency>
-
         <!-- HST -->
         <dependency>
             <groupId>org.onehippo.cms7.hst</groupId>
@@ -84,6 +74,18 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
+        <!-- JAX-RS 3.1 (delivery REST endpoints) -->
+        <dependency>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
+        </dependency>
+
+        <!-- Jackson JAX-RS provider (serialization in JAX-RS endpoints) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+            <artifactId>jackson-jakarta-rs-json-provider</artifactId>
+        </dependency>
+
         <!-- Spring Web (UriComponentsBuilder for pixel URL assembly in DefaultDiscoveryPixelTransport) -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -92,17 +94,18 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- CXF: multipart types (@Multipart, Attachment) for DiscoveryVisualSearchResource -->
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-frontend-jaxrs</artifactId>
+            <version>${cxf.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- CRISP Mock -->
-        <dependency>
-            <groupId>org.onehippo.cms7</groupId>
-            <artifactId>hippo-addon-crisp-mock</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <!-- Test -->

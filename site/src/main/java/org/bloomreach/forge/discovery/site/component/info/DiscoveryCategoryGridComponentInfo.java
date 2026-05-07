@@ -21,7 +21,7 @@ import org.hippoecm.hst.core.parameters.Parameter;
         titleKey = "results.display.group"
     ),
     @FieldGroup(
-        value = {"categoryUrlParam", "statsFields", "segment", "exclusionFilter"},
+        value = {"categoryUrlParam", "catalogName", "statsFields", "facetFields", "segment", "exclusionFilter"},
         titleKey = "advanced.group"
     )
 })
@@ -55,11 +55,17 @@ public interface DiscoveryCategoryGridComponentInfo {
     @Parameter(name = "categoryUrlParam", displayName = "URL path segment / query param name", defaultValue = "cid")
     String getCategoryUrlParam();
 
+    @Parameter(name = "catalogName", displayName = "Catalog name", defaultValue = "")
+    String getCatalogName();
+
     @Parameter(name = "statsFields", displayName = "Stats fields (comma-separated)", defaultValue = "")
     String getStatsFields();
 
     @Parameter(name = "segment", displayName = "Visitor segment", defaultValue = "")
     String getSegment();
+
+    @Parameter(name = "facetFields", displayName = "Visible facets (comma-separated, empty = all)", defaultValue = "")
+    String getFacetFields();
 
     @Parameter(name = "exclusionFilter", displayName = "Exclusion filter (EFQ)", defaultValue = "")
     String getExclusionFilter();

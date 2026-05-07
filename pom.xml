@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.onehippo.cms7</groupId>
         <artifactId>hippo-cms7-project</artifactId>
-        <version>16.7.0</version>
+        <version>17.0.0</version>
     </parent>
 
     <groupId>org.bloomreach.forge.discovery</groupId>
@@ -47,25 +47,6 @@
                 <groupId>${project.groupId}</groupId>
                 <artifactId>brxm-discovery-hcm-site</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            <!-- CRISP -->
-            <dependency>
-                <groupId>org.onehippo.cms7</groupId>
-                <artifactId>hippo-addon-crisp-api</artifactId>
-                <version>${hippo.release.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.onehippo.cms7</groupId>
-                <artifactId>hippo-addon-crisp-repository</artifactId>
-                <version>${hippo.release.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.onehippo.cms7</groupId>
-                <artifactId>hippo-addon-crisp-hst</artifactId>
-                <version>${hippo.release.version}</version>
-                <scope>provided</scope>
             </dependency>
             <!-- HST -->
             <dependency>
@@ -137,7 +118,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>${jackson2.version}</version>
+                <version>${jackson2-annotations.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -153,7 +134,7 @@
                 <version>${slf4j2.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Hippo Services (HippoServiceRegistry - needed for CRISP broker lookup) -->
+            <!-- Hippo Services (HippoServiceRegistry for DiscoveryConfigProvider lookup and registration) -->
             <dependency>
                 <groupId>org.onehippo.cms7</groupId>
                 <artifactId>hippo-services</artifactId>
@@ -166,13 +147,6 @@
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
                 <scope>provided</scope>
-            </dependency>
-            <!-- CRISP Mock -->
-            <dependency>
-                <groupId>org.onehippo.cms7</groupId>
-                <artifactId>hippo-addon-crisp-mock</artifactId>
-                <version>${hippo.release.version}</version>
-                <scope>test</scope>
             </dependency>
             <!-- Test -->
             <dependency>
@@ -201,6 +175,51 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- Copy user-guides/*.md to src/site/markdown/ before site generation so
+                 doxia-module-markdown can render them. user-guides/ stays canonical for
+                 GitHub-browser readability. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-user-guides-to-site</id>
+                        <phase>pre-site</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/site/markdown</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/user-guides</directory>
+                                    <includes>
+                                        <include>*.md</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <dependencies>
+                    <!-- Render *.md files via doxia-module-markdown (Doxia 2.x compatible) -->
+                    <dependency>
+                        <groupId>org.apache.maven.doxia</groupId>
+                        <artifactId>doxia-module-markdown</artifactId>
+                        <version>2.0.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
 
     <reporting>
         <plugins>
@@ -268,15 +287,15 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-        
                         <executions>
                             <execution>
+                                <id>jacoco-prepare-agent</id>
                                 <goals>
                                     <goal>prepare-agent</goal>
                                 </goals>
                             </execution>
                             <execution>
-                                <id>report</id>
+                                <id>jacoco-report</id>
                                 <phase>test</phase>
                                 <goals>
                                     <goal>report</goal>
@@ -284,11 +303,22 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>@{argLine}</argLine>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
         <profile>
             <id>github.pages</id>
+            <properties>
+                <!-- Test execution requires JDK 21 (matching compile target). CI uses JDK 21. -->
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -300,6 +330,24 @@
                     </plugin>
                 </plugins>
             </build>
+            <reporting>
+                <plugins>
+                    <!-- Skip javadoc aggregate report: requires same JDK as compile target (21).
+                         CI has JDK 21; override with empty reportSet to suppress locally. -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                        <reportSets>
+                            <reportSet>
+                                <reports/>
+                            </reportSet>
+                        </reportSets>
+                    </plugin>
+                </plugins>
+            </reporting>
         </profile>
     </profiles>
 </project>
