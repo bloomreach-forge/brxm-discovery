@@ -55,7 +55,7 @@ public class QueryParamParser {
         Map<String, RangeSelection> rangeFilters = parseRangeFilters(paramProvider.getParameterMap());
         String segment = paramProvider.getParameter("seg");
         return new SearchQuery(searchTerm, page, pageSize, sort, filters, brUid2, refUrl, url, null, catalogName,
-                List.of(), segment != null && !segment.isBlank() ? segment : null, null, rangeFilters, null);
+                List.of(), segment != null && !segment.isBlank() ? segment : null, null, rangeFilters, null, null);
     }
 
     /**
@@ -103,7 +103,7 @@ public class QueryParamParser {
         Map<String, RangeSelection> rangeFilters = parseRangeFilters(paramProvider.getParameterMap());
         String segment = paramProvider.getParameter("seg");
         return new CategoryQuery(categoryId, page, pageSize, sort, filters, brUid2, refUrl, url, null,
-                List.of(), segment != null && !segment.isBlank() ? segment : null, null, rangeFilters, null);
+                List.of(), segment != null && !segment.isBlank() ? segment : null, null, rangeFilters, null, null, null);
     }
 
     /**

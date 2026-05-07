@@ -320,7 +320,7 @@ public class DiscoveryPickerResource {
 
         DiscoveryConfig config = resolveConfig(channelId, documentId);
         RecQuery query = new RecQuery(widgetType, widgetId, productId, catId, null,
-                safeCount, responseMapper.pickerFieldList(), null, requestUrl(), null, brUid2(), null);
+                safeCount, responseMapper.pickerFieldList(), null, requestUrl(), null, brUid2(), null, null, null);
 
         boolean useV2 = !isBlank(config.credentials().authKey());
         DiscoveryRequestSpec spec = useV2

@@ -1,7 +1,6 @@
 package org.bloomreach.forge.discovery.config;
 
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySchemaConfig;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -382,7 +381,7 @@ class DiscoveryConfigReaderTest {
     @Test
     void readSchemaConfig_envVar_hasNoEffect_jcrTakesPrecedence() throws RepositoryException {
         stubJcrProperty(ConfigDefaults.DEFAULT_FIELD_LIST_JCR, "pid,title");
-        // env var set but should be ignored — field list is not a secret/env concern
+        // env var set but should be ignored - field list is not a secret/env concern
         DiscoveryConfigReader envReader = new DiscoveryConfigReader(
                 name -> "BRXDIS_DEFAULT_FL".equals(name) ? "pid,title,pet_type,tags" : null);
 

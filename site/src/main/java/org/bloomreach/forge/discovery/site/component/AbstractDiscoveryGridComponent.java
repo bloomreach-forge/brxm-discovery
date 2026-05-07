@@ -15,8 +15,12 @@ import org.hippoecm.hst.site.HstServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Shared base for the two Discovery Product Grid components.
@@ -36,7 +40,7 @@ abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent
      */
     protected void populateResultModels(HstRequest request, SearchResponse searchResponse,
             boolean showFacets, boolean showPagination, boolean showSort,
-            Map<String, String[]> params) {
+            Map<String, String[]> params, Set<String> facetFields) {
         SearchResult result = searchResponse.result();
         PaginationModel pagination = new PaginationModel(result.total(), result.page(), result.pageSize());
 
@@ -45,9 +49,14 @@ abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent
         request.setModel(DiscoveryModelKeys.STATS, searchResponse.metadata().stats());
 
         if (showFacets) {
-            request.setModel(DiscoveryModelKeys.FACETS, result.facets());
-            request.setModel(DiscoveryModelKeys.FACET_URLS, buildFacetToggleUrls(params, result.facets()));
-            request.setModel(DiscoveryModelKeys.ACTIVE_FACETS, buildActiveFacetValues(params, result.facets()));
+            Map<String, Facet> facets = facetFields.isEmpty()
+                    ? result.facets()
+                    : result.facets().entrySet().stream()
+                            .filter(e -> facetFields.contains(e.getKey()))
+                            .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
+            request.setModel(DiscoveryModelKeys.FACETS, facets);
+            request.setModel(DiscoveryModelKeys.FACET_URLS, buildFacetToggleUrls(params, facets));
+            request.setModel(DiscoveryModelKeys.ACTIVE_FACETS, buildActiveFacetValues(params, facets));
             request.setModel(DiscoveryModelKeys.CLEAR_FILTERS_URL, buildClearAllUrl(params));
         }
 
@@ -107,9 +116,17 @@ abstract class AbstractDiscoveryGridComponent extends AbstractDiscoveryComponent
                 }
             }
         } catch (Exception e) {
-            log.warn("brxm-discovery: Could not resolve sort options from config — using defaults. Cause: {}", e.getMessage());
+            log.warn("brxm-discovery: Could not resolve sort options from config - using defaults. Cause: {}", e.getMessage());
         }
         return toSortOptionMaps(ConfigDefaults.DEFAULT_SORT_OPTIONS);
+    }
+
+    static Set<String> parseFacetFields(String raw) {
+        if (raw == null || raw.isBlank()) return Set.of();
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(Predicate.not(String::isEmpty))
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private static List<Map<String, String>> toSortOptionMaps(List<String> entries) {

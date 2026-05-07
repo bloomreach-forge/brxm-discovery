@@ -20,7 +20,7 @@ import org.hippoecm.hst.core.parameters.Parameter;
         titleKey = "results.display.group"
     ),
     @FieldGroup(
-        value = {"catalogName", "statsFields", "segment", "exclusionFilter"},
+        value = {"catalogName", "statsFields", "facetFields", "segment", "exclusionFilter"},
         titleKey = "advanced.group"
     )
 })
@@ -56,6 +56,9 @@ public interface DiscoverySearchGridComponentInfo {
 
     @Parameter(name = "segment", displayName = "Visitor segment", defaultValue = "")
     String getSegment();
+
+    @Parameter(name = "facetFields", displayName = "Visible facets (comma-separated, empty = all)", defaultValue = "")
+    String getFacetFields();
 
     @Parameter(name = "exclusionFilter", displayName = "Exclusion filter (EFQ)", defaultValue = "")
     String getExclusionFilter();

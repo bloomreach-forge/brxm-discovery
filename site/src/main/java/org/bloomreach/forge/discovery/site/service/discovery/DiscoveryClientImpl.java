@@ -2,56 +2,63 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
-import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
-import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
-import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
-import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
 import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
 import org.bloomreach.forge.discovery.search.model.CategoryQuery;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchQuery;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
-import org.bloomreach.forge.discovery.search.model.SearchResult;
-import org.onehippo.cms7.crisp.api.exchange.ExchangeHint;
+import org.bloomreach.forge.discovery.site.service.discovery.autosuggest.AutosuggestApiClient;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.PixelEvent;
+import org.bloomreach.forge.discovery.site.service.discovery.recommendation.RecommendationApiClient;
+import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
+import org.bloomreach.forge.discovery.request.DiscoveryRequestFactory;
+import org.bloomreach.forge.discovery.site.service.discovery.search.SearchApiClient;
+import org.bloomreach.forge.discovery.visual.model.VisualSearchQuery;
 
+import java.util.List;
 import java.util.Optional;
 
-/**
- * Thin Discovery facade that delegates core API, recommendation, and pixel work
- * to focused collaborators while keeping the public addon API stable.
- */
-public class DiscoveryClientImpl implements DiscoveryClient {
+public class DiscoveryClientImpl implements DiscoveryApiClient, DiscoveryPixelTransport {
 
-    private final DiscoveryCoreApiClient coreApiClient;
-    private final DiscoveryRecommendationClient recommendationClient;
+    private final SearchApiClient searchClient;
+    private final AutosuggestApiClient autosuggestClient;
+    private final RecommendationApiClient recommendationClient;
     private final DiscoveryPixelTransport pixelTransport;
 
-    public DiscoveryClientImpl(DiscoveryResponseMapper responseMapper, DiscoveryRequestFactory requestFactory) {
-        this(new DiscoveryResourceExecutor(), responseMapper, requestFactory);
-    }
-
-    /** Test seam: inject executor + factory directly (avoids ResourceServiceBroker on site classloader). */
-    DiscoveryClientImpl(DiscoveryResourceExecutor executor, DiscoveryResponseMapper responseMapper,
-                        DiscoveryRequestFactory requestFactory) {
-        this.coreApiClient = new DiscoveryCoreApiClient(executor, responseMapper, requestFactory);
-        this.recommendationClient = new DiscoveryRecommendationClient(executor, responseMapper, requestFactory);
-        this.pixelTransport = new DefaultDiscoveryPixelTransport(executor);
-    }
-
-    @Override
-    public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        return coreApiClient.autosuggest(query, credentials, ctx);
+    public DiscoveryClientImpl(SearchApiClient searchClient, AutosuggestApiClient autosuggestClient,
+                               RecommendationApiClient recommendationClient,
+                               DiscoveryPixelTransport pixelTransport) {
+        this.searchClient = searchClient;
+        this.autosuggestClient = autosuggestClient;
+        this.recommendationClient = recommendationClient;
+        this.pixelTransport = pixelTransport;
     }
 
     @Override
     public SearchResponse search(SearchQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        return coreApiClient.search(query, credentials, ctx);
+        return searchClient.search(query, credentials, ctx);
     }
 
     @Override
     public SearchResponse category(CategoryQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
-        return coreApiClient.category(query, credentials, ctx);
+        return searchClient.category(query, credentials, ctx);
+    }
+
+    @Override
+    public Optional<ProductSummary> fetchProduct(String pid, String url, String fields, DiscoveryCredentials credentials, ClientContext ctx) {
+        return searchClient.fetchProduct(pid, url, fields, credentials, ctx);
+    }
+
+    @Override
+    public List<ProductSummary> visualSearch(VisualSearchQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        return searchClient.visualSearch(query, credentials, ctx);
+    }
+
+    @Override
+    public AutosuggestResult autosuggest(AutosuggestQuery query, DiscoveryCredentials credentials, ClientContext ctx) {
+        return autosuggestClient.autosuggest(query, credentials, ctx);
     }
 
     @Override
@@ -60,61 +67,21 @@ public class DiscoveryClientImpl implements DiscoveryClient {
     }
 
     @Override
-    public Optional<ProductSummary> fetchProduct(String pid, String url, String fields, DiscoveryCredentials credentials, ClientContext ctx) {
-        return coreApiClient.fetchProduct(pid, url, fields, credentials, ctx);
+    public String buildPath(PixelEvent event, DiscoveryCredentials credentials, String clientIp, PixelFlags flags) {
+        return pixelTransport.buildPath(event, credentials, clientIp, flags);
     }
 
     @Override
-    public String buildSearchPixelPath(SearchQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                       String title, String clientIp, PixelFlags flags) {
-        return pixelTransport.buildSearchPixelPath(query, result, credentials, title, clientIp, flags);
-    }
-
-    @Override
-    public String buildCategoryPixelPath(CategoryQuery query, SearchResult result, DiscoveryCredentials credentials,
-                                         String title, String clientIp, PixelFlags flags) {
-        return pixelTransport.buildCategoryPixelPath(query, result, credentials, title, clientIp, flags);
-    }
-
-    @Override
-    public String buildWidgetPixelPath(RecQuery query, RecommendationResult result, DiscoveryCredentials credentials,
-                                       String pageType, String title, String clientIp, PixelFlags flags) {
-        return pixelTransport.buildWidgetPixelPath(query, result, credentials, pageType, title, clientIp, flags);
-    }
-
-    @Override
-    public String buildProductPageViewPixelPath(String pid, String prodName, String brUid2, String refUrl,
-                                                String origRefUrl, String url, String title,
-                                                DiscoveryCredentials credentials, String clientIp, PixelFlags flags) {
-        return pixelTransport.buildProductPageViewPixelPath(pid, prodName, brUid2, refUrl, origRefUrl, url, title,
-                credentials, clientIp, flags);
-    }
-
-    @Override
-    public String buildDeferredEventPixelPath(DeferredPixelEvent event, DiscoveryCredentials credentials,
-                                              String clientIp, PixelFlags flags) {
-        return pixelTransport.buildDeferredEventPixelPath(event, credentials, clientIp, flags);
-    }
-
-    @Override
-    public void firePixelEvent(String pixelPath, ClientContext ctx, PixelFlags flags) {
-        pixelTransport.firePixelEvent(pixelPath, ctx, flags);
+    public void fire(String path, ClientContext ctx, PixelFlags flags) {
+        pixelTransport.fire(path, ctx, flags);
     }
 
     public static String toV2WidgetType(String rawType) {
-        return DiscoveryRecommendationClient.toV2WidgetType(rawType);
+        return DiscoveryRequestFactory.toV2WidgetType(rawType);
     }
 
     static String redactPath(String path) {
         return DiscoveryRequestLogging.redactPath(path);
-    }
-
-    static ExchangeHint buildHint(ClientContext ctx) {
-        return DiscoveryExchangeHints.buildHint(ctx);
-    }
-
-    static ExchangeHint buildV2Hint(DiscoveryCredentials credentials, ClientContext ctx) {
-        return DiscoveryExchangeHints.buildV2Hint(credentials, ctx);
     }
 
     static String requestId(String path) {

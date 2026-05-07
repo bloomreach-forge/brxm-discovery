@@ -8,7 +8,6 @@ import org.bloomreach.forge.discovery.site.service.discovery.search.model.Catego
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryHighlightComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;

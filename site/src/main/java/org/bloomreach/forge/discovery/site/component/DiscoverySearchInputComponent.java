@@ -2,6 +2,7 @@ package org.bloomreach.forge.discovery.site.component;
 
 import org.bloomreach.forge.discovery.search.model.AutosuggestResult;
 import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
+import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchInputComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
 import org.hippoecm.hst.core.component.HstComponentException;
@@ -32,6 +33,18 @@ public class DiscoverySearchInputComponent extends AbstractDiscoveryComponent {
         request.setModel(DiscoveryModelKeys.DEBOUNCE_MS, info.getDebounceMs());
         request.setModel(DiscoveryModelKeys.QUERY, query);
 
+        DiscoveryChannelInfo channelInfo = getChannelInfo(request);
+        boolean vsEnabled = channelInfo != null && channelInfo.getDiscoveryVisualSearchEnabled();
+        request.setModel(DiscoveryModelKeys.VISUAL_SEARCH_ENABLED, vsEnabled);
+        if (vsEnabled) {
+            String widgetId = resolveVisualSearchWidgetId(request, channelInfo);
+            if (widgetId != null && !widgetId.isBlank()) {
+                String vsBase = request.getContextPath() + "/_brxdis-api/visual-search/" + widgetId;
+                request.setModel(DiscoveryModelKeys.VISUAL_SEARCH_UPLOAD_URL, vsBase + "/upload");
+                request.setModel(DiscoveryModelKeys.VISUAL_SEARCH_WIDGET_ID, widgetId);
+            }
+        }
+
         if (!query.isBlank() && info.isSuggestionsEnabled()) {
             HstDiscoveryService svc = getDiscoveryService();
             AutosuggestResult suggestions = svc.autosuggest(request, query, info.getSuggestionsLimit());
@@ -40,4 +53,5 @@ public class DiscoverySearchInputComponent extends AbstractDiscoveryComponent {
             request.setModel(DiscoveryModelKeys.AUTOSUGGEST_RESULT, null);
         }
     }
+
 }

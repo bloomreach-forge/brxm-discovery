@@ -6,7 +6,7 @@ pluginTier: forge-addon
 
 compatibility:
   brxm:
-    min: "16.7.0"
+    min: "17.0.0"
 
 repository:
   branch: main
@@ -15,7 +15,7 @@ artifacts:
   - artifactId: brxm-discovery-cms
     target: cms-dependencies
     scope: compile
-    description: "CMS module with Discovery picker UI, REST endpoints, HCM bootstrap, and CRISP repository definitions"
+    description: "CMS module with Discovery picker UI, REST endpoints, and HCM bootstrap"
   - artifactId: brxm-discovery-site
     target: site/components
     scope: compile
@@ -23,7 +23,7 @@ artifacts:
   - artifactId: brxm-discovery-site
     target: site/webapp
     scope: compile
-    description: "Site webapp runtime dependency that loads the addon assembly, Spring beans, CRISP resolvers, bundled templates, and transitive HCM site bootstrap"
+    description: "Site webapp runtime dependency that loads the addon assembly, Spring beans, bundled templates, and transitive HCM site bootstrap"
 
 installation:
   target:
@@ -35,10 +35,6 @@ installation:
   configuration:
     file: "site/webapp/src/main/webapp/WEB-INF/hst-config.properties"
     properties:
-      - name: crisp.broker.registerService
-        description: "Required site-webapp property that registers the CRISP ResourceServiceBroker"
-        required: true
-        example: "true"
       - name: discoveryAccountId
         description: "Optional channel-level account ID in hst:channelinfo; otherwise use BRXDIS_ACCOUNT_ID, -Dbrxdis.accountId, or brxdis:accountId in the global config node"
         required: false
@@ -60,4 +56,4 @@ installation:
         required: false
         default: "PRODUCTION"
         example: "STAGING"
-  verification: "The CMS picker endpoint responds, the site resolves discoverySearchAPI/discoveryPathwaysAPI/discoveryAutosuggestAPI, and Discovery components render with the configured credentials"
+  verification: "The CMS picker endpoint responds, and Discovery components render with the configured credentials"

@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CategoryPreviewCacheTest {
 
     private static ProductSummary product(String pid) {
-        return new ProductSummary(pid, "Name", null, null, null, null, Map.of());
+        return new ProductSummary(pid, "Name", null, null, null, null, Map.of(), List.of());
     }
 
     @Test

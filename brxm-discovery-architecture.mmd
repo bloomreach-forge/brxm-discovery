@@ -1,0 +1,119 @@
+graph TB
+    %% ── External actors & APIs ──────────────────────────────────────────
+    subgraph EXT["External"]
+        BROWSER["Browser / SPA"]
+        JCR[("JCR Repository\nbrxdis:discoveryConfig")]
+        CORE["core.dxpapi.com\nSearch · Category · PDP"]
+        PATHWAYS["pathways.dxpapi.com\nPathways v2 · Visual Search"]
+        SUGGEST["suggest.dxpapi.com\nAutosuggest"]
+        PIXEL["p.brsrvr.com\np-eu.brsrvr.com\nPixel Events"]
+    end
+
+    %% ── commons (shared domain contract) ───────────────────────────────
+    subgraph COMMONS["commons  ·  brxm-discovery-commons"]
+        CFG_READER["DiscoveryConfigReader\n+ CachingDiscoveryConfigProvider\n+ DiscoveryConfig (record)"]
+        DOMAIN["Queries  SearchQuery · CategoryQuery\n         RecQuery · AutosuggestQuery\nResults  SearchResult · ProductSummary"]
+        EXCEP["DiscoveryException (sealed)\n  ├─ SearchException\n  ├─ RecommendationException\n  └─ ConfigurationException"]
+        REST_BASE["REST Infrastructure\n  AbstractDiscoveryResource\n  AbstractJaxrsEndpointRegistrar\n  DiscoveryMultipartHttpClient(Impl)"]
+    end
+
+    %% ── CMS webapp ──────────────────────────────────────────────────────
+    subgraph CMS_RT["CMS Webapp  ·  cms module"]
+        DAEMON["DiscoveryPickerModule\n(DaemonModule lifecycle)"]
+        CMS_CFG["CachingDiscoveryConfigProvider\n(CMS instance)"]
+        PICKER["DiscoveryPickerResource\nGET /ws/discovery/picker/\n  search · items · categories\n  browse · widgets · category-products"]
+        OPEN_UI["Open UI Extensions\n  discoveryProductPicker\n  discoveryWidgetPicker\n  discoveryCategoryPicker\n  discoveryCategoryProductPreview"]
+    end
+
+    %% ── Site webapp ─────────────────────────────────────────────────────
+    subgraph SITE_RT["Site Webapp  ·  site + hcm-site modules"]
+
+        subgraph COMPONENTS["HST Components  (Channel Manager catalog)"]
+            GRID["DiscoverySearchGridComponent\nDiscoveryCategoryGridComponent"]
+            INPUT["DiscoverySearchInputComponent"]
+            RECS["DiscoveryProductRecommendationComponent\nDiscoveryCategoryRecommendationComponent\nDiscoveryGlobal/KeywordRecommendationComponent"]
+            DETAIL["DiscoveryProductDetailComponent"]
+            HIGHLIGHTS["DiscoveryProduct/CategoryHighlightComponent"]
+        end
+
+        FACADE["HstDiscoveryService  (façade)\n  + DiscoveryRuntimeContextFactory\n  + DiscoveryRequestCache  (request-scoped dedup)"]
+        SITE_CFG["CachingDiscoveryConfigProvider\n(Site instance · JCR EventListener)"]
+
+        subgraph SERVICES["Service Layer"]
+            CLIENT["DiscoveryClientImpl\n(CRISP-backed)"]
+            MAPPER["DiscoveryResponseMapper\n(JSON → domain records)"]
+            PIXEL_SVC["DiscoveryPixelServiceImpl\n(async ThreadPool)"]
+        end
+
+        subgraph CRISP_SPACES["CRISP Resource Broker  (auto-bootstrapped)"]
+            CS["discoverySearchAPI"]
+            CP["discoveryPathwaysAPI"]
+            CA["discoveryAutosuggestAPI"]
+            CPX["discoveryPixelAPI(EU)"]
+        end
+
+        subgraph DELIVERY_REST["Delivery REST  /api/v1/discovery/"]
+            REGISTRAR["SiteJaxrsEndpointRegistrar\n(init-method: register)"]
+            VS_RES["DiscoveryVisualSearchResource\n  POST /{widgetId}/upload\n  GET  /{widgetId}/search"]
+            HTTP_CLIENT["DiscoveryMultipartHttpClientImpl\n(Java 11 HttpClient · 2 MB guard)"]
+        end
+
+        HCM["hcm-site bootstrap\n  brxdis-hst-catalog.yaml\n  bundled FTL templates\n  CRISP resolver definitions"]
+    end
+
+    %% ── Module dependency arrows (compile-time) ─────────────────────────
+    COMMONS -.->|"compile dep"| CMS_RT
+    COMMONS -.->|"compile dep"| SITE_RT
+
+    %% ── CMS runtime wiring ───────────────────────────────────────────────
+    DAEMON -->|"creates & starts"| CMS_CFG
+    DAEMON -->|"registers JAX-RS"| PICKER
+    PICKER -->|"resolves config"| CMS_CFG
+    CMS_CFG -->|"reads / observes"| JCR
+
+    %% ── CMS ↔ external ───────────────────────────────────────────────────
+    BROWSER -->|"Open UI iframe"| OPEN_UI
+    OPEN_UI -->|"REST calls"| PICKER
+    PICKER -->|"CRISP search/rec"| CORE
+    PICKER -->|"CRISP rec v2"| PATHWAYS
+
+    %% ── Site component → service ─────────────────────────────────────────
+    BROWSER -->|"page request (HST)"| COMPONENTS
+    GRID & INPUT & RECS & DETAIL & HIGHLIGHTS -->|"lookupService()"| FACADE
+    FACADE --> SITE_CFG
+    FACADE --> CLIENT
+    FACADE --> PIXEL_SVC
+    SITE_CFG -->|"reads / observes"| JCR
+
+    %% ── Service → CRISP → external ───────────────────────────────────────
+    CLIENT --> MAPPER
+    CLIENT --> CS & CP & CA
+    PIXEL_SVC --> CPX
+    CS -->|HTTP| CORE
+    CP -->|HTTP| PATHWAYS
+    CA -->|HTTP| SUGGEST
+    CPX -->|HTTP| PIXEL
+
+    %% ── Delivery REST ────────────────────────────────────────────────────
+    BROWSER -->|"POST/GET /api/v1/discovery/visual-search"| VS_RES
+    REGISTRAR -->|"singleton"| VS_RES
+    VS_RES --> HTTP_CLIENT
+    VS_RES -->|"resolves config"| SITE_CFG
+    HTTP_CLIENT -->|"multipart upload + GET search"| PATHWAYS
+
+    %% ── REST base classes from commons ───────────────────────────────────
+    REST_BASE -.->|"extends"| REGISTRAR
+    REST_BASE -.->|"extends"| VS_RES
+
+    %% ── Styles ───────────────────────────────────────────────────────────
+    classDef external fill:#f0f4ff,stroke:#6b7280,color:#374151
+    classDef commons fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    classDef cms fill:#fce7f3,stroke:#db2777,color:#831843
+    classDef site fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef extApi fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+
+    class JCR,BROWSER external
+    class CORE,PATHWAYS,SUGGEST,PIXEL extApi
+    class CFG_READER,DOMAIN,EXCEP,REST_BASE commons
+    class DAEMON,CMS_CFG,PICKER,OPEN_UI cms
+    class GRID,INPUT,RECS,DETAIL,HIGHLIGHTS,FACADE,SITE_CFG,CLIENT,MAPPER,PIXEL_SVC,CS,CP,CA,CPX,REGISTRAR,VS_RES,HTTP_CLIENT,HCM site

@@ -7,9 +7,9 @@ import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.search.model.SearchMetadata;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
+import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.site.component.info.DiscoverySearchGridComponentInfo;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.component.HstResponse;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -40,10 +40,11 @@ class DiscoverySearchGridComponentTest {
     private SearchResult singlePageResult;
     private SearchResult multiPageResult;
     private SearchResult facetedResult;
+    private SearchResult multiFacetResult;
 
     @BeforeEach
     void setUp() {
-        var product = new ProductSummary("p1", "Shoe", "/shoe", null, BigDecimal.TEN, "USD", Map.of());
+        var product = new ProductSummary("p1", "Shoe", "/shoe", null, BigDecimal.TEN, "USD", Map.of(), List.of());
         singlePageResult = new SearchResult(List.of(product), 5L, 0, 12, Map.of());
         multiPageResult = new SearchResult(List.of(product), 30L, 0, 12, Map.of());
         facetedResult = new SearchResult(
@@ -51,6 +52,13 @@ class DiscoverySearchGridComponentTest {
                 Map.of("color", new Facet("color", "text", List.of(
                         new FacetValue("red",  5L, null, null, null, null, null, null),
                         new FacetValue("blue", 3L, null, null, null, null, null, null))))
+        );
+        multiFacetResult = new SearchResult(
+                List.of(product), 10L, 0, 12,
+                Map.of(
+                    "color", new Facet("color", "text", List.of(new FacetValue("red", 5L, null, null, null, null, null, null))),
+                    "size",  new Facet("size",  "text", List.of(new FacetValue("M",   4L, null, null, null, null, null, null)))
+                )
         );
         lenient().when(request.getRequestContext()).thenReturn(requestContext);
     }
@@ -361,14 +369,14 @@ class DiscoverySearchGridComponentTest {
 
     private TestableSearchGridComponent build(String query, int pageSize, String sort) {
         return new TestableSearchGridComponent(discoveryService, query, pageSize, sort,
-                true, true, true, false, Map.of());
+                true, true, true, false, Map.of(), "");
     }
 
     private TestableSearchGridComponent buildWith(String query,
             boolean showFacets, boolean showPagination, boolean showSort) {
         return new TestableSearchGridComponent(discoveryService,
                 query != null ? query : "shoes",
-                12, "", showFacets, showPagination, showSort, false, Map.of());
+                12, "", showFacets, showPagination, showSort, false, Map.of(), "");
     }
 
     private TestableSearchGridComponent buildWithParams(String query,
@@ -379,12 +387,162 @@ class DiscoverySearchGridComponentTest {
     private TestableSearchGridComponent buildWithParams(String query,
             Map<String, String[]> params, boolean showFacets, boolean showPagination, boolean showSort) {
         return new TestableSearchGridComponent(discoveryService, query,
-                12, "", showFacets, showPagination, showSort, false, params);
+                12, "", showFacets, showPagination, showSort, false, params, "");
     }
 
     private TestableSearchGridComponent buildWithAutoRedirect(String query, boolean autoRedirect) {
         return new TestableSearchGridComponent(discoveryService, query,
-                12, "", true, true, true, autoRedirect, Map.of());
+                12, "", true, true, true, autoRedirect, Map.of(), "");
+    }
+
+    private TestableSearchGridComponent buildWithFacetFields(String facetFields) {
+        return new TestableSearchGridComponent(discoveryService, "shoes",
+                12, "", true, false, false, false, Map.of(), facetFields);
+    }
+
+    private TestableSearchGridComponent buildWithVisualSearch(boolean enabled, String widgetId) {
+        return buildWithVisualSearchAndImageId(enabled, widgetId, null);
+    }
+
+    private TestableSearchGridComponent buildWithVisualSearchAndImageId(boolean enabled, String widgetId, String imageId) {
+        return new TestableSearchGridComponent(discoveryService, "shoes",
+                12, "", true, true, true, false, Map.of(), "") {
+            @Override
+            protected DiscoveryChannelInfo getChannelInfo(HstRequest req) {
+                if (!enabled) return null;
+                return new DiscoveryChannelInfo() {
+                    @Override public String getDiscoveryAccountId()            { return ""; }
+                    @Override public String getDiscoveryDomainKey()            { return ""; }
+                    @Override public String getDiscoveryApiKeyEnvVar()         { return ""; }
+                    @Override public String getDiscoveryAuthKeyEnvVar()        { return ""; }
+                    @Override public String getDiscoveryDefaultFieldList()     { return ""; }
+                    @Override public String getDiscoveryCatalogName()          { return ""; }
+                    @Override public boolean getDiscoveryPixelsEnabled()       { return true; }
+                    @Override public String getDiscoveryPixelConsentCookie()   { return ""; }
+                    @Override public boolean getDiscoveryPixelTestData()       { return false; }
+                    @Override public boolean getDiscoveryPixelDebug()          { return false; }
+                    @Override public String getPixelRegion()                   { return "US"; }
+                    @Override public boolean getDiscoveryVisualSearchEnabled() { return true; }
+                    @Override public String getDiscoveryVisualSearchWidgetId() { return widgetId; }
+                    @Override public Map<String, Object> getProperties()       { return Map.of(); }
+                };
+            }
+
+            @Override
+            public String getPublicRequestParameter(HstRequest request, String name) {
+                if ("imageId".equals(name)) return imageId;
+                return super.getPublicRequestParameter(request, name);
+            }
+        };
+    }
+
+    // ── Visual search model keys ───────────────────────────────────────────
+
+    @Test
+    void visualSearch_disabled_setsEnabledFalseAndOmitsUrls() {
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        buildWithVisualSearch(false, "wid123").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", false);
+        verify(request, never()).setModel(eq("visualSearchUploadUrl"), any());
+        verify(request, never()).setModel(eq("visualSearchSearchUrl"), any());
+    }
+
+    @Test
+    void visualSearch_enabledWithWidgetId_setsUploadUrlAndWidgetId() {
+        when(request.getContextPath()).thenReturn("");
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        buildWithVisualSearch(true, "wid123").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", true);
+        verify(request).setModel("visualSearchUploadUrl", "/_brxdis-api/visual-search/wid123/upload");
+        verify(request).setModel("visualSearchWidgetId", "wid123");
+        verify(request, never()).setModel(eq("visualSearchSearchUrl"), any());
+    }
+
+    @Test
+    void visualSearch_enabledWithWidgetId_prefixesContextPath() {
+        when(request.getContextPath()).thenReturn("/site");
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        buildWithVisualSearch(true, "wid123").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchUploadUrl", "/site/_brxdis-api/visual-search/wid123/upload");
+        verify(request, never()).setModel(eq("visualSearchSearchUrl"), any());
+    }
+
+    @Test
+    void visualSearch_imageId_setsProductsAndSkipsKeywordSearch() {
+        var vsProducts = List.of(new ProductSummary("v1", "Sneaker", "/s", null, BigDecimal.TEN, "USD", Map.of(), List.of()));
+        when(request.getContextPath()).thenReturn("");
+        when(discoveryService.visualSearch(eq(request), eq("wid123"), eq("img-abc"), isNull(), eq(12)))
+                .thenReturn(vsProducts);
+
+        buildWithVisualSearchAndImageId(true, "wid123", "img-abc").doBeforeRender(request, response);
+
+        verify(request).setModel("dataSourceMode", "visual-search");
+        verify(request).setModel("products", vsProducts);
+        verify(discoveryService, never()).search(any(HstRequest.class), any(SearchRequestOptions.class));
+    }
+
+    @Test
+    void visualSearch_enabledButBlankWidgetId_setsEnabledTrueAndOmitsUrls() {
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(singlePageResult, SearchMetadata.empty()));
+
+        buildWithVisualSearch(true, "").doBeforeRender(request, response);
+
+        verify(request).setModel("visualSearchEnabled", true);
+        verify(request, never()).setModel(eq("visualSearchUploadUrl"), any());
+        verify(request, never()).setModel(eq("visualSearchSearchUrl"), any());
+    }
+
+    // ── Facet scoping ──────────────────────────────────────────────────────
+
+    @Test
+    void facetFields_empty_showsAllFacets() {
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(multiFacetResult, SearchMetadata.empty()));
+
+        buildWithFacetFields("").doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Facet>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq("facets"), captor.capture());
+        assertTrue(captor.getValue().containsKey("color"), "Expected 'color' facet");
+        assertTrue(captor.getValue().containsKey("size"),  "Expected 'size' facet");
+    }
+
+    @Test
+    void facetFields_subset_showsOnlyNamedFacets() {
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(multiFacetResult, SearchMetadata.empty()));
+
+        buildWithFacetFields("color").doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Facet>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq("facets"), captor.capture());
+        assertTrue(captor.getValue().containsKey("color"),  "Expected 'color' facet");
+        assertFalse(captor.getValue().containsKey("size"),  "'size' facet must be excluded");
+    }
+
+    @Test
+    void facetFields_unknownField_showsEmptyFacets() {
+        when(discoveryService.search(eq(request), any(SearchRequestOptions.class)))
+                .thenReturn(new SearchResponse(multiFacetResult, SearchMetadata.empty()));
+
+        buildWithFacetFields("brand").doBeforeRender(request, response);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Facet>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(request).setModel(eq("facets"), captor.capture());
+        assertTrue(captor.getValue().isEmpty(), "Expected empty facets map for unknown field");
     }
 
     // ── Testable subclass ──────────────────────────────────────────────────
@@ -400,10 +558,12 @@ class DiscoverySearchGridComponentTest {
         private final boolean showSort;
         private final boolean autoRedirect;
         private final Map<String, String[]> servletParams;
+        private final String facetFields;
 
         TestableSearchGridComponent(HstDiscoveryService service, String query,
                 int pageSize, String sort, boolean showFacets, boolean showPagination,
-                boolean showSort, boolean autoRedirect, Map<String, String[]> servletParams) {
+                boolean showSort, boolean autoRedirect, Map<String, String[]> servletParams,
+                String facetFields) {
             this.service = service;
             this.query = query;
             this.pageSize = pageSize;
@@ -413,6 +573,7 @@ class DiscoverySearchGridComponentTest {
             this.showSort = showSort;
             this.autoRedirect = autoRedirect;
             this.servletParams = servletParams;
+            this.facetFields = facetFields;
         }
 
         @Override
@@ -434,7 +595,8 @@ class DiscoverySearchGridComponentTest {
                 @Override public String getCatalogName()     { return ""; }
                 @Override public String getStatsFields()     { return ""; }
                 @Override public String getSegment()         { return ""; }
-                @Override public String getExclusionFilter() { return ""; }
+                @Override public String getExclusionFilter()     { return ""; }
+                @Override public String getFacetFields()         { return facetFields; }
             };
         }
 

@@ -269,7 +269,7 @@ body {
   grid-column: 1 / -1;
 }
 
-/* ── Wizard Live Preview - Product Card ──────────────────────────────────────── */
+/* ── Wizard Product Sample - Product Card ──────────────────────────────────────── */
 .preview-card { flex: 0 0 120px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; animation: previewCardIn 0.3s ease-out both; }
 .preview-card:nth-child(2) { animation-delay: 50ms; }
 .preview-card:nth-child(3) { animation-delay: 100ms; }
@@ -282,7 +282,7 @@ body {
 .preview-card-title { font-size: 10.5px; font-weight: 500; line-height: 1.35; color: var(--text-muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .preview-card-price { font-size: 10px; font-weight: 700; color: var(--accent); margin-top: 2px; font-variant-numeric: tabular-nums; }
 
-/* ── Wizard Live Preview - Skeleton Shimmer ───────────────────────────────────── */
+/* ── Wizard Product Sample - Skeleton Shimmer ───────────────────────────────────── */
 .preview-skeleton { flex: 0 0 120px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .preview-skeleton-img { width: 100%; aspect-ratio: 1 / 1; background: linear-gradient(90deg, var(--bg) 25%, var(--border-soft) 50%, var(--bg) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 .preview-skeleton-body { padding: 5px 8px 8px; display: flex; flex-direction: column; gap: 5px; }

@@ -147,7 +147,7 @@ class AbstractDiscoveryComponentTest {
         verify(requestContext, never()).getBaseURL();
     }
 
-    // ── doBeforeRender — DiscoveryException handling ──────────────────────
+    // ── doBeforeRender - DiscoveryException handling ──────────────────────
 
     @Test
     void doBeforeRender_discoveryException_doesNotPropagate() {

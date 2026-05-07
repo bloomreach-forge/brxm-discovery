@@ -3,4 +3,4 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:workspace:
       jcr:primaryType: hst:workspace
       jcr:mixinTypes: ['dxphst:mergeable']
-      dxphst:treehash: 208E1FAF76DA62C09E4A86CC63261BED
+      dxphst:treehash: B2E69218FABCC27E8B05611D7A8756CD

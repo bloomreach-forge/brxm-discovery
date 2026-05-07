@@ -40,3 +40,6 @@ definitions:
     /hst:hst/hst:configurations/demo/hst:sitemap/global-recommendations:
       jcr:primaryType: hst:sitemapitem
       hst:componentconfigurationid: hst:pages/global-recommendations-page
+    /hst:hst/hst:configurations/demo/hst:sitemap/keyword-recommendations:
+      jcr:primaryType: hst:sitemapitem
+      hst:componentconfigurationid: hst:pages/keyword-recommendations-page

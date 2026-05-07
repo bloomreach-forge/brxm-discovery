@@ -274,7 +274,7 @@
   /trending:
     jcr:primaryType: hippo:handle
     jcr:mixinTypes: ['hippo:versionInfo', 'mix:referenceable']
-    jcr:uuid: f6a7b8c9-d0e1-2345-f012-345678901234
+    jcr:uuid: 48561da2-2b9b-46ec-8327-9ca6d4f50fa0
     hippo:versionHistory: a7b8c9d0-e1f2-3456-0123-456789012345
     /trending[1]:
       jcr:primaryType: brxdis:globalRecommendationDocument

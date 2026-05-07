@@ -4,13 +4,17 @@ import org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.exception.ConfigurationException;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
-import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
+import org.bloomreach.forge.discovery.site.component.SearchRequestOptions;
 import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.DiscoveryApiClient;
 import org.bloomreach.forge.discovery.config.model.DiscoveryConfig;
-import org.bloomreach.forge.discovery.site.service.discovery.pixel.DeferredPixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.DiscoveryPixelService;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.PixelEvent;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.ProductPageView;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.SearchPageView;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.SearchSubmit;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.WidgetClick;
 import org.bloomreach.forge.discovery.recommendation.model.RecQuery;
 import org.bloomreach.forge.discovery.site.service.discovery.recommendation.model.RecommendationResult;
 import org.bloomreach.forge.discovery.search.model.AutosuggestQuery;
@@ -213,7 +217,7 @@ class HstDiscoveryServiceTest {
 
     @Test
     void recommend_returnsRecommendationResult() {
-        var products = List.of(new ProductSummary("p1", "Shoe", null, null, null, null, null));
+        var products = List.of(new ProductSummary("p1", "Shoe", null, null, null, null, null, List.of()));
         when(client.recommend(any(RecQuery.class), any(), any(ClientContext.class))).thenReturn(new RecommendationResult("rid-1", products));
 
         RecommendationResult result = service.recommend(request, "w-123", null, null, null, null, 8, null, null);
@@ -224,15 +228,52 @@ class HstDiscoveryServiceTest {
     }
 
     @Test
+    void recommend_withContextQuery_passesQueryToRecQuery() {
+        when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-kw", "keyword", null, null, null, "summer boots", 8, null, null);
+
+        ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
+        verify(client).recommend(captor.capture(), any(), any());
+        assertEquals("summer boots", captor.getValue().query());
+    }
+
+    @Test
+    void recommend_nullContextQuery_passesNullToRecQuery() {
+        when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-kw", "keyword", null, null, null, null, 8, null, null);
+
+        ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
+        verify(client).recommend(captor.capture(), any(), any());
+        assertNull(captor.getValue().query());
+    }
+
+    @Test
+    void recommend_sixArgOverload_defaultsContextQueryToNull() {
+        when(client.recommend(any(RecQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(RecommendationResult.of(List.of()));
+
+        service.recommend(request, "w-123", "keyword", null, null, null, 8, null, null);
+
+        ArgumentCaptor<RecQuery> captor = ArgumentCaptor.forClass(RecQuery.class);
+        verify(client).recommend(captor.capture(), any(), any());
+        assertNull(captor.getValue().query());
+    }
+
+    @Test
     void fetchProduct_firesProductPageViewPixel() {
-        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null, List.of());
         when(client.fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.of(product));
 
         service.fetchProduct(request, "pid-42");
 
-        verify(pixelService).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
-                anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+        ArgumentCaptor<PixelEvent> pixelCaptor = ArgumentCaptor.forClass(PixelEvent.class);
+        verify(pixelService).fire(pixelCaptor.capture(), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
+        ProductPageView fired = assertInstanceOf(ProductPageView.class, pixelCaptor.getValue());
+        assertEquals("pid-42", fired.pid());
+        assertEquals("Shoe", fired.prodName());
     }
 
     @Test
@@ -242,13 +283,12 @@ class HstDiscoveryServiceTest {
 
         service.fetchProduct(request, "pid-99");
 
-        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any());
+        verify(pixelService, never()).fire(any(ProductPageView.class), any(), anyString(), any(), any());
     }
 
     @Test
     void fetchProduct_usesRequestCacheOnSecondCall() {
-        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null, List.of());
         when(client.fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class)))
                 .thenReturn(java.util.Optional.of(product));
 
@@ -258,13 +298,13 @@ class HstDiscoveryServiceTest {
         assertTrue(first.isPresent());
         assertSame(first.get(), second.orElseThrow());
         verify(client, times(1)).fetchProduct(eq("pid-42"), anyString(), anyString(), eq(validCredentials), any(ClientContext.class));
-        verify(pixelService, times(1)).fireProductPageViewEvent(eq("pid-42"), eq("Shoe"), any(), any(), any(),
-                anyString(), anyString(), eq(validCredentials), any(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService, times(1)).fire(any(ProductPageView.class), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
     }
 
     @Test
     void fetchProduct_widgetClickInteraction_firesDeferredEvent() {
-        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null);
+        var product = new ProductSummary("pid-42", "Shoe", null, null, null, null, null, List.of());
         when(servletRequest.getParameter("brxdis_event")).thenReturn("widget-click");
         when(servletRequest.getParameter("brxdis_wid")).thenReturn("widget-1");
         when(servletRequest.getParameter("brxdis_wty")).thenReturn("item");
@@ -275,16 +315,17 @@ class HstDiscoveryServiceTest {
 
         service.fetchProduct(request, "pid-42");
 
-        ArgumentCaptor<DeferredPixelEvent> eventCaptor = ArgumentCaptor.forClass(DeferredPixelEvent.class);
-        verify(pixelService).fireDeferredEvent(eventCaptor.capture(), eq(validCredentials), anyString(),
+        ArgumentCaptor<PixelEvent> eventCaptor = ArgumentCaptor.forClass(PixelEvent.class);
+        verify(pixelService, atLeastOnce()).fire(eventCaptor.capture(), eq(validCredentials), anyString(),
                 any(ClientContext.class), any(PixelFlags.class));
-        DeferredPixelEvent event = eventCaptor.getValue();
-        assertEquals("widget", event.group());
-        assertEquals("click", event.etype());
-        assertEquals("product", event.ptype());
-        assertEquals("widget-1", event.widgetId());
-        assertEquals("rid-1", event.widgetResultId());
-        assertEquals("pid-42", event.itemId());
+        WidgetClick widgetClick = eventCaptor.getAllValues().stream()
+                .filter(e -> e instanceof WidgetClick).map(e -> (WidgetClick) e).findFirst().orElseThrow();
+        assertEquals("widget", widgetClick.group());
+        assertEquals("widget-click", widgetClick.etype());
+        assertEquals("product", widgetClick.ptype());
+        assertEquals("widget-1", widgetClick.widgetId());
+        assertEquals("rid-1", widgetClick.widgetResultId());
+        assertEquals("pid-42", widgetClick.itemId());
     }
 
     @Test
@@ -292,8 +333,7 @@ class HstDiscoveryServiceTest {
         assertTrue(service.fetchProduct(request, " ").isEmpty());
 
         verify(client, never()).fetchProduct(anyString(), anyString(), anyString(), any(), any());
-        verify(pixelService, never()).fireProductPageViewEvent(any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any());
+        verify(pixelService, never()).fire(any(), any(), anyString(), any(), any());
     }
 
     // ── configFor ──────────────────────────────────────────────────────────────
@@ -345,7 +385,7 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<PixelFlags> flagsCaptor = ArgumentCaptor.forClass(PixelFlags.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+        verify(pixelService).fire(any(SearchPageView.class), any(), anyString(),
                 any(ClientContext.class), flagsCaptor.capture());
         assertEquals("EU", flagsCaptor.getValue().region());
     }
@@ -370,8 +410,8 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        verify(pixelService).fireSearchEvent(any(SearchQuery.class), eq(searchResult), eq(validCredentials),
-                anyString(), anyString(), any(ClientContext.class), any(PixelFlags.class));
+        verify(pixelService).fire(any(SearchPageView.class), eq(validCredentials), anyString(),
+                any(ClientContext.class), any(PixelFlags.class));
     }
 
     @Test
@@ -382,14 +422,15 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        ArgumentCaptor<DeferredPixelEvent> eventCaptor = ArgumentCaptor.forClass(DeferredPixelEvent.class);
-        verify(pixelService).fireDeferredEvent(eventCaptor.capture(), eq(validCredentials), anyString(),
+        ArgumentCaptor<PixelEvent> eventCaptor = ArgumentCaptor.forClass(PixelEvent.class);
+        verify(pixelService, atLeastOnce()).fire(eventCaptor.capture(), eq(validCredentials), anyString(),
                 any(ClientContext.class), any(PixelFlags.class));
-        DeferredPixelEvent event = eventCaptor.getValue();
-        assertEquals("suggest", event.group());
-        assertEquals("submit", event.etype());
-        assertEquals("search", event.ptype());
-        assertEquals("shoes", event.query());
+        SearchSubmit searchSubmit = eventCaptor.getAllValues().stream()
+                .filter(e -> e instanceof SearchSubmit).map(e -> (SearchSubmit) e).findFirst().orElseThrow();
+        assertEquals("suggest", searchSubmit.group());
+        assertEquals("submit", searchSubmit.etype());
+        assertEquals("search", searchSubmit.ptype());
+        assertEquals("shoes", searchSubmit.query());
     }
 
     @Test
@@ -400,7 +441,7 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         // No request-level caching - pixel fires on every search call
-        verify(pixelService, times(2)).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+        verify(pixelService, times(2)).fire(any(SearchPageView.class), any(), anyString(),
                 any(ClientContext.class), any());
     }
 
@@ -419,7 +460,7 @@ class HstDiscoveryServiceTest {
         HstDiscoveryService enrichedService = new HstDiscoveryService(
                 client, new DiscoveryRuntimeContextFactory(configProvider), pixelService, enricher);
         List<ProductSummary> enrichedProducts = List.of(
-                new ProductSummary("e1", "Enriched", null, null, null, null, null));
+                new ProductSummary("e1", "Enriched", null, null, null, null, null, List.of()));
         when(client.search(any(SearchQuery.class), eq(validCredentials), any(ClientContext.class))).thenReturn(searchResponse);
         when(enricher.enrich(searchResult.products())).thenReturn(enrichedProducts);
 
@@ -445,8 +486,7 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        verify(pixelService, never()).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
-                any(ClientContext.class), any());
+        verify(pixelService, never()).fire(any(SearchPageView.class), any(), anyString(), any(), any());
     }
 
     @Test
@@ -460,7 +500,7 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<PixelFlags> flagsCaptor = ArgumentCaptor.forClass(PixelFlags.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), anyString(),
+        verify(pixelService).fire(any(SearchPageView.class), any(), anyString(),
                 any(ClientContext.class), flagsCaptor.capture());
         PixelFlags flags = flagsCaptor.getValue();
         assertTrue(flags.enabled());
@@ -527,7 +567,7 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<String> clientIpCaptor = ArgumentCaptor.forClass(String.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), clientIpCaptor.capture(),
+        verify(pixelService).fire(any(SearchPageView.class), any(), clientIpCaptor.capture(),
                 any(ClientContext.class), any(PixelFlags.class));
         assertEquals("203.0.113.42", clientIpCaptor.getValue(), "should use first token from X-Forwarded-For");
     }
@@ -541,7 +581,7 @@ class HstDiscoveryServiceTest {
         service.search(request);
 
         ArgumentCaptor<String> clientIpCaptor = ArgumentCaptor.forClass(String.class);
-        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), clientIpCaptor.capture(),
+        verify(pixelService).fire(any(SearchPageView.class), any(), clientIpCaptor.capture(),
                 any(ClientContext.class), any(PixelFlags.class));
         assertEquals("192.168.1.10", clientIpCaptor.getValue(), "should fall back to getRemoteAddr()");
     }
@@ -553,7 +593,7 @@ class HstDiscoveryServiceTest {
 
         service.search(request);
 
-        verify(pixelService).fireSearchEvent(any(), any(), any(), anyString(), eq("10.1.2.3"),
+        verify(pixelService).fire(any(SearchPageView.class), any(), eq("10.1.2.3"),
                 any(ClientContext.class), any(PixelFlags.class));
     }
 

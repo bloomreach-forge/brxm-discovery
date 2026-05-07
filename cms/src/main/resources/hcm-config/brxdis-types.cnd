@@ -53,6 +53,12 @@
   - brxdis:config      (String)
   - brxdis:_preview    (String)
 
+[brxdis:keywordRecommendationDocument] > hippo:document, hippostd:publishableSummary, hippostdpubwf:document
+  orderable
+  - brxdis:displayName (String)
+  - brxdis:config      (String)
+  - brxdis:_preview    (String)
+
 /**
  * brxdis:categoryDocument
  *

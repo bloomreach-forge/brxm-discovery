@@ -15,12 +15,16 @@ import org.hippoecm.hst.core.parameters.Parameter;
         titleKey = "Credentials"
     ),
     @FieldGroup(
-        value = {"discoveryDefaultFieldList"},
+        value = {"discoveryDefaultFieldList", "discoveryCatalogName"},
         titleKey = "Schema"
     ),
     @FieldGroup(
-        value = {"discoveryPixelsEnabled", "discoveryPixelTestData", "discoveryPixelDebug", "discoveryPixelRegion"},
+        value = {"discoveryPixelsEnabled", "discoveryPixelConsentCookie", "discoveryPixelTestData", "discoveryPixelDebug", "discoveryPixelRegion"},
         titleKey = "Pixel Tracking"
+    ),
+    @FieldGroup(
+        value = {"discoveryVisualSearchEnabled", "discoveryVisualSearchWidgetId"},
+        titleKey = "Visual Search"
     )
 })
 public interface DiscoveryChannelInfo extends ChannelInfo {
@@ -47,8 +51,20 @@ public interface DiscoveryChannelInfo extends ChannelInfo {
     @Parameter(name = "discoveryDefaultFieldList", displayName = "Field list (fl) override", defaultValue = "")
     String getDiscoveryDefaultFieldList();
 
+    @Parameter(name = "discoveryCatalogName", displayName = "Catalog name", defaultValue = "")
+    String getDiscoveryCatalogName();
+
     @Parameter(name = "discoveryPixelsEnabled", displayName = "Send pixel events", defaultValue = "true")
     boolean getDiscoveryPixelsEnabled();
+
+    /**
+     * Name of the HTTP cookie that signals user consent to pixel tracking.
+     * Leave blank to fire pixels unconditionally (default). When set, pixels are
+     * suppressed unless the named cookie is present on the request.
+     * Override with a {@code brxmdis.pixelConsentProvider} Spring bean for complex CMPs.
+     */
+    @Parameter(name = "discoveryPixelConsentCookie", displayName = "Consent cookie name", defaultValue = "")
+    String getDiscoveryPixelConsentCookie();
 
     @Parameter(name = "discoveryPixelTestData", displayName = "Mark pixels as test data", defaultValue = "false")
     boolean getDiscoveryPixelTestData();
@@ -59,4 +75,10 @@ public interface DiscoveryChannelInfo extends ChannelInfo {
     @Parameter(name = "discoveryPixelRegion", displayName = "Pixel region", defaultValue = "US")
     @DropDownList({"US", "EU"})
     String getPixelRegion();
+
+    @Parameter(name = "discoveryVisualSearchEnabled", displayName = "Enable visual search", defaultValue = "false")
+    boolean getDiscoveryVisualSearchEnabled();
+
+    @Parameter(name = "discoveryVisualSearchWidgetId", displayName = "Visual search widget ID", defaultValue = "")
+    String getDiscoveryVisualSearchWidgetId();
 }

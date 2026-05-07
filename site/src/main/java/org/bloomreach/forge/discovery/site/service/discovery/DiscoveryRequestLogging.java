@@ -1,26 +1,25 @@
 package org.bloomreach.forge.discovery.site.service.discovery;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 
-final class DiscoveryRequestLogging {
+public final class DiscoveryRequestLogging {
 
     private static final Set<String> SENSITIVE_PARAMS = Set.of("auth_key", "api_key");
 
     private DiscoveryRequestLogging() {
     }
 
-    static RequestLogContext requestLog(String path) {
+    public static RequestLogContext requestLog(String path) {
         return new RequestLogContext(requestId(path), redactPath(path));
     }
 
-    static String requestId(String path) {
+    public static String requestId(String path) {
         return queryParam(path, "request_id").orElse("n/a");
     }
 
-    static String redactPath(String path) {
+    public static String redactPath(String path) {
         int queryStart = path.indexOf('?');
         if (queryStart < 0) {
             return path;
@@ -41,9 +40,9 @@ final class DiscoveryRequestLogging {
         return SENSITIVE_PARAMS.contains(name) ? name + "=***" : param;
     }
 
-    private static java.util.Optional<String> queryParam(String path, String name) {
+    private static Optional<String> queryParam(String path, String name) {
         int queryStart = path.indexOf('?');
-        if (queryStart < 0) return java.util.Optional.empty();
+        if (queryStart < 0) return Optional.empty();
         String query = path.substring(queryStart + 1);
         return Arrays.stream(query.split("&", -1))
                 .filter(p -> p.startsWith(name + "="))
@@ -51,6 +50,6 @@ final class DiscoveryRequestLogging {
                 .findFirst();
     }
 
-    record RequestLogContext(String requestId, String redactedPath) {
+    public record RequestLogContext(String requestId, String redactedPath) {
     }
 }

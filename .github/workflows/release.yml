@@ -14,13 +14,15 @@ jobs:
   release:
     permissions:
       contents: write
-    uses: bloomreach-forge/ci-workflows/.github/workflows/release.yml@v1.0.4
+    uses: bloomreach-forge/ci-workflows/.github/workflows/release.yml@v2.0.0
     with:
       version: ${{ inputs.version }}
       next-development-version: ${{ inputs.next-development-version }}
-      branch: main
+      branch: master
       develop-branch: develop
       run-demo-build: false
       demo-pom-path: demo/pom.xml
       forge-readme-path: README.md
+      deploy-docs: true
+      site-profile: github.pages
     secrets: inherit

@@ -7,7 +7,7 @@ import org.bloomreach.forge.discovery.site.service.discovery.ClientContext;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
 import org.bloomreach.forge.discovery.site.service.discovery.search.QueryParamParser;
 
-record DiscoveryRuntimeContext(
+public record DiscoveryRuntimeContext(
         DiscoveryConfig config,
         ClientContext clientContext,
         PixelFlags pixelFlags,
@@ -17,13 +17,15 @@ record DiscoveryRuntimeContext(
         String pageTitle,
         String refUrl,
         String origRefUrl,
-        String clientIp
+        String clientIp,
+        String catalogName,
+        String pixelConsentCookie
 ) {
-    DiscoveryCredentials credentials() {
+    public DiscoveryCredentials credentials() {
         return config.credentials();
     }
 
-    DiscoverySettings settings() {
+    public DiscoverySettings settings() {
         return config.settings();
     }
 }

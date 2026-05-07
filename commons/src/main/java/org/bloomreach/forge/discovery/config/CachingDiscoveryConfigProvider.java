@@ -114,7 +114,7 @@ public class CachingDiscoveryConfigProvider implements DiscoveryConfigProvider, 
 
     // ── JCR observation (embedded listener) ───────────────────────────────
 
-    /** Starts JCR observation for config node changes. Idempotent — safe to call multiple times. */
+    /** Starts JCR observation for config node changes. Idempotent - safe to call multiple times. */
     public void start() {
         if (observationSession != null) {
             return;

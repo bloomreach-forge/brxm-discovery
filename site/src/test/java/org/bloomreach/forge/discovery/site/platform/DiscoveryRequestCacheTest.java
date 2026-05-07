@@ -1,5 +1,7 @@
 package org.bloomreach.forge.discovery.site.platform;
 
+import java.util.List;
+
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.hippoecm.hst.core.component.HstRequest;
 import org.hippoecm.hst.core.request.HstRequestContext;
@@ -26,7 +28,7 @@ class DiscoveryRequestCacheTest {
     @Mock HstRequestContext requestContext;
 
     private final Map<String, Object> attrs = new HashMap<>();
-    private final ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of());
+    private final ProductSummary product = new ProductSummary("p-1", "T", null, null, null, null, Map.of(), List.of());
 
     @BeforeEach
     void setUp() {
@@ -96,7 +98,7 @@ class DiscoveryRequestCacheTest {
 
     @Test
     void fetchedProducts_areIndependentByPid() {
-        ProductSummary p2 = new ProductSummary("p-2", "U", null, null, null, null, Map.of());
+        ProductSummary p2 = new ProductSummary("p-2", "U", null, null, null, null, Map.of(), List.of());
         DiscoveryRequestCache.putFetchedProduct(request, "sku-1", product);
         DiscoveryRequestCache.putFetchedProduct(request, "sku-2", p2);
 

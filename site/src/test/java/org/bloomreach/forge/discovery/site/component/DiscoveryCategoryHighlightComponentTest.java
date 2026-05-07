@@ -8,7 +8,6 @@ import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.bloomreach.forge.discovery.search.model.SearchResult;
 import org.bloomreach.forge.discovery.site.platform.CategoryPreviewCache;
 import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.site.service.discovery.search.model.CategoryHighlight;
 import org.hippoecm.hst.content.beans.standard.HippoBean;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -34,7 +33,7 @@ class DiscoveryCategoryHighlightComponentTest {
 
     @Test
     void noPaths_setsEmptyList() {
-        new TestableCategoryHighlightComponent(new DiscoveryCategoryBean[0]).doBeforeRender(request, response);
+        new TestableCategoryHighlightComponent().doBeforeRender(request, response);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<CategoryHighlight>> captor = ArgumentCaptor.forClass(List.class);
@@ -54,7 +53,7 @@ class DiscoveryCategoryHighlightComponentTest {
         ArgumentCaptor<List<CategoryHighlight>> captor = ArgumentCaptor.forClass(List.class);
         verify(request).setModel(eq(DiscoveryModelKeys.CATEGORIES), captor.capture());
         assertEquals(1, captor.getValue().size());
-        assertEquals(new CategoryHighlight("cat1", "Category One", 3), captor.getValue().get(0));
+        assertEquals(new CategoryHighlight("cat1", "Category One", 3), captor.getValue().getFirst());
     }
 
     @Test
@@ -129,8 +128,8 @@ class DiscoveryCategoryHighlightComponentTest {
         when(b2.getCategoryId()).thenReturn("cat2");
         when(b2.getProductPreviewCount()).thenReturn(2);
 
-        ProductSummary p1 = new ProductSummary("pid1", "Shirt", null, null, null, null, Map.of());
-        ProductSummary p2 = new ProductSummary("pid2", "Pants", null, null, null, null, Map.of());
+        ProductSummary p1 = new ProductSummary("pid1", "Shirt", null, null, null, null, Map.of(), List.of());
+        ProductSummary p2 = new ProductSummary("pid2", "Pants", null, null, null, null, Map.of(), List.of());
         SearchResult result1 = new SearchResult(List.of(p1), 1, 0, 2, Map.of());
         SearchResult result2 = new SearchResult(List.of(p2), 1, 0, 2, Map.of());
         SearchResponse resp1 = new SearchResponse(result1, null);
@@ -187,7 +186,7 @@ class DiscoveryCategoryHighlightComponentTest {
         when(bean.getCategoryId()).thenReturn("cat1");
         when(bean.getProductPreviewCount()).thenReturn(2);
 
-        ProductSummary cached = new ProductSummary("pid1", "Shirt", null, null, null, null, Map.of());
+        ProductSummary cached = new ProductSummary("pid1", "Shirt", null, null, null, null, Map.of(), List.of());
         CategoryPreviewCache cache = new CategoryPreviewCache();
         cache.put("cat1", 2, List.of(cached));
 
@@ -208,7 +207,7 @@ class DiscoveryCategoryHighlightComponentTest {
         when(bean.getCategoryId()).thenReturn("cat1");
         when(bean.getProductPreviewCount()).thenReturn(2);
 
-        ProductSummary fetched = new ProductSummary("pid2", "Pants", null, null, null, null, Map.of());
+        ProductSummary fetched = new ProductSummary("pid2", "Pants", null, null, null, null, Map.of(), List.of());
         SearchResult result = new SearchResult(List.of(fetched), 1, 0, 2, Map.of());
         SearchResponse resp = new SearchResponse(result, null);
 

@@ -19,26 +19,42 @@
 
   <body>
     <menu name="Getting Started">
-      <item name="Home" href="index.html"/>
-      <item name="Installation" href="install.html"/>
-      <item name="Quick Start" href="quick-start.html"/>
+      <item name="Overview" href="00-overview.html"/>
+      <item name="Quick Start" href="01-quick-start.html"/>
+      <item name="Installation" href="02-installation.html"/>
+    </menu>
+    <menu name="Configuration">
+      <item name="Discovery Configuration" href="10-discovery-config.html"/>
+      <item name="Channel Info Reference" href="11-channel-info.html"/>
+      <item name="Credential Injection" href="12-credential-injection.html"/>
+      <item name="Plugin Setup" href="13-plugin-setup.html"/>
     </menu>
     <menu name="Components">
-      <item name="Search &amp; Category" href="search-category.html"/>
-      <item name="Recommendations" href="recommendations.html"/>
-      <item name="Autosuggest" href="autosuggest.html"/>
-      <item name="Product Picker (CMS)" href="product-picker.html"/>
+      <item name="Search and Category" href="20-search-and-category.html"/>
+      <item name="Search Input and Autosuggest" href="21-search-input-autosuggest.html"/>
+      <item name="Recommendations" href="22-recommendations.html"/>
+      <item name="Product Detail and Highlights" href="23-product-detail-highlights.html"/>
+      <item name="Visual Search" href="24-visual-search.html"/>
+    </menu>
+    <menu name="CMS">
+      <item name="Product Picker" href="30-product-picker.html"/>
+    </menu>
+    <menu name="Integration">
+      <item name="SPA / React Integration" href="40-spa-integration.html"/>
+      <item name="SEO-Friendly URLs" href="41-seo.html"/>
+    </menu>
+    <menu name="Operations">
+      <item name="Pixel Tracking" href="50-pixel-tracking.html"/>
     </menu>
     <menu name="Reference">
-      <item name="Discovery Configuration" href="configuration.html"/>
-      <item name="Credential Injection" href="credential-injection.html"/>
-      <item name="React / SPA Integration" href="spa-integration.html"/>
-      <item name="Pixel Tracking" href="pixel-tracking.html"/>
+      <item name="Architecture" href="60-architecture.html"/>
+      <item name="Model Contract" href="61-model-contract.html"/>
+      <item name="REST Endpoints" href="62-rest-endpoints.html"/>
+      <item name="Release Notes" href="63-release-notes.html"/>
       <item name="JavaDocs" href="apidocs/index.html"/>
     </menu>
-    <menu name="Project">
-      <item name="Demo Project" href="demo.html"/>
-      <item name="Release Notes" href="release-notes.html"/>
+    <menu name="Help">
+      <item name="Troubleshooting" href="70-troubleshooting.html"/>
     </menu>
   </body>
 </project>

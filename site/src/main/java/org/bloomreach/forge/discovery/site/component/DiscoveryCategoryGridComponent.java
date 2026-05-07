@@ -3,8 +3,6 @@ package org.bloomreach.forge.discovery.site.component;
 import org.bloomreach.forge.discovery.site.beans.DiscoveryCategoryBean;
 import org.bloomreach.forge.discovery.site.component.constants.DiscoveryModelKeys;
 import org.bloomreach.forge.discovery.site.component.info.DiscoveryCategoryGridComponentInfo;
-import org.bloomreach.forge.discovery.site.platform.HstDiscoveryService;
-import org.bloomreach.forge.discovery.site.platform.SearchRequestOptions;
 import org.bloomreach.forge.discovery.search.model.SearchResponse;
 import org.hippoecm.hst.core.component.HstComponentException;
 import org.hippoecm.hst.core.component.HstRequest;
@@ -41,26 +39,17 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
 
         DiscoveryCategoryBean document = getHippoBeanForPath(
                 request, info.getDocument(), DiscoveryCategoryBean.class);
-
         request.setModel(DiscoveryModelKeys.DOCUMENT, document);
         request.setModel(DiscoveryModelKeys.DATA_SOURCE_MODE, "category");
 
-        // Document is required - no silent URL-param fallback without a document
         if (document == null) {
             request.setModel(DiscoveryModelKeys.CATEGORY_ID, "");
             setEmptyState(request);
             return;
         }
 
-        // Document dictates mode: non-blank = Pinned, blank = Dynamic (URL-driven)
-        String docCategoryId = document.getCategoryId();
-        String categoryId;
-        if (docCategoryId != null && !docCategoryId.isBlank()) {
-            categoryId = docCategoryId;
-        } else {
-            categoryId = resolveUrlParam(request, info.getCategoryUrlParam());
-        }
-
+        String categoryId = resolvePinnedOrDynamic(
+                document.getCategoryId(), request, info.getCategoryUrlParam());
         request.setModel(DiscoveryModelKeys.CATEGORY_ID, categoryId != null ? categoryId : "");
 
         if (categoryId == null || categoryId.isBlank()) {
@@ -75,11 +64,15 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
             return;
         }
 
-        HstDiscoveryService svc = getDiscoveryService();
-        SearchResponse browseResponse = svc.browse(request, categoryId, new SearchRequestOptions(
+        browseCategoryById(request, info, params, categoryId);
+    }
+
+    private void browseCategoryById(HstRequest request, DiscoveryCategoryGridComponentInfo info,
+                                     Map<String, String[]> params, String categoryId) {
+        SearchResponse browseResponse = getDiscoveryService().browse(request, categoryId, new SearchRequestOptions(
                 info.getPageSize(),
                 blankToNull(info.getDefaultSort()),
-                null,
+                blankToNull(info.getCatalogName()),
                 parseStatsFields(info.getStatsFields()),
                 blankToNull(info.getSegment()),
                 blankToNull(info.getExclusionFilter())));
@@ -90,6 +83,7 @@ public class DiscoveryCategoryGridComponent extends AbstractDiscoveryGridCompone
 
         log.debug("Discovery category '{}' → {} results", categoryId, browseResponse.result().total());
         populateResultModels(request, browseResponse,
-                info.isShowFacets(), info.isShowPagination(), info.isShowSort(), params);
+                info.isShowFacets(), info.isShowPagination(), info.isShowSort(), params,
+                parseFacetFields(info.getFacetFields()));
     }
 }

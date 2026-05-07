@@ -84,6 +84,14 @@ definitions:
       frontend:extensionPoint: 'document.field'
       frontend:config: '{"widgetTypes":["bestseller","trending_product","jfy","past_purchases","recently_viewed"]}'
 
+    /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryKeywordRecommendationWizard:
+      jcr:primaryType: frontend:uiExtension
+      frontend:displayName: 'Discovery Keyword Recommendation Wizard'
+      frontend:url: 'discovery-picker/recommendation-wizard.html'
+      frontend:initialHeightInPixels: 52
+      frontend:extensionPoint: 'document.field'
+      frontend:config: '{"widgetTypes":["keyword","search"]}'
+
     /hippo:configuration/hippo:frontend/cms/ui-extensions/discoveryProductWizard:
       jcr:primaryType: frontend:uiExtension
       frontend:displayName: 'Discovery Product Wizard'

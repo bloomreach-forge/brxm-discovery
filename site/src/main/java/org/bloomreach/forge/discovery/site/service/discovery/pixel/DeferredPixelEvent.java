@@ -1,40 +1,29 @@
 package org.bloomreach.forge.discovery.site.service.discovery.pixel;
 
-public record DeferredPixelEvent(
-        String group,
-        String etype,
-        String ptype,
-        String title,
-        String url,
-        String refUrl,
-        String origRefUrl,
-        String brUid2,
-        String query,
-        String autoQuery,
-        String widgetId,
-        String widgetType,
-        String widgetResultId,
-        String widgetQuery,
-        String itemId
-) {
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.SearchSubmit;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.SuggestClick;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.TrackingContext;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.WidgetClick;
 
-    public static DeferredPixelEvent searchSubmit(String pageType, String title, String url, String refUrl,
-                                                  String origRefUrl, String brUid2, String query) {
-        return new DeferredPixelEvent("suggest", "submit", pageType, title, url, refUrl, origRefUrl,
-                brUid2, query, null, null, null, null, null, null);
+public final class DeferredPixelEvent {
+
+    private DeferredPixelEvent() {}
+
+    public static SearchSubmit searchSubmit(String pageType, String title, String url, String refUrl,
+                                            String origRefUrl, String brUid2, String query) {
+        return new SearchSubmit(new TrackingContext(brUid2, refUrl, origRefUrl, url, title), query, pageType);
     }
 
-    public static DeferredPixelEvent suggestClick(String pageType, String title, String url, String refUrl,
-                                                  String origRefUrl, String brUid2, String autoQuery, String query) {
-        return new DeferredPixelEvent("suggest", "click", pageType, title, url, refUrl, origRefUrl,
-                brUid2, query, autoQuery, null, null, null, null, null);
+    public static SuggestClick suggestClick(String pageType, String title, String url, String refUrl,
+                                            String origRefUrl, String brUid2, String autoQuery, String query) {
+        return new SuggestClick(new TrackingContext(brUid2, refUrl, origRefUrl, url, title), query, autoQuery, pageType);
     }
 
-    public static DeferredPixelEvent widgetClick(String pageType, String title, String url, String refUrl,
-                                                 String origRefUrl, String brUid2, String itemId,
-                                                 String widgetId, String widgetType,
-                                                 String widgetResultId, String widgetQuery) {
-        return new DeferredPixelEvent("widget", "click", pageType, title, url, refUrl, origRefUrl,
-                brUid2, null, null, widgetId, widgetType, widgetResultId, widgetQuery, itemId);
+    public static WidgetClick widgetClick(String pageType, String title, String url, String refUrl,
+                                          String origRefUrl, String brUid2, String itemId,
+                                          String widgetId, String widgetType,
+                                          String widgetResultId, String widgetQuery) {
+        return new WidgetClick(new TrackingContext(brUid2, refUrl, origRefUrl, url, title),
+                widgetId, widgetType, widgetResultId, widgetQuery, itemId, pageType);
     }
 }
