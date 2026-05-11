@@ -1,6 +1,6 @@
 id: brxm-discovery
 name: brXM Discovery Plugin
-version: 0.0.1
+version: 0.0.2
 description: Bloomreach Discovery integration for brXM
 repository:
   url: https://github.com/bloomreach-forge/brxm-discovery
@@ -55,7 +55,7 @@ installation:
         \ use BRXDIS_ACCOUNT_ID, -Dbrxdis.accountId, or brxdis:accountId in the global\
         \ config node"
       required: false
-      example: "6413"
+      example: 6413
     - name: discoveryDomainKey
       description: "Optional channel-level domain key in hst:channelinfo; otherwise\
         \ use BRXDIS_DOMAIN_KEY, -Dbrxdis.domainKey, or brxdis:domainKey in the global\
@@ -79,4 +79,5 @@ installation:
       required: false
       example: STAGING
       default: PRODUCTION
-  verification: "The CMS picker endpoint responds, and Discovery components render with the configured credentials"
+  verification: "The CMS picker endpoint responds, and Discovery components render\
+    \ with the configured credentials"
