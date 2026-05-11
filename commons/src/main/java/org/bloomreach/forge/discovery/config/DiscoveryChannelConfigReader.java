@@ -126,7 +126,10 @@ public final class DiscoveryChannelConfigReader {
         if (varName == null || varName.isBlank()) {
             return null;
         }
-        String value = envResolver.apply(varName.trim());
+        String trimmed = varName.trim();
+        String value = envResolver.apply(trimmed);
+        if (value != null && !value.isBlank()) return value;
+        value = System.getProperty(trimmed);
         return (value == null || value.isBlank()) ? null : value;
     }
 

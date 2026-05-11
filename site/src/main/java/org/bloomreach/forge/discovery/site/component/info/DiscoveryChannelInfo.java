@@ -35,10 +35,10 @@ public interface DiscoveryChannelInfo extends ChannelInfo {
     @Parameter(name = "discoveryDomainKey", displayName = "Domain Key override", defaultValue = "")
     String getDiscoveryDomainKey();
 
-    @Parameter(name = "discoveryApiKeyEnvVar", displayName = "API Key env-var name", defaultValue = "")
+    @Parameter(name = "discoveryApiKeyEnvVar", displayName = "API Key env/sys-prop name", defaultValue = "")
     String getDiscoveryApiKeyEnvVar();
 
-    @Parameter(name = "discoveryAuthKeyEnvVar", displayName = "Auth Key env-var name (v2/Pathways)", defaultValue = "")
+    @Parameter(name = "discoveryAuthKeyEnvVar", displayName = "Auth Key env/sys-prop name (v2/Pathways)", defaultValue = "")
     String getDiscoveryAuthKeyEnvVar();
 
     /**
