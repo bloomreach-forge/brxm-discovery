@@ -76,6 +76,34 @@ class DiscoveryChannelConfigReaderTest {
         assertEquals("resolved-auth", creds.authKey());
     }
 
+    @Test
+    void resolveOverrides_apiKeyVarName_sysPropertyFallback_resolved() {
+        System.setProperty("TEST_BRXDIS_API_KEY", "sys-api-value");
+        try {
+            DiscoveryCredentials creds = DiscoveryChannelConfigReader.resolveOverrides(
+                    "", "", "TEST_BRXDIS_API_KEY", "",
+                    name -> null); // env var not found → falls back to sys prop
+            assertNotNull(creds);
+            assertEquals("sys-api-value", creds.apiKey());
+        } finally {
+            System.clearProperty("TEST_BRXDIS_API_KEY");
+        }
+    }
+
+    @Test
+    void resolveOverrides_authKeyVarName_sysPropertyFallback_resolved() {
+        System.setProperty("TEST_BRXDIS_AUTH_KEY", "sys-auth-value");
+        try {
+            DiscoveryCredentials creds = DiscoveryChannelConfigReader.resolveOverrides(
+                    "", "", "", "TEST_BRXDIS_AUTH_KEY",
+                    name -> null); // env var not found → falls back to sys prop
+            assertNotNull(creds);
+            assertEquals("sys-auth-value", creds.authKey());
+        } finally {
+            System.clearProperty("TEST_BRXDIS_AUTH_KEY");
+        }
+    }
+
     // ── resolveFromJcr (CMS path) ───────────────────────────────────────────
 
     @Test
