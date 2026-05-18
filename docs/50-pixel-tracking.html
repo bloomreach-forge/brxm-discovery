@@ -343,7 +343,31 @@ public interface MyChannelInfo extends DiscoveryChannelInfo, ExistingChannelInfo
 <pre><code class="language-yaml">/hst:hst/hst:configurations/demo/hst:workspace/hst:channel:
   hst:channelinfoclass: com.example.site.channel.MyChannelInfo
 </code></pre>
-<p>No other changes are needed - HST discovers <code>@Parameter</code>-annotated getters from all interfaces in the hierarchy.</p><hr /></section></section><section><a id="Verifying_pixel_events"></a>
+<p>No other changes are needed - HST discovers <code>@Parameter</code>-annotated getters from all interfaces in the hierarchy.</p><hr /></section></section><section><a id="Client_context_forwarding"></a>
+<h2>Client context forwarding</h2>
+<p>The plugin fires pixels from the JVM, not the browser. For Discovery to correctly attribute events, the real browser IP, User-Agent, and locale must reach brXM via forwarding headers on the Page Model API request.</p>
+<table class="table table-striped">
+<thead>
+<tr class="a">
+<th>Header read by brXM</th>
+<th>Pixel use</th></tr></thead><tbody>
+<tr class="b">
+<td><code>X-Forwarded-For</code></td>
+<td><code>client_ip</code> param; also forwarded on the pixel request to Discovery</td></tr>
+<tr class="a">
+<td><code>X-Forwarded-User-Agent</code></td>
+<td>UA filtering (bot/crawler suppression); falls back to <code>User-Agent</code></td></tr>
+<tr class="b">
+<td><code>X-Forwarded-Accept-Language</code></td>
+<td>Locale; falls back to <code>Accept-Language</code></td></tr></tbody>
+</table>
+
+<p><strong>Your SPA server layer is responsible for forwarding these headers</strong> on every Page Model API call. If absent, all pixel events carry your Node.js server's IP and UA &#x2014; degrading personalisation accuracy and potentially triggering bot suppression silently on every render.</p>
+<p>See the <a href="40-spa-integration.html#forwarding-browser-context-for-accurate-pixel-tracking">SPA Integration Guide</a> for per-framework forwarding examples and reverse proxy configuration.</p>
+<blockquote>
+
+<p><strong>Loopback fallback:</strong> If <code>X-Forwarded-For</code> resolves to <code>127.x</code>, <code>::1</code>, or <code>0:0:0:0:0:0:0:1</code>, the plugin ignores it and falls back to <code>request.getRemoteAddr()</code>. In local development all pixel events will have an empty <code>client_ip</code> &#x2014; this is expected and harmless.</p>
+</blockquote><hr /></section><section><a id="Verifying_pixel_events"></a>
 <h2>Verifying pixel events</h2>
 <p>Pixel calls are logged at DEBUG level. To see them:</p>
 
