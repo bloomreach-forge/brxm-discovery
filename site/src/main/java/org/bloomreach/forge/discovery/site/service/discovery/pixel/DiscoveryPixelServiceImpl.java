@@ -34,10 +34,17 @@ public class DiscoveryPixelServiceImpl implements DiscoveryPixelService {
             return;
         }
         log.debug("Dispatching pixel event [type={}]", event.getClass().getSimpleName());
+        ClientContext effectiveCtx = enrichXff(ctx, clientIp);
         submitQuietly(() -> {
             String path = transport.buildPath(event, credentials, clientIp, flags);
-            fireQuietly(path, ctx, flags);
+            fireQuietly(path, effectiveCtx, flags);
         });
+    }
+
+    private static ClientContext enrichXff(ClientContext ctx, String clientIp) {
+        if (clientIp == null || clientIp.isBlank()) return ctx;
+        if (ctx.xForwardedFor() != null && !ctx.xForwardedFor().isBlank()) return ctx;
+        return new ClientContext(ctx.userAgent(), ctx.acceptLanguage(), clientIp);
     }
 
     private void submitQuietly(Runnable task) {

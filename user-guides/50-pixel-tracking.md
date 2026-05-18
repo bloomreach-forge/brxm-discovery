@@ -260,6 +260,24 @@ No other changes are needed - HST discovers `@Parameter`-annotated getters from 
 
 ---
 
+## Client context forwarding
+
+The plugin fires pixels from the JVM, not the browser. For Discovery to correctly attribute events, the real browser IP, User-Agent, and locale must reach brXM via forwarding headers on the Page Model API request.
+
+| Header read by brXM | Pixel use |
+|---|---|
+| `X-Forwarded-For` | `client_ip` param; also forwarded on the pixel request to Discovery |
+| `X-Forwarded-User-Agent` | UA filtering (bot/crawler suppression); falls back to `User-Agent` |
+| `X-Forwarded-Accept-Language` | Locale; falls back to `Accept-Language` |
+
+**Your SPA server layer is responsible for forwarding these headers** on every Page Model API call. If absent, all pixel events carry your Node.js server's IP and UA — degrading personalisation accuracy and potentially triggering bot suppression silently on every render.
+
+See the [SPA Integration Guide](40-spa-integration.html#forwarding-browser-context-for-accurate-pixel-tracking) for per-framework forwarding examples and reverse proxy configuration.
+
+> **Loopback fallback:** If `X-Forwarded-For` resolves to `127.x`, `::1`, or `0:0:0:0:0:0:0:1`, the plugin ignores it and falls back to `request.getRemoteAddr()`. In local development all pixel events will have an empty `client_ip` — this is expected and harmless.
+
+---
+
 ## Verifying pixel events
 
 Pixel calls are logged at DEBUG level. To see them:

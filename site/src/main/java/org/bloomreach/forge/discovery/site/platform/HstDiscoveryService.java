@@ -145,7 +145,7 @@ public class HstDiscoveryService {
         if (shouldFirePixels(request, runtimeContext)) {
             TrackingContext browseTracking = new TrackingContext(
                     query.brUid2(), query.refUrl(), query.origRefUrl(), query.url(), runtimeContext.pageTitle());
-            pixelService.fire(new CategoryPageView(browseTracking, query.categoryId(), response.result().products()),
+            pixelService.fire(new CategoryPageView(browseTracking, query.categoryId(), response.metadata().categoryName(), response.result().products()),
                     runtimeContext.credentials(), runtimeContext.clientIp(),
                     runtimeContext.clientContext(), runtimeContext.pixelFlags());
         }
