@@ -3,8 +3,10 @@ package org.bloomreach.forge.discovery.site.service.discovery;
 import org.bloomreach.forge.discovery.config.DiscoveryConfigProvider;
 import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.config.model.DiscoverySettings;
+import org.bloomreach.forge.discovery.exception.SearchException;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelRateLimiter;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.CategoryPageView;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.ClickAdd;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.ProductPageView;
@@ -51,7 +53,7 @@ class DefaultDiscoveryPixelTransportTest {
     @BeforeEach
     void setUp() {
         lenient().when(configProvider.settings()).thenReturn(TEST_SETTINGS);
-        pixelTransport = new DefaultDiscoveryPixelTransport(transport, configProvider);
+        pixelTransport = new DefaultDiscoveryPixelTransport(transport, configProvider, new PixelRateLimiter(1000));
         credentials = new DiscoveryCredentials("acct", "domain", "key", null, "PRODUCTION");
     }
 
@@ -90,11 +92,19 @@ class DefaultDiscoveryPixelTransportTest {
 
     @Test
     void buildPath_categoryPageView_typeAndPtype() {
-        String p = path(new CategoryPageView(EMPTY_CTX, "cat-1", List.of()));
+        String p = path(new CategoryPageView(EMPTY_CTX, "cat-1", "Boots", List.of()));
         assertContains(p, "type=pageview");
         assertContains(p, "ptype=category");
         assertContains(p, "cat_id=cat-1");
+        assertContains(p, "cat=Boots");
         assertNotContains(p, "etype=");
+    }
+
+    @Test
+    void buildPath_categoryPageView_noCatWhenNameBlank() {
+        String p = path(new CategoryPageView(EMPTY_CTX, "cat-1", null, List.of()));
+        assertContains(p, "cat_id=cat-1");
+        assertNotContains(p, "cat=");
     }
 
     // ── ProductPageView ───────────────────────────────────────────────────
@@ -322,6 +332,34 @@ class DefaultDiscoveryPixelTransportTest {
         verify(transport).execute(captor.capture());
         assertTrue(captor.getValue().uri().toString().startsWith("https://p.brsrvr.com"),
                 "US region must use default pixel base URI");
+    }
+
+    // ── rate limiting ─────────────────────────────────────────────────────
+
+    @Test
+    void fire_rateLimitExhausted_secondCallDropped() {
+        var tightLimiter = new PixelRateLimiter(1);
+        var tightTransport = new DefaultDiscoveryPixelTransport(transport, configProvider, tightLimiter);
+
+        tightTransport.fire("/pix.gif?type=pageview", ClientContext.EMPTY, FLAGS); // consumes the 1 token
+        tightTransport.fire("/pix.gif?type=pageview", ClientContext.EMPTY, FLAGS); // must be dropped
+
+        verify(transport, times(1)).execute(any());
+        tightLimiter.close();
+    }
+
+    @Test
+    void fire_429Response_drainsRateLimiter_subsequentCallDropped() {
+        var limiter = new PixelRateLimiter(10);
+        var t = new DefaultDiscoveryPixelTransport(transport, configProvider, limiter);
+        when(transport.execute(any()))
+                .thenThrow(new SearchException("Discovery API returned HTTP 429: Too Many Requests"));
+
+        t.fire("/pix.gif?type=pageview", ClientContext.EMPTY, FLAGS); // 429 → drain
+        t.fire("/pix.gif?type=pageview", ClientContext.EMPTY, FLAGS); // drained → dropped
+
+        verify(transport, times(1)).execute(any());
+        limiter.close();
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

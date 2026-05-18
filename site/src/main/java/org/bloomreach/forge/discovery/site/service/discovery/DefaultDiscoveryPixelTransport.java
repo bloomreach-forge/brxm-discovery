@@ -6,6 +6,7 @@ import org.bloomreach.forge.discovery.config.model.DiscoveryCredentials;
 import org.bloomreach.forge.discovery.exception.DiscoveryException;
 import org.bloomreach.forge.discovery.search.model.ProductSummary;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelFlags;
+import org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelRateLimiter;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.PixelEvent;
 import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.TrackingContext;
 import org.bloomreach.forge.discovery.transport.DiscoveryTransport;
@@ -30,10 +31,13 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
 
     private final DiscoveryTransport transport;
     private final DiscoveryConfigProvider configProvider;
+    private final PixelRateLimiter rateLimiter;
 
-    DefaultDiscoveryPixelTransport(DiscoveryTransport transport, DiscoveryConfigProvider configProvider) {
+    DefaultDiscoveryPixelTransport(DiscoveryTransport transport, DiscoveryConfigProvider configProvider,
+                                   PixelRateLimiter rateLimiter) {
         this.transport = transport;
         this.configProvider = configProvider;
+        this.rateLimiter = rateLimiter;
     }
 
     @Override
@@ -53,12 +57,22 @@ final class DefaultDiscoveryPixelTransport implements DiscoveryPixelTransport {
 
     @Override
     public void fire(String path, ClientContext ctx, PixelFlags flags) {
+        if (!rateLimiter.tryAcquire()) {
+            log.debug("Discovery pixel dropped: rate limit ({}/s)", rateLimiter.maxPerSecond());
+            return;
+        }
         log.debug("Discovery pixel event: {}", redactedPath(path));
         try {
             URI uri = DiscoveryRequestHeaders.buildUri(pixelBaseUri(flags), path);
             transport.execute(DiscoveryRequestHeaders.forPixel(uri, ctx));
         } catch (DiscoveryException e) {
-            log.warn("Discovery pixel event failed - path={}: {}", redactedPath(path), e.getMessage());
+            if (e.getMessage() != null && e.getMessage().startsWith("Discovery API returned HTTP 429")) {
+                rateLimiter.drain();
+                log.warn("Discovery pixel 429 - backing off for remainder of rate-limit window: {}",
+                        redactedPath(path));
+            } else {
+                log.warn("Discovery pixel event failed - path={}: {}", redactedPath(path), e.getMessage());
+            }
         }
     }
 

@@ -140,4 +140,36 @@ class ClientContextExtractorTest {
 
         assertEquals("2001:db8::1", ClientContextExtractor.extractClientIp(request));
     }
+
+    @Test
+    void extractClientIp_ipv6Loopback_returnsEmpty() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("::1");
+
+        assertEquals("", ClientContextExtractor.extractClientIp(request));
+    }
+
+    @Test
+    void extractClientIp_ipv4Loopback_returnsEmpty() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+
+        assertEquals("", ClientContextExtractor.extractClientIp(request));
+    }
+
+    @Test
+    void extractClientIp_xffIsLoopback_fallsBackToRemoteAddr() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn("::1");
+        when(request.getRemoteAddr()).thenReturn("5.6.7.8");
+
+        assertEquals("5.6.7.8", ClientContextExtractor.extractClientIp(request));
+    }
+
+    @Test
+    void extractClientIp_xffAndRemoteAddrBothLoopback_returnsEmpty() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn("127.0.0.1");
+        when(request.getRemoteAddr()).thenReturn("::1");
+
+        assertEquals("", ClientContextExtractor.extractClientIp(request));
+    }
 }

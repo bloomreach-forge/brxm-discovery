@@ -9,13 +9,14 @@ import org.bloomreach.forge.discovery.site.service.discovery.pixel.event.Trackin
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -98,6 +99,40 @@ class DiscoveryPixelServiceImplTest {
         assertDoesNotThrow(() -> service.fire(event, credentials, null, BROWSER, ENABLED));
 
         verify(transport, never()).fire(anyString(), any(), any());
+    }
+
+    @Test
+    void fire_clientIpSet_xffAbsent_enrichesContext() {
+        when(transport.buildPath(eq(event), eq(credentials), eq("10.0.0.1"), eq(ENABLED))).thenReturn("/pix.gif");
+
+        service.fire(event, credentials, "10.0.0.1", BROWSER, ENABLED); // BROWSER.xForwardedFor == null
+
+        var ctxCaptor = ArgumentCaptor.forClass(ClientContext.class);
+        verify(transport).fire(anyString(), ctxCaptor.capture(), any());
+        assertEquals("10.0.0.1", ctxCaptor.getValue().xForwardedFor());
+    }
+
+    @Test
+    void fire_xffAlreadyPresent_notOverridden() {
+        ClientContext ctxWithXff = new ClientContext("Mozilla/5.0", null, "203.0.113.5");
+        when(transport.buildPath(eq(event), eq(credentials), eq("10.0.0.1"), eq(ENABLED))).thenReturn("/pix.gif");
+
+        service.fire(event, credentials, "10.0.0.1", ctxWithXff, ENABLED);
+
+        var ctxCaptor = ArgumentCaptor.forClass(ClientContext.class);
+        verify(transport).fire(anyString(), ctxCaptor.capture(), any());
+        assertEquals("203.0.113.5", ctxCaptor.getValue().xForwardedFor());
+    }
+
+    @Test
+    void fire_clientIpBlank_xffAbsent_contextUnchanged() {
+        when(transport.buildPath(eq(event), eq(credentials), eq(""), eq(ENABLED))).thenReturn("/pix.gif");
+
+        service.fire(event, credentials, "", BROWSER, ENABLED);
+
+        var ctxCaptor = ArgumentCaptor.forClass(ClientContext.class);
+        verify(transport).fire(anyString(), ctxCaptor.capture(), any());
+        assertNull(ctxCaptor.getValue().xForwardedFor()); // nothing to enrich with
     }
 
     @Test

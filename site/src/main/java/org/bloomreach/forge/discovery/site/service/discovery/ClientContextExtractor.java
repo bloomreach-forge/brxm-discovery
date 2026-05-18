@@ -34,11 +34,17 @@ public final class ClientContextExtractor {
         if (xff != null && !xff.isBlank()) {
             String candidate = xff.split(",")[0].trim();
             if (IP_PATTERN.matcher(candidate).matches()) {
-                return candidate;
+                if (!isLoopback(candidate)) return candidate;
+                log.debug("Ignoring loopback X-Forwarded-For value: {}", candidate);
+            } else {
+                log.debug("Ignoring malformed X-Forwarded-For value: {}", candidate);
             }
-            log.debug("Ignoring malformed X-Forwarded-For value: {}", candidate);
         }
         String remoteAddr = request.getRemoteAddr();
-        return remoteAddr != null ? remoteAddr : "";
+        return (remoteAddr != null && !isLoopback(remoteAddr)) ? remoteAddr : "";
+    }
+
+    private static boolean isLoopback(String ip) {
+        return "::1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip) || ip.startsWith("127.");
     }
 }

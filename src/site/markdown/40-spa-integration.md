@@ -819,6 +819,95 @@ export function App() {
 
 ---
 
+## Forwarding browser context for accurate pixel tracking
+
+The plugin fires Discovery pixel events from the JVM, not the browser. For Discovery to correctly attribute impressions (analytics, personalisation, A/B tests), it needs the real browser IP, User-Agent, and locale on every brXM request — not the SPA server's own network identity.
+
+Your SPA server must forward three headers when calling brXM's Page Model API:
+
+| Header sent to brXM | Source on your SPA server | Purpose |
+|---|---|---|
+| `X-Forwarded-For` | Incoming `X-Forwarded-For` or connection IP | Real client IP sent as `client_ip` on the pixel |
+| `X-Forwarded-User-Agent` | Incoming `User-Agent` | Browser UA — enables bot/crawler suppression |
+| `X-Forwarded-Accept-Language` | Incoming `Accept-Language` | Locale context on the pixel request |
+
+Without these headers brXM falls back to the server-to-server request's own values: Discovery sees your Node.js server's IP and UA for every event. Pixels that look like server-side crawlers are silently suppressed.
+
+### Next.js example
+
+```ts
+// lib/brxm.ts — helper used by any server-side fetch to brXM
+import type { IncomingMessage } from 'http';
+
+export function forwardHeaders(req: IncomingMessage): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) headers['X-Forwarded-For'] = Array.isArray(xff) ? xff[0] : xff;
+  const ua = req.headers['user-agent'];
+  if (ua) headers['X-Forwarded-User-Agent'] = ua;
+  const lang = req.headers['accept-language'];
+  if (lang) headers['X-Forwarded-Accept-Language'] = lang;
+  return headers;
+}
+```
+
+```ts
+// pages/search.tsx — getServerSideProps
+export async function getServerSideProps({ req, query }: GetServerSidePropsContext) {
+  const pageApiUrl = `${process.env.BRXM_ENDPOINT}/search?q=${query.q ?? ''}`;
+  const res = await fetch(pageApiUrl, {
+    headers: { Accept: 'application/json', ...forwardHeaders(req) },
+  });
+  // ...
+}
+```
+
+### Express example
+
+```ts
+app.get('/api/page/*', async (req, res) => {
+  const upstream = await fetch(brxmEndpoint + req.path, {
+    headers: {
+      Accept: 'application/json',
+      'X-Forwarded-For':           (req.headers['x-forwarded-for'] as string) ?? req.ip ?? '',
+      'X-Forwarded-User-Agent':    req.headers['user-agent'] ?? '',
+      'X-Forwarded-Accept-Language': req.headers['accept-language'] ?? '',
+    },
+  });
+  // ...
+});
+```
+
+### Reverse proxy configuration
+
+If a reverse proxy (nginx, AWS ALB, Cloudflare, etc.) sits between the SPA server and brXM, configure it to forward — not replace — the `X-Forwarded-For` header.
+
+**nginx:**
+
+```nginx
+location /site/resourceapi/ {
+    proxy_pass          http://brxm:8080;
+    proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
+    proxy_set_header    Host             $host;
+}
+```
+
+`$proxy_add_x_forwarded_for` appends the connecting IP to any existing XFF chain. The plugin always reads the **leftmost** IP — the original client:
+
+```
+X-Forwarded-For: 203.0.113.42, 10.0.0.5, 172.16.0.1
+                  ↑
+                  used as client_ip in the pixel
+```
+
+> **Security note:** If brXM is not behind a controlled proxy, clients could forge `X-Forwarded-For`. Configure your edge proxy to **replace** (not append) the header with the verified connection IP before it reaches brXM.
+
+### Loopback addresses
+
+Loopback IPs (`127.x.x.x`, `::1`, `0:0:0:0:0:0:0:1`) are automatically ignored. If `X-Forwarded-For` resolves to a loopback address, the plugin falls back to `request.getRemoteAddr()`. In local development where all traffic is on localhost, `client_ip` will be empty on pixel events — this is expected.
+
+---
+
 ## `editMode` and Channel Manager preview
 
 Every component sets `editMode: boolean`. It is `true` only when rendered inside the brXM Channel Manager preview. In normal delivery it is always `false`.

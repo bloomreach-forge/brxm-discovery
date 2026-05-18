@@ -87,11 +87,20 @@
         <constructor-arg ref="brxmdis.requestFactory"/>
     </bean>
 
+    <!-- Pixel rate limiter: caps outbound pixel requests to Discovery at N/s per JVM node.
+         Tune brxdis.pixelRatePerSecond via system property or override the constructor-arg value. -->
+    <bean id="brxmdis.pixelRateLimiter"
+          class="org.bloomreach.forge.discovery.site.service.discovery.pixel.PixelRateLimiter"
+          destroy-method="close">
+        <constructor-arg value="#{systemProperties.getOrDefault('brxdis.pixelRatePerSecond', '100')}"/>
+    </bean>
+
     <bean id="brxmdis.pixelClientTransport"
           class="org.bloomreach.forge.discovery.site.service.discovery.DefaultDiscoveryPixelTransport"
           lazy-init="true">
         <constructor-arg ref="brxmdis.transport"/>
         <constructor-arg ref="brxmdis.configProvider"/>
+        <constructor-arg ref="brxmdis.pixelRateLimiter"/>
     </bean>
 
     <!-- Public services - bean IDs match Class.getName() for getComponent() lookups -->

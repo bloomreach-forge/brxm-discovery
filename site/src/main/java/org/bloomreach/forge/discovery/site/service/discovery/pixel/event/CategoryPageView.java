@@ -8,6 +8,7 @@ import java.util.Map;
 public record CategoryPageView(
         TrackingContext tracking,
         String categoryId,
+        String categoryName,
         List<ProductSummary> products) implements PixelEvent {
 
     @Override public String type()  { return "pageview"; }
@@ -15,6 +16,9 @@ public record CategoryPageView(
 
     @Override
     public Map<String, String> typeParams() {
-        return PixelEvent.notBlank(categoryId) ? Map.of("cat_id", categoryId) : Map.of();
+        var params = new java.util.LinkedHashMap<String, String>();
+        if (PixelEvent.notBlank(categoryId))   params.put("cat_id", categoryId);
+        if (PixelEvent.notBlank(categoryName)) params.put("cat", categoryName);
+        return java.util.Collections.unmodifiableMap(params);
     }
 }
