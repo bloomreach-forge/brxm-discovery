@@ -53,6 +53,7 @@ class HttpClientDiscoveryTransportTest {
 
         SearchException ex = assertThrows(SearchException.class, () -> transport.execute(request));
         assertTrue(ex.getMessage().contains("404"));
+        assertEquals(404, ex.statusCode());
     }
 
     @Test
@@ -63,6 +64,7 @@ class HttpClientDiscoveryTransportTest {
 
         SearchException ex = assertThrows(SearchException.class, () -> transport.execute(request));
         assertTrue(ex.getMessage().contains("500"));
+        assertEquals(500, ex.statusCode());
     }
 
     @Test
@@ -72,6 +74,7 @@ class HttpClientDiscoveryTransportTest {
         SearchException ex = assertThrows(SearchException.class, () -> transport.execute(request));
         assertTrue(ex.getMessage().contains("I/O error"));
         assertTrue(ex.getCause() instanceof IOException);
+        assertEquals(-1, ex.statusCode());
     }
 
     @Test

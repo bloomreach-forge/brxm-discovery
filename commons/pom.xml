@@ -15,7 +15,18 @@
     <name>brXM Discovery Plugin - Commons</name>
     <description>Common domain model, config, and exception types used by both site and cms modules</description>
 
+    <properties>
+        <resilience4j.version>2.2.0</resilience4j.version>
+    </properties>
+
     <dependencies>
+        <!-- Circuit breaker for Discovery API calls (CircuitBreakerDiscoveryTransport) -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+
         <!-- JCR (for DiscoveryConfigReader Node/Session) -->
         <dependency>
             <groupId>javax.jcr</groupId>

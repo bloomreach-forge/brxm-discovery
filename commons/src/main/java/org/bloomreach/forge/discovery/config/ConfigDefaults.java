@@ -73,6 +73,24 @@ public final class ConfigDefaults {
     public static final String PICKER_IMAGE_FIELD_DEFAULT = "thumb_image";
     public static final String PICKER_PRICE_FIELD_DEFAULT = "price";
 
+    // Circuit breaker tuning - ops/infra level, env/sys + coded default only (no JCR/content authoring).
+
+    public static final String CB_FAILURE_RATE_THRESHOLD_SYS = "brxdis.cb.failureRateThreshold";
+    public static final String CB_FAILURE_RATE_THRESHOLD_ENV = "BRXDIS_CB_FAILURE_RATE_THRESHOLD";
+    public static final int CB_FAILURE_RATE_THRESHOLD_DEFAULT = 50;
+
+    public static final String CB_SLIDING_WINDOW_SIZE_SYS = "brxdis.cb.slidingWindowSize";
+    public static final String CB_SLIDING_WINDOW_SIZE_ENV = "BRXDIS_CB_SLIDING_WINDOW_SIZE";
+    public static final int CB_SLIDING_WINDOW_SIZE_DEFAULT = 20;
+
+    public static final String CB_MINIMUM_NUMBER_OF_CALLS_SYS = "brxdis.cb.minimumNumberOfCalls";
+    public static final String CB_MINIMUM_NUMBER_OF_CALLS_ENV = "BRXDIS_CB_MINIMUM_NUMBER_OF_CALLS";
+    public static final int CB_MINIMUM_NUMBER_OF_CALLS_DEFAULT = 10;
+
+    public static final String CB_WAIT_DURATION_IN_OPEN_STATE_SECONDS_SYS = "brxdis.cb.waitDurationInOpenStateSeconds";
+    public static final String CB_WAIT_DURATION_IN_OPEN_STATE_SECONDS_ENV = "BRXDIS_CB_WAIT_DURATION_IN_OPEN_STATE_SECONDS";
+    public static final int CB_WAIT_DURATION_IN_OPEN_STATE_SECONDS_DEFAULT = 30;
+
     public static boolean isStaging(String environment) {
         return STAGING_ENVIRONMENT.equalsIgnoreCase(environment);
     }

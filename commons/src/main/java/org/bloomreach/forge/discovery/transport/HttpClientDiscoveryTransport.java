@@ -35,7 +35,7 @@ public final class HttpClientDiscoveryTransport implements DiscoveryTransport {
             String snippet = response.body() != null && response.body().length() > 200
                     ? response.body().substring(0, 200) + "..."
                     : response.body();
-            throw new SearchException("Discovery API returned HTTP " + status + ": " + snippet);
+            throw new SearchException("Discovery API returned HTTP " + status + ": " + snippet, status);
         } catch (SearchException e) {
             throw e;
         } catch (IOException e) {

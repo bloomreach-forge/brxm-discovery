@@ -29,9 +29,23 @@
           class="org.bloomreach.forge.discovery.transport.DiscoveryHttpClientFactory"
           factory-method="create"/>
 
-    <bean id="brxmdis.transport"
+    <bean id="brxmdis.httpTransport"
           class="org.bloomreach.forge.discovery.transport.HttpClientDiscoveryTransport">
         <constructor-arg ref="brxmdis.httpClient"/>
+    </bean>
+
+    <!-- Circuit breaker: fails fast per-host once an upstream is unhealthy, instead of paying the
+         full request timeout on every call. Tuning is env/sys + coded default (ops-level, see
+         DiscoveryResilienceConfig) - not JCR/content-authorable. -->
+
+    <bean id="brxmdis.resilienceConfig"
+          class="org.bloomreach.forge.discovery.transport.DiscoveryResilienceConfig"
+          factory-method="fromEnvironment"/>
+
+    <bean id="brxmdis.transport"
+          class="org.bloomreach.forge.discovery.transport.CircuitBreakerDiscoveryTransport">
+        <constructor-arg ref="brxmdis.httpTransport"/>
+        <constructor-arg ref="brxmdis.resilienceConfig"/>
     </bean>
 
     <!-- Internal helpers -->
