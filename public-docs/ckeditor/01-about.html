@@ -1,0 +1,120 @@
+<h1><a id="about-the-bloomreach-discovery-plugin" name="about-the-bloomreach-discovery-plugin"></a>About the Bloomreach Discovery Plugin</h1>
+<p><strong>brxm-discovery</strong> connects <a href="https://documentation.bloomreach.com/discovery/">Bloomreach Discovery</a> to <a href="https://documentation.bloomreach.com/content">Bloomreach Experience Manager (brXM)</a>. Discovery is Bloomreach's search and merchandising engine — it indexes your product catalog and powers keyword search, category browse, autosuggest, recommendation widgets, and visual (image-based) search. brXM is the content and page-composition layer: HST components render pages, editors manage content in Channel Manager, and the Page Model API feeds headless and SPA front ends.</p>
+<p>This plugin is the integration between the two: a set of HST components, CMS editor extensions, and a server-side transport layer that call the Discovery API on your site's behalf, so no Discovery credentials are ever exposed to the browser.</p>
+<blockquote>
+<p><strong>Alpha — Early Development.</strong> APIs, configuration schemas, HST component interfaces, and JCR node types are subject to change without notice between releases. Review release notes before upgrading.</p>
+</blockquote>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: architecture-overview.png — high-level diagram showing brXM (CMS + Site webapps) on one side, the Discovery Plugin in the middle, and Bloomreach Discovery's Search/Autosuggest/Pathways APIs on the other. Exported from Figma: <a href="https://www.figma.com/board/zUkoHiV1uCdXw53VQdQVLJ">https://www.figma.com/board/zUkoHiV1uCdXw53VQdQVLJ</a> — upload via the editor's image tool rather than pasting this HTML.]</strong></p>
+</blockquote>
+<hr />
+<h2><a id="what-the-plugin-provides" name="what-the-plugin-provides"></a>What the plugin provides</h2>
+<ul>
+<li><strong>Search &amp; browse</strong> — keyword search and category browse pages with server-built facets, pagination, sort, did-you-mean, and keyword-redirect handling.</li>
+<li><strong>Autosuggest</strong> — a search bar component with a live typeahead dropdown (query, attribute, and product suggestions).</li>
+<li><strong>Recommendations</strong> — four widget types (product-keyed, category-keyed, global/personalized, and keyword-keyed), each configurable by content editors without code changes.</li>
+<li><strong>Visual search</strong> — shoppers can search by uploading a photo; the plugin proxies the upload so Discovery credentials stay server-side.</li>
+<li><strong>Editorial curation</strong> — hand-picked product and category highlight components for merchandising slots that don't need to be algorithmic.</li>
+<li><strong>CMS editor tooling</strong> — Open UI pickers and step-by-step wizards for selecting products, categories, and recommendation widgets, embedded directly in document editing.</li>
+<li><strong>Analytics</strong> — a server-side pixel service that reports impressions, clicks, and page views back to Discovery for ranking and A/B testing, with consent-gating support.</li>
+<li><strong>Headless-ready</strong> — every component exposes its data through the Page Model API in addition to Freemarker, so the same components can power a traditional site or a decoupled React/SPA front end.</li>
+</ul>
+<p>Discovery itself is read-only from the plugin's perspective — your product catalog is synced into Discovery by your commerce platform's connector; this plugin only queries and displays what's already indexed.</p>
+<hr />
+<h2><a id="requirements" name="requirements"></a>Requirements</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>brXM / Bloomreach Experience Manager</td>
+<td>17.0.0</td>
+</tr>
+<tr>
+<td>Java</td>
+<td>17 (LTS)</td>
+</tr>
+<tr>
+<td>Maven</td>
+<td>3.8+</td>
+</tr>
+<tr>
+<td>A Bloomreach Discovery account</td>
+<td>with a provisioned account ID and domain key</td>
+</tr>
+</tbody>
+</table>
+<p>The plugin runs across brXM's two separate runtimes — the CMS webapp and the site webapp — each with its own artifact. See <a href="02-installation.md">Installation</a>.</p>
+<hr />
+<h2><a id="module-overview" name="module-overview"></a>Module overview</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Artifact</th>
+<th>Runs in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Commons</td>
+<td><code>brxm-discovery-commons</code></td>
+<td>Both runtimes (transitive dependency)</td>
+</tr>
+<tr>
+<td>CMS</td>
+<td><code>brxm-discovery-cms</code></td>
+<td>CMS webapp</td>
+</tr>
+<tr>
+<td>Site</td>
+<td><code>brxm-discovery-site</code></td>
+<td>Site webapp</td>
+</tr>
+<tr>
+<td>HCM Site</td>
+<td><code>brxm-discovery-hcm-site</code></td>
+<td>Bundled automatically via the site artifact</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2><a id="where-to-go-next" name="where-to-go-next"></a>Where to go next</h2>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Page</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add the plugin to your project</td>
+<td><a href="02-installation.md">Installation</a></td>
+</tr>
+<tr>
+<td>Set up Discovery credentials</td>
+<td><a href="03-configuration.md">Configuration</a></td>
+</tr>
+<tr>
+<td>Place search, browse, or recommendation components on a page</td>
+<td><a href="04-component-parameters.md">Component Parameters</a></td>
+</tr>
+<tr>
+<td>Set up recommendation widgets or visual search</td>
+<td><a href="05-recommendations-and-visual-search.md">Recommendations &amp; Visual Search</a></td>
+</tr>
+<tr>
+<td>Let editors pick products, categories, and widgets in the CMS</td>
+<td><a href="06-document-types-and-pickers.md">CMS Document Types &amp; Pickers</a></td>
+</tr>
+<tr>
+<td>Configure analytics and consent</td>
+<td><a href="07-pixel-tracking.md">Pixel Tracking &amp; Consent</a></td>
+</tr>
+</tbody>
+</table>

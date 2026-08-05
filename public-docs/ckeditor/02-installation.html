@@ -1,0 +1,150 @@
+<h1><a id="installation" name="installation"></a>Installation</h1>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#step-1--add-the-maven-repositories">Step 1 — Add the Maven repositories</a></li>
+<li><a href="#step-2--add-the-plugin-dependencies">Step 2 — Add the plugin dependencies</a></li>
+<li><a href="#what-each-artifact-provides">What each artifact provides</a></li>
+<li><a href="#what-bootstraps-automatically">What bootstraps automatically</a></li>
+<li><a href="#verifying-the-installation">Verifying the installation</a></li>
+</ul>
+<hr />
+<h2><a id="prerequisites" name="prerequisites"></a>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>brXM / Bloomreach Experience Manager</td>
+<td>17.0.0</td>
+</tr>
+<tr>
+<td>Java</td>
+<td>17 (LTS)</td>
+</tr>
+<tr>
+<td>Maven</td>
+<td>3.8+</td>
+</tr>
+<tr>
+<td>Runtime model</td>
+<td>separate CMS and site webapps (brXM's standard two-runtime deployment)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2><a id="step-1--add-the-maven-repositories" name="step-1--add-the-maven-repositories"></a>Step 1 — Add the Maven repositories</h2>
+<p>If they aren't already present in your project:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">repository</span>&gt;</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">id</span>&gt;bloomreach&lt;/<span class="kw">id</span>&gt;</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">url</span>&gt;https://maven.bloomreach.com/maven2/&lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">repository</span>&gt;</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">repository</span>&gt;</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">id</span>&gt;bloomreach-enterprise&lt;/<span class="kw">id</span>&gt;</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">url</span>&gt;https://maven.bloomreach.com/maven2-enterprise/&lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">repository</span>&gt;</span></code></pre></div>
+<hr />
+<h2><a id="step-2--add-the-plugin-dependencies" name="step-2--add-the-plugin-dependencies"></a>Step 2 — Add the plugin dependencies</h2>
+<p>brXM loads CMS and site code in separate runtimes, so there is no single universal artifact — each runtime gets its own dependency.</p>
+<p>In your root POM's <code>&lt;dependencyManagement&gt;</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">dependency</span>&gt;</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">groupId</span>&gt;org.bloomreach.forge.discovery&lt;/<span class="kw">groupId</span>&gt;</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">artifactId</span>&gt;brxm-discovery-cms&lt;/<span class="kw">artifactId</span>&gt;</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">version</span>&gt;${project.version}&lt;/<span class="kw">version</span>&gt;</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">dependency</span>&gt;</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">dependency</span>&gt;</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">groupId</span>&gt;org.bloomreach.forge.discovery&lt;/<span class="kw">groupId</span>&gt;</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">artifactId</span>&gt;brxm-discovery-site&lt;/<span class="kw">artifactId</span>&gt;</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">version</span>&gt;${project.version}&lt;/<span class="kw">version</span>&gt;</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">dependency</span>&gt;</span></code></pre></div>
+<p>Then add each artifact to the matching module:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Add to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>brxm-discovery-cms</code></td>
+<td>Your CMS dependencies POM (the module that feeds <code>cms.war</code>)</td>
+</tr>
+<tr>
+<td><code>brxm-discovery-site</code></td>
+<td>Your site webapp</td>
+</tr>
+<tr>
+<td><code>brxm-discovery-site</code></td>
+<td>Your <code>site/components</code> module, if it exists, whenever it compiles custom Java against plugin classes</td>
+</tr>
+</tbody>
+</table>
+<p>You do not need to add <code>brxm-discovery-hcm-site</code> separately — it is pulled in automatically by <code>brxm-discovery-site</code>.</p>
+<hr />
+<h2><a id="what-each-artifact-provides" name="what-each-artifact-provides"></a>What each artifact provides</h2>
+<h3><a id="brxm-discovery-cms" name="brxm-discovery-cms"></a><code>brxm-discovery-cms</code></h3>
+<ul>
+<li>The <code>brxdis:discoveryConfig</code> JCR node type and its CMS editor template</li>
+<li>The picker daemon, which registers a REST endpoint at <code>{cms}/ws/discovery/picker</code></li>
+<li>The Open UI picker and wizard extensions used by document editors</li>
+<li>The static picker UI assets served at <code>{cms}/discovery-picker/</code></li>
+</ul>
+<h3><a id="brxm-discovery-site" name="brxm-discovery-site"></a><code>brxm-discovery-site</code></h3>
+<ul>
+<li>The runtime entry point: Spring beans, the addon module assembly, and bundled Freemarker templates</li>
+<li>All HST components (see <a href="04-component-parameters.md">Component Parameters</a> for the full list)</li>
+<li>The transitive <code>brxm-discovery-hcm-site</code> bootstrap</li>
+</ul>
+<hr />
+<h2><a id="what-bootstraps-automatically" name="what-bootstraps-automatically"></a>What bootstraps automatically</h2>
+<p>On first startup, the following is created without any manual configuration:</p>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>JCR path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>brxdis</code> namespace and node types</td>
+<td><code>/hippo:namespaces/brxdis</code></td>
+</tr>
+<tr>
+<td>Picker daemon module</td>
+<td><code>/hippo:configuration/hippo:modules/brxm-discovery</code></td>
+</tr>
+<tr>
+<td>Open UI picker/wizard extensions</td>
+<td><code>/hippo:configuration/hippo:frontend/cms/ui-extensions/</code></td>
+</tr>
+<tr>
+<td>Bundled HST templates</td>
+<td><code>/hst:hst/hst:configurations/hst:default/hst:templates/brxdis-*</code></td>
+</tr>
+</tbody>
+</table>
+<p>Because the templates register under <code>hst:default</code>, any site configuration that inherits from it receives them automatically — no <code>templates.yaml</code> entry is required unless you want to override a bundled template.</p>
+<p>You still need to:</p>
+<ol type="1">
+<li>Provide Discovery credentials — see <a href="03-configuration.md">Configuration</a>.</li>
+<li>Add the HST components you want to your page configuration — see <a href="04-component-parameters.md">Component Parameters</a>.</li>
+<li>If you plan to use visual search, add an HST mount for the visual search pipeline — see <a href="05-recommendations-and-visual-search.md#visual-search-mount-placement">Recommendations &amp; Visual Search</a>.</li>
+</ol>
+<hr />
+<h2><a id="verifying-the-installation" name="verifying-the-installation"></a>Verifying the installation</h2>
+<p>After startup, check the CMS log for:</p>
+<pre><code>brxm-discovery: registered picker endpoint at /discovery/picker
+brxm-discovery: Registered JCR observation listener on &#39;/hippo:configuration&#39;</code></pre>
+<p>Then confirm the picker endpoint responds (a JSON response, not a 404):</p>
+<pre><code>GET http://localhost:8080/cms/ws/discovery/picker/search</code></pre>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: browser or API client (e.g. Postman) showing a successful JSON response from the picker <code>/search</code> endpoint, to visually confirm the installation worked.]</strong></p>
+</blockquote>
+<p>If you see <code>Required HST service is not available: org.bloomreach.forge.discovery.site.platform.HstDiscoveryService</code>, the site webapp is running against an older plugin build than what was installed — rebuild and redeploy the site webapp.</p>
+<p>See <a href="08-troubleshooting.md">Troubleshooting</a> for more installation issues.</p>

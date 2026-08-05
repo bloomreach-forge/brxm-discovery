@@ -1,0 +1,159 @@
+<h1><a id="pixel-tracking--consent" name="pixel-tracking--consent"></a>Pixel Tracking &amp; Consent</h1>
+<p>After a search, category browse, recommendation, or product-detail page renders, the plugin fires a server-side analytics event ("pixel") back to Discovery, so impressions, clicks, and page views feed Discovery's ranking models and A/B testing. This happens automatically once credentials are configured — no additional setup is required for a standard production deployment.</p>
+<p>Pixel calls run on a bounded background thread pool and never affect page rendering — a failed or slow pixel call cannot cause a slow or broken page.</p>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#what-gets-tracked">What gets tracked</a></li>
+<li><a href="#turning-tracking-off">Turning tracking off</a></li>
+<li><a href="#consent-gating">Consent gating</a></li>
+<li><a href="#accurate-attribution-in-headless-deployments">Accurate attribution in headless deployments</a></li>
+</ul>
+<hr />
+<h2><a id="what-gets-tracked" name="what-gets-tracked"></a>What gets tracked</h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Fired when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search page view</td>
+<td>A search results page renders</td>
+</tr>
+<tr>
+<td>Search submit</td>
+<td>A visitor submits a search from the search bar</td>
+</tr>
+<tr>
+<td>Category page view</td>
+<td>A category browse page renders</td>
+</tr>
+<tr>
+<td>Product page view</td>
+<td>A product detail page renders with a resolved product</td>
+</tr>
+<tr>
+<td>Widget view</td>
+<td>A recommendation widget renders with at least one product</td>
+</tr>
+<tr>
+<td>Widget click</td>
+<td>A visitor clicks a product inside a recommendation widget</td>
+</tr>
+<tr>
+<td>Suggest click</td>
+<td>A visitor clicks an autosuggest suggestion</td>
+</tr>
+<tr>
+<td>Click-add</td>
+<td>A visitor adds to cart directly from a recommendation widget</td>
+</tr>
+<tr>
+<td>Quickview</td>
+<td>A visitor opens a quickview from a recommendation widget</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2><a id="turning-tracking-off" name="turning-tracking-off"></a>Turning tracking off</h2>
+<h3><a id="deployment-wide-kill-switch" name="deployment-wide-kill-switch"></a>Deployment-wide kill switch</h3>
+<p>A single system property disables all pixel calls across every channel on a JVM, regardless of any other setting:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>brxdis.pixel.envEnabled</code></td>
+<td><code>true</code></td>
+<td>Set to <code>false</code> to disable all pixel calls JVM-wide — useful for local development or automated test environments so developer traffic doesn't pollute production analytics.</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mvn</span> <span class="at">-P</span> cargo.run cargo:run <span class="at">-Dbrxdis.pixel.envEnabled</span><span class="op">=</span>false</span></code></pre></div>
+<h3><a id="per-channel-control" name="per-channel-control"></a>Per-channel control</h3>
+<p>Channel Manager exposes checkboxes under <strong>Channel Settings → Pixel Tracking</strong> so a single channel can be tuned without touching the JVM:</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Pixel Tracking section of the Channel Settings panel, showing the enabled/test-data/debug checkboxes and the region dropdown.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Channel setting</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pixels enabled</td>
+<td>checked</td>
+<td>Uncheck to suppress all pixel calls for this channel only.</td>
+</tr>
+<tr>
+<td>Test data</td>
+<td>unchecked</td>
+<td>Check to tag every event from this channel as test data, excluded from production analytics.</td>
+</tr>
+<tr>
+<td>Debug</td>
+<td>unchecked</td>
+<td>Check for verbose pixel logging.</td>
+</tr>
+<tr>
+<td>Region</td>
+<td><code>US</code></td>
+<td><code>US</code> or <code>EU</code> — must match where your Discovery account's data is stored.</td>
+</tr>
+</tbody>
+</table>
+<p>The deployment-wide kill switch always takes precedence: if it's off, no channel-level setting can turn tracking back on.</p>
+<hr />
+<h2><a id="consent-gating" name="consent-gating"></a>Consent gating</h2>
+<p>Where regulations require consent before firing analytics events (GDPR, ePrivacy), the plugin supports two mechanisms — pick whichever matches your consent setup.</p>
+<h3><a id="cookie-based-no-code-required" name="cookie-based-no-code-required"></a>Cookie-based (no code required)</h3>
+<p>Set a <strong>Consent cookie name</strong> on the channel. Once set, the plugin checks for that cookie's presence on every request before firing a pixel — its value doesn't matter, only whether it exists.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="at">/hst:hst/hst:configurations/&lt;your-site&gt;/hst:workspace/hst</span><span class="fu">:channel</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  hst</span><span class="fu">:parameternames</span><span class="kw">:</span><span class="at">  </span><span class="kw">[</span><span class="at">discoveryPixelConsentCookie</span><span class="kw">]</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">  hst</span><span class="fu">:parametervalues</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">OptanonConsent</span><span class="kw">]</span></span></code></pre></div>
+<p>Your consent banner is responsible for setting and clearing this cookie in the visitor's browser as they grant or withdraw consent.</p>
+<h3><a id="custom-consent-provider-complex-consent-platforms" name="custom-consent-provider-complex-consent-platforms"></a>Custom consent provider (complex consent platforms)</h3>
+<p>For consent management platforms that encode consent state inside a structured cookie payload (rather than the cookie's mere presence), integrators can register a small Java class that inspects the request and returns a yes/no consent decision. This is a developer-level integration point — see the plugin's developer guide for the interface and a worked example if your project needs it.</p>
+<h3><a id="resolution-order" name="resolution-order"></a>Resolution order</h3>
+<pre><code>Deployment kill switch off        →  no pixels fire, anywhere
+Channel pixels disabled           →  no pixels fire, for that channel
+Custom consent provider present   →  its decision is the sole gate
+Consent cookie name set           →  fires only if that cookie is present
+Nothing configured                →  fires unconditionally (default)</code></pre>
+<hr />
+<h2><a id="accurate-attribution-in-headless-deployments" name="accurate-attribution-in-headless-deployments"></a>Accurate attribution in headless deployments</h2>
+<p>The plugin fires pixels from the server, not the browser — so for a decoupled SPA front end, the real visitor IP, browser, and locale must be forwarded from your Node.js/SPA server layer to brXM on every Page Model API request. Without this, every event will carry your SPA server's own IP and User-Agent instead of the visitor's, degrading personalization accuracy.</p>
+<table>
+<thead>
+<tr>
+<th>Forwarding header</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>X-Forwarded-For</code></td>
+<td>Visitor IP</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-User-Agent</code></td>
+<td>Browser identification (also used to suppress bot/crawler traffic)</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-Accept-Language</code></td>
+<td>Locale</td>
+</tr>
+</tbody>
+</table>
+<p>Confirm forwarding is configured correctly during any headless integration — see your SPA integration guide for framework-specific examples.</p>

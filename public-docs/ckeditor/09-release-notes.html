@@ -1,0 +1,35 @@
+<h1><a id="release-notes" name="release-notes"></a>Release Notes</h1>
+<p>This page tracks notable changes to the brXM Discovery plugin by version. Versions follow the project's Maven artifact version, not calendar dates — see the module POMs for the exact version resolved by your build.</p>
+<hr />
+<h2><a id="unreleased-develop" name="unreleased-develop"></a>Unreleased (<code>develop</code>)</h2>
+<p>Changes merged to <code>develop</code> since the <code>0.0.4</code> release, pending the next version bump.</p>
+<p><strong>Reliability</strong></p>
+<ul>
+<li>Added a per-host <a href="https://resilience4j.readme.io/">Resilience4j</a> circuit breaker in front of every outbound Discovery call (<code>CircuitBreakerDiscoveryTransport</code>), so a failing or slow endpoint (e.g. recommendations) degrades in isolation instead of also stalling calls to other Discovery APIs (e.g. search). Tuning is via environment variable or system property — see <a href="03-configuration.md#circuit-breaker-tuning">Configuration → Circuit breaker tuning</a>.</li>
+</ul>
+<hr />
+<h2><a id="004--released-2026-05-18" name="004--released-2026-05-18"></a>0.0.4 — Released 2026-05-18</h2>
+<p><strong>Fixed</strong></p>
+<ul>
+<li>Corrected rate-limiting and client IP address handling in the HTTP transport layer, addressing cases where the wrong address was attributed to a request.</li>
+</ul>
+<hr />
+<h2><a id="003--released-2026-05-11" name="003--released-2026-05-11"></a>0.0.3 — Released 2026-05-11</h2>
+<p><strong>Fixed</strong></p>
+<ul>
+<li>Corrected the resolution order for system-property-based configuration overrides, so system properties reliably take precedence the way <a href="03-configuration.md#injecting-credentials">Configuration → Injecting credentials</a> documents.</li>
+</ul>
+<hr />
+<h2><a id="002--released-2026-05-07" name="002--released-2026-05-07"></a>0.0.2 — Released 2026-05-07</h2>
+<p><strong>Added</strong></p>
+<ul>
+<li>Visual (image) search support, exposed through <code>discoveryVisualSearchEnabled</code> / <code>discoveryVisualSearchWidgetId</code> on <code>DiscoveryChannelInfo</code> — see <a href="05-recommendations-and-visual-search.md">Recommendations &amp; Visual Search</a>.</li>
+<li>A guided, multi-step wizard for authoring recommendation widgets and other CMS document types, replacing manual field-by-field entry.</li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul>
+<li>Broader architecture reshuffle across the plugin's module layout and component/service packages, and general SEO improvements to bundled templates.</li>
+</ul>
+<hr />
+<h2><a id="001--released-2026-03-26" name="001--released-2026-03-26"></a>0.0.1 — Released 2026-03-26</h2>
+<p>Initial release of the brXM Discovery plugin: HTTP/2-backed Discovery search, category browse, and recommendation services, with native HST components and CMS document types for authoring.</p>

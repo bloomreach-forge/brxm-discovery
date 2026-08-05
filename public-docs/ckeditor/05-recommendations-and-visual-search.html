@@ -1,0 +1,156 @@
+<h1><a id="recommendations--visual-search" name="recommendations--visual-search"></a>Recommendations &amp; Visual Search</h1>
+<p>Recommendation widgets and visual (image) search are both powered by Discovery's <strong>v2 Pathways API</strong>, and both are configured largely by content editors rather than developers. This page covers the widget document types, the wizard editors used to configure them, and how to enable image-based search.</p>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#v1-vs-v2--automatic-version-selection">v1 vs. v2 — automatic version selection</a></li>
+<li><a href="#recommendation-document-types">Recommendation document types</a></li>
+<li><a href="#placing-a-recommendation-component">Placing a recommendation component</a></li>
+<li><a href="#visual-search">Visual search</a></li>
+</ul>
+<hr />
+<h2><a id="v1-vs-v2--automatic-version-selection" name="v1-vs-v2--automatic-version-selection"></a>v1 vs. v2 — automatic version selection</h2>
+<p>The plugin supports two Discovery recommendation APIs, and selects between them automatically:</p>
+<ul>
+<li><strong>v1</strong> (<code>discoverySearchAPI</code>) — used when no <code>authKey</code> is configured.</li>
+<li><strong>v2 Pathways</strong> (<code>discoveryPathwaysAPI</code>) — used automatically as soon as <code>authKey</code> is configured.</li>
+</ul>
+<p>There is no configuration flag to set — the presence of <code>authKey</code> (via <code>BRXDIS_AUTH_KEY</code>, <code>-Dbrxdis.authKey</code>, the global config node, or a per-channel <code>discoveryAuthKeyEnvVar</code> override) is the switch. See <a href="03-configuration.md#injecting-credentials">Configuration</a>.</p>
+<p>Visual search <strong>requires</strong> v2 — it has no v1 equivalent.</p>
+<hr />
+<h2><a id="recommendation-document-types" name="recommendation-document-types"></a>Recommendation document types</h2>
+<p>Each recommendation widget is configured as a JCR document, authored through a purpose-built wizard rather than raw parameter fields:</p>
+<table>
+<thead>
+<tr>
+<th>Document type</th>
+<th>Wizard</th>
+<th>Widget types it targets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Discovery Product Recommendation</td>
+<td>3-step product recommendation wizard</td>
+<td><code>co_viewed</code>, <code>co_bought</code>, <code>rt_recs</code>, <code>mlt</code></td>
+</tr>
+<tr>
+<td>Discovery Category Recommendation</td>
+<td>3-step category recommendation wizard</td>
+<td><code>category</code></td>
+</tr>
+<tr>
+<td>Discovery Global/Personalized Recommendation</td>
+<td>3-step global recommendation wizard</td>
+<td><code>bestseller</code>, <code>trending_product</code>, <code>jfy</code>, <code>past_purchases</code>, <code>recently_viewed</code></td>
+</tr>
+<tr>
+<td>Discovery Keyword Recommendation</td>
+<td>3-step keyword recommendation wizard</td>
+<td>keyword/query-driven widgets</td>
+</tr>
+</tbody>
+</table>
+<h3><a id="the-3-step-wizard" name="the-3-step-wizard"></a>The 3-step wizard</h3>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: step 1 of the recommendation wizard — the list of available widgets for the channel, filtered to the relevant widget types.]</strong></p>
+</blockquote>
+<ol type="1">
+<li><p><strong>Widget</strong> — choose from the recommendation widgets configured for your Discovery account. The list is automatically filtered to the widget types relevant to the document type you're editing.</p></li>
+<li><p><strong>Context</strong> <em>(product and category widgets only)</em> — choose whether the widget is always tied to a specific product/category ("Pinned"), or reads the current page's product/category ID from the URL at render time ("Dynamic"). Global and personalized widgets skip this step.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: step 2 of the recommendation wizard — the Dynamic vs. Pinned choice, with an inline product/category search visible for the Pinned option.]</strong></p>
+</blockquote></li>
+<li><p><strong>Review</strong> — a summary of the chosen configuration with a live thumbnail preview of what the widget will show.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: step 3 of the recommendation wizard — the review screen with a thumbnail strip of sample products.]</strong></p>
+</blockquote></li>
+</ol>
+<p>Editors can test a Dynamic-mode widget during review by entering a sample product or category ID — this test value only drives the preview and is never saved.</p>
+<hr />
+<h2><a id="placing-a-recommendation-component" name="placing-a-recommendation-component"></a>Placing a recommendation component</h2>
+<p>See <a href="04-component-parameters.md#recommendation-components">Component Parameters</a> for the shared parameter table. Each component's <code>document</code> field points to the widget configuration authored through the wizard above — the component itself needs no other setup.</p>
+<p><strong>Example: a "Similar Items" carousel on a product detail page.</strong> Place <code>DiscoveryProductDetailComponent</code> and <code>DiscoveryProductRecommendationComponent</code> on the same page, both left in Dynamic mode. Navigating to a product with <code>?pid=SKU-123</code> in the URL feeds both components automatically — no extra wiring needed.</p>
+<hr />
+<h2><a id="visual-search" name="visual-search"></a>Visual search</h2>
+<p>Visual search lets a shopper upload a photo instead of typing keywords, and see products that visually match it.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the storefront search bar with the camera/image-search icon visible, and a second screenshot of the resulting visually-matched product grid.]</strong></p>
+</blockquote>
+<h3><a id="enabling-it" name="enabling-it"></a>Enabling it</h3>
+<p>Visual search is a per-channel setting, configured in Channel Manager under <strong>Channel Settings → Visual Search</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>discoveryVisualSearchEnabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Shows the camera button in the search bar and activates the upload endpoint.</td>
+</tr>
+<tr>
+<td><code>discoveryVisualSearchWidgetId</code></td>
+<td>String</td>
+<td><code>""</code></td>
+<td>The visual search widget ID from your Discovery dashboard. Required when enabled.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Visual Search section of the Channel Settings panel.]</strong></p>
+</blockquote>
+<p>If enabled without a widget ID, the plugin logs a warning and falls back to ordinary keyword search — visitors never see a broken page.</p>
+<p>No component parameters are needed — the same <code>DiscoverySearchInputComponent</code> and <code>DiscoverySearchGridComponent</code> used for keyword search also handle visual search automatically.</p>
+<h3><a id="how-it-works" name="how-it-works"></a>How it works</h3>
+<ol type="1">
+<li>A shopper selects or takes a photo.</li>
+<li>The image is uploaded to a server-side endpoint that the plugin exposes — Discovery credentials never reach the browser.</li>
+<li>The plugin forwards the image to Discovery and receives back an image reference ID.</li>
+<li>The shopper is redirected to the results page, which detects the image reference and calls Discovery's visual search API directly.</li>
+<li>Matching products are returned in the same product grid used for keyword search (with facets and pagination unavailable for image-based results, since Discovery does not return them for this query type).</li>
+</ol>
+<h3><a id="visual-search-mount-placement" name="visual-search-mount-placement"></a>Visual search mount placement</h3>
+<p>The plugin's visual search endpoints must be reachable through an HST mount nested <strong>under the channel mount</strong> that carries the Discovery channel settings — this is what lets the endpoint resolve the correct per-channel credentials.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">/commerce</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  jcr</span><span class="fu">:primaryType</span><span class="kw">:</span><span class="at"> hst:mount</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  hst</span><span class="fu">:mountpoint</span><span class="kw">:</span><span class="at"> /hst:site/hst:sites/commerce</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  hst</span><span class="fu">:namedpipeline</span><span class="kw">:</span><span class="at"> resourceapi</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">/_brxdis-api</span><span class="kw">:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    jcr</span><span class="fu">:primaryType</span><span class="kw">:</span><span class="at"> hst:mount</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">    hst</span><span class="fu">:ismapped</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">    hst</span><span class="fu">:types</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">rest</span><span class="kw">]</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">    hst</span><span class="fu">:namedpipeline</span><span class="kw">:</span><span class="at"> BrxdisVisualSearchPipeline</span></span></code></pre></div>
+<p>Do not mount this at the host root or as a sibling of your channels — without a channel in its parent chain, the endpoint cannot resolve per-channel credentials and silently falls back to the global configuration.</p>
+<h3><a id="troubleshooting" name="troubleshooting"></a>Troubleshooting</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Camera button not visible</td>
+<td>Visual search disabled, or no widget ID set, for this channel</td>
+</tr>
+<tr>
+<td>Upload fails</td>
+<td>Widget ID in Channel Settings doesn't match a widget in the Discovery dashboard</td>
+</tr>
+<tr>
+<td>Results page falls back to keyword search</td>
+<td>The image reference from the upload wasn't carried through to the results page redirect</td>
+</tr>
+<tr>
+<td><code>authKey</code> missing warning in logs</td>
+<td>Visual search requires v2 Pathways credentials — see <a href="03-configuration.md#injecting-credentials">Configuration</a></td>
+</tr>
+</tbody>
+</table>

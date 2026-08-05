@@ -1,0 +1,505 @@
+<h1><a id="component-parameters" name="component-parameters"></a>Component Parameters</h1>
+<p>Every component below is placed on a page through standard HST configuration and configured by editors through the parameter panel in the Channel Manager component editor. This page lists, for each component, its purpose, its parameters, and what it exposes to templates and the Page Model API.</p>
+<p>For placement guidance and full page-composition examples, see the <a href="02-installation.md">Installation</a> and <a href="03-configuration.md">Configuration</a> pages. For the two components that use the v2 Pathways API, see <a href="05-recommendations-and-visual-search.md">Recommendations &amp; Visual Search</a>.</p>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#search-grid--discoverysearchgridcomponent">Search Grid</a></li>
+<li><a href="#category-grid--discoverycategorygridcomponent">Category Grid</a></li>
+<li><a href="#search-input--discoverysearchinputcomponent">Search Input</a></li>
+<li><a href="#product-detail--discoveryproductdetailcomponent">Product Detail</a></li>
+<li><a href="#product-highlight--discoveryproducthighlightcomponent">Product Highlight</a></li>
+<li><a href="#category-highlight--discoverycategoryhighlightcomponent">Category Highlight</a></li>
+<li><a href="#recommendation-components">Recommendation components</a></li>
+<li><a href="#everything-at-a-glance">Everything at a glance</a></li>
+</ul>
+<hr />
+<h2><a id="search-grid--discoverysearchgridcomponent" name="search-grid--discoverysearchgridcomponent"></a>Search Grid — <code>DiscoverySearchGridComponent</code></h2>
+<p>Keyword search results, including facets, pagination, sort, did-you-mean, auto-correct, keyword redirects, and image (visual) search.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoverySearchGridComponent, showing the Content, Display, and Advanced parameter groups.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Group</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pageSize</code></td>
+<td>Content</td>
+<td>int</td>
+<td><code>12</code></td>
+<td>Results per page.</td>
+</tr>
+<tr>
+<td><code>showFacets</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Render the facet panel.</td>
+</tr>
+<tr>
+<td><code>showPagination</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Render pagination controls.</td>
+</tr>
+<tr>
+<td><code>showSort</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Render the sort control.</td>
+</tr>
+<tr>
+<td><code>showDidYouMean</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Show did-you-mean suggestions.</td>
+</tr>
+<tr>
+<td><code>autoRedirect</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Follow a Discovery keyword redirect automatically (server-side).</td>
+</tr>
+<tr>
+<td><code>defaultSort</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Default sort expression; a URL <code>sort</code> parameter overrides it.</td>
+</tr>
+<tr>
+<td><code>catalogName</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Non-product Discovery catalog to search (e.g. a content catalog). Blank searches the product catalog.</td>
+</tr>
+<tr>
+<td><code>statsFields</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Comma-separated fields to compute min/max/mean statistics for.</td>
+</tr>
+<tr>
+<td><code>facetFields</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Comma-separated facet fields to display; empty shows all facets Discovery returns.</td>
+</tr>
+<tr>
+<td><code>segment</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Discovery visitor segment for personalized results.</td>
+</tr>
+<tr>
+<td><code>exclusionFilter</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Server-side filter expression to exclude items from results.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Query parameters accepted:</strong> <code>q</code> (search term), <code>page</code> (0-indexed), <code>sort</code>, and <code>filter.{attribute}</code> (repeatable facet filter).</p>
+<p><strong>Key models:</strong> <code>products</code>, <code>pagination</code>, <code>facets</code>, <code>facetUrls</code>, <code>activeFacets</code>, <code>clearAllFiltersUrl</code>, <code>sortUrl</code>, <code>didYouMean</code>, <code>autoCorrectQuery</code>, <code>redirectUrl</code>, <code>campaign</code>.</p>
+<hr />
+<h2><a id="category-grid--discoverycategorygridcomponent" name="category-grid--discoverycategorygridcomponent"></a>Category Grid — <code>DiscoveryCategoryGridComponent</code></h2>
+<p>Category browse, sharing the same facet/pagination/sort mechanics as search.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoveryCategoryGridComponent.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Group</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document</code></td>
+<td>Content</td>
+<td>JCR path (Category Document picker)</td>
+<td>—</td>
+<td>The category to browse. Only used in category mode; see <a href="06-document-types-and-pickers.md">CMS Document Types &amp; Pickers</a>.</td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>Content</td>
+<td>int</td>
+<td><code>12</code></td>
+<td>Results per page.</td>
+</tr>
+<tr>
+<td><code>showFacets</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Render the facet panel.</td>
+</tr>
+<tr>
+<td><code>showPagination</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Render pagination controls.</td>
+</tr>
+<tr>
+<td><code>showSort</code></td>
+<td>Display</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Render the sort control.</td>
+</tr>
+<tr>
+<td><code>defaultSort</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Default sort expression.</td>
+</tr>
+<tr>
+<td><code>statsFields</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Comma-separated fields for min/max/mean statistics.</td>
+</tr>
+<tr>
+<td><code>facetFields</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Comma-separated facet fields to display; empty shows all facets Discovery returns.</td>
+</tr>
+<tr>
+<td><code>segment</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Discovery visitor segment.</td>
+</tr>
+<tr>
+<td><code>exclusionFilter</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Server-side exclusion filter.</td>
+</tr>
+<tr>
+<td><code>categoryUrlParam</code></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>cid</code></td>
+<td>URL parameter name for the category ID (path segment and query-string fallback).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key models:</strong> the same shared set as Search Grid, plus <code>categoryId</code>, <code>displayName</code>, and <code>stats</code>.</p>
+<hr />
+<h2><a id="search-input--discoverysearchinputcomponent" name="search-input--discoverysearchinputcomponent"></a>Search Input — <code>DiscoverySearchInputComponent</code></h2>
+<p>A standalone search bar with an autosuggest dropdown, placeable in any zone (header, sidebar, inline).</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoverySearchInputComponent.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>placeholder</code></td>
+<td>String</td>
+<td><code>"Search..."</code></td>
+<td>Input placeholder text.</td>
+</tr>
+<tr>
+<td><code>resultsPage</code></td>
+<td>String</td>
+<td><code>""</code></td>
+<td>Path to redirect to for full results. Blank submits to the current page.</td>
+</tr>
+<tr>
+<td><code>suggestionsEnabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Enable the autosuggest dropdown.</td>
+</tr>
+<tr>
+<td><code>suggestionsLimit</code></td>
+<td>int</td>
+<td><code>5</code></td>
+<td>Maximum suggestions shown per category (query, attribute, product).</td>
+</tr>
+<tr>
+<td><code>minChars</code></td>
+<td>int</td>
+<td><code>2</code></td>
+<td>Minimum characters typed before suggestions are requested.</td>
+</tr>
+<tr>
+<td><code>debounceMs</code></td>
+<td>int</td>
+<td><code>250</code></td>
+<td>Debounce delay before firing an autosuggest request.</td>
+</tr>
+</tbody>
+</table>
+<p>The search bar is independent of the results page — it submits to whichever page runs <code>DiscoverySearchGridComponent</code>.</p>
+<p><strong>Key models:</strong> <code>query</code>, <code>autosuggestResult</code> (query, attribute, and product suggestions), <code>visualSearchEnabled</code>, <code>visualSearchUploadUrl</code> (see <a href="05-recommendations-and-visual-search.md">Recommendations &amp; Visual Search</a>).</p>
+<hr />
+<h2><a id="product-detail--discoveryproductdetailcomponent" name="product-detail--discoveryproductdetailcomponent"></a>Product Detail — <code>DiscoveryProductDetailComponent</code></h2>
+<p>Fetches a single product by ID for a product detail page.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoveryProductDetailComponent, with the product document picker field visible.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document</code></td>
+<td>JCR path (Product Detail Document picker)</td>
+<td>—</td>
+<td><strong>Required.</strong> See <a href="06-document-types-and-pickers.md">CMS Document Types &amp; Pickers</a> for Pinned vs. Dynamic modes.</td>
+</tr>
+<tr>
+<td><code>productUrlParam</code></td>
+<td>String</td>
+<td><code>pid</code></td>
+<td>URL parameter name read in Dynamic mode.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key models:</strong> <code>product</code> (<code>null</code> if unresolved), <code>pid</code>, <code>document</code>, <code>editMode</code>.</p>
+<hr />
+<h2><a id="product-highlight--discoveryproducthighlightcomponent" name="product-highlight--discoveryproducthighlightcomponent"></a>Product Highlight — <code>DiscoveryProductHighlightComponent</code></h2>
+<p>Up to four hand-picked products for editorial merchandising slots (not algorithmic recommendations).</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel showing the four product document picker slots.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document1</code>–<code>document4</code></td>
+<td>JCR path (Product Detail Document picker)</td>
+<td><code>""</code></td>
+<td>Up to four products. Empty slots are skipped.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key models:</strong> <code>products</code> (always 4 entries; unfilled slots are <code>null</code>), <code>editMode</code>.</p>
+<hr />
+<h2><a id="category-highlight--discoverycategoryhighlightcomponent" name="category-highlight--discoverycategoryhighlightcomponent"></a>Category Highlight — <code>DiscoveryCategoryHighlightComponent</code></h2>
+<p>Up to four curated category navigation tiles, each with an optional live product-thumbnail preview.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel showing the four category document picker slots.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document1</code>–<code>document4</code></td>
+<td>JCR path (Category Document picker)</td>
+<td><code>""</code></td>
+<td>Up to four categories. Empty slots are skipped.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key models:</strong> <code>categories</code>, <code>previewProducts</code> (keyed by category ID; populated only where the editor configured a product-preview count), <code>editMode</code>.</p>
+<hr />
+<h2><a id="recommendation-components" name="recommendation-components"></a>Recommendation components</h2>
+<p>Four components share the same base parameters and each targets a different context. Full setup, including the v2 Pathways API and widget document types, is covered on <a href="05-recommendations-and-visual-search.md">Recommendations &amp; Visual Search</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DiscoveryProductRecommendationComponent</code></td>
+<td>Recommendations keyed to a product ("similar items" on a product page)</td>
+</tr>
+<tr>
+<td><code>DiscoveryCategoryRecommendationComponent</code></td>
+<td>Recommendations keyed to a category ("trending in this category")</td>
+</tr>
+<tr>
+<td><code>DiscoveryGlobalRecommendationComponent</code></td>
+<td>Context-free global or personalized recommendations</td>
+</tr>
+<tr>
+<td><code>DiscoveryKeywordRecommendationComponent</code></td>
+<td>Recommendations driven by a search keyword</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for a recommendation component, showing the widget document picker and the limit/showPrice/showDescription fields.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Group</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document</code></td>
+<td>Recommendations</td>
+<td>JCR path (Recommendation Document picker)</td>
+<td>—</td>
+<td>The widget configuration, authored through a 3-step wizard.</td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>Recommendations</td>
+<td>int</td>
+<td><code>8</code></td>
+<td>Number of recommendations to request.</td>
+</tr>
+<tr>
+<td><code>showPrice</code></td>
+<td>Recommendations</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Show price in the bundled template.</td>
+</tr>
+<tr>
+<td><code>showDescription</code></td>
+<td>Recommendations</td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Show description in the bundled template.</td>
+</tr>
+<tr>
+<td><code>productUrlParam</code> <em>(Product component only)</em></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>pid</code></td>
+<td>URL parameter read in Dynamic mode.</td>
+</tr>
+<tr>
+<td><code>categoryUrlParam</code> <em>(Category component only)</em></td>
+<td>Advanced</td>
+<td>String</td>
+<td><code>cid</code></td>
+<td>URL parameter read in Dynamic mode.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key models:</strong> <code>products</code>, <code>widgetId</code>.</p>
+<hr />
+<h2><a id="everything-at-a-glance" name="everything-at-a-glance"></a>Everything at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Template</th>
+<th>Content type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DiscoverySearchGridComponent</code></td>
+<td><code>brxdis-results</code></td>
+<td>Keyword &amp; visual search results</td>
+</tr>
+<tr>
+<td><code>DiscoveryCategoryGridComponent</code></td>
+<td><code>brxdis-results</code></td>
+<td>Category browse</td>
+</tr>
+<tr>
+<td><code>DiscoverySearchInputComponent</code></td>
+<td><code>brxdis-search-input</code></td>
+<td>Search bar + autosuggest</td>
+</tr>
+<tr>
+<td><code>DiscoveryProductRecommendationComponent</code></td>
+<td><code>brxdis-recommendations-product</code></td>
+<td>Product-keyed recommendations</td>
+</tr>
+<tr>
+<td><code>DiscoveryCategoryRecommendationComponent</code></td>
+<td><code>brxdis-recommendations-category</code></td>
+<td>Category-keyed recommendations</td>
+</tr>
+<tr>
+<td><code>DiscoveryGlobalRecommendationComponent</code></td>
+<td><code>brxdis-recommendations-global</code></td>
+<td>Global / personalized recommendations</td>
+</tr>
+<tr>
+<td><code>DiscoveryKeywordRecommendationComponent</code></td>
+<td><code>brxdis-recommendations-keyword</code></td>
+<td>Keyword-keyed recommendations</td>
+</tr>
+<tr>
+<td><code>DiscoveryProductDetailComponent</code></td>
+<td><code>brxdis-product-detail</code></td>
+<td>Single product detail</td>
+</tr>
+<tr>
+<td><code>DiscoveryProductHighlightComponent</code></td>
+<td><code>brxdis-product-highlight</code></td>
+<td>Curated product showcase</td>
+</tr>
+<tr>
+<td><code>DiscoveryCategoryHighlightComponent</code></td>
+<td><code>brxdis-category-highlight</code></td>
+<td>Curated category navigation</td>
+</tr>
+</tbody>
+</table>
+<p>All bundled templates are registered automatically (see <a href="02-installation.md">Installation</a>) and every component exposes its models through both Freemarker (<code>request.setAttribute()</code>) and the Page Model API (<code>request.setModel()</code>), so the same configuration serves a traditional site and a headless front end.</p>

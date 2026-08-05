@@ -1,0 +1,141 @@
+<h1><a id="troubleshooting" name="troubleshooting"></a>Troubleshooting</h1>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#configuration-and-credentials">Configuration and credentials</a></li>
+<li><a href="#search--category-pages">Search &amp; category pages</a></li>
+<li><a href="#recommendations">Recommendations</a></li>
+<li><a href="#visual-search">Visual search</a></li>
+<li><a href="#pixel-tracking">Pixel tracking</a></li>
+<li><a href="#still-stuck">Still stuck?</a></li>
+</ul>
+<hr />
+<h2><a id="installation" name="installation"></a>Installation</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Required HST service is not available: org.bloomreach.forge.discovery.site.platform.HstDiscoveryService</code></td>
+<td>The site webapp is running against an older plugin build than what's installed.</td>
+<td>Rebuild and redeploy the site webapp against the current plugin version.</td>
+</tr>
+<tr>
+<td>Picker endpoint returns 404 at <code>{cms}/ws/discovery/picker/search</code></td>
+<td><code>brxm-discovery-cms</code> is not on the CMS classpath, or the picker daemon module hasn't started.</td>
+<td>Confirm the dependency is present and check the CMS log for the plugin's startup message (see <a href="02-installation.md">Installation</a>).</td>
+</tr>
+<tr>
+<td>Bundled templates not found / blank pages</td>
+<td>Your site's HST configuration doesn't inherit from <code>hst:default</code>.</td>
+<td>Add the missing <code>brxdis-*</code> template entries to your own site's template configuration, pointing at the plugin's bundled Freemarker files.</td>
+</tr>
+</tbody>
+</table>
+<h2><a id="configuration-and-credentials" name="configuration-and-credentials"></a>Configuration and credentials</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ConfigurationException: Discovery accountId is required</code></td>
+<td>Credentials aren't configured anywhere the plugin checks (environment, system property, or JCR).</td>
+<td>Set <code>BRXDIS_ACCOUNT_ID</code>, <code>BRXDIS_DOMAIN_KEY</code>, <code>BRXDIS_API_KEY</code>.</td>
+</tr>
+<tr>
+<td>Product grid renders empty with no error shown</td>
+<td><code>accountId</code> / <code>domainKey</code> don't match your actual Discovery account.</td>
+<td>Verify both values against your Discovery dashboard.</td>
+</tr>
+<tr>
+<td>A custom product attribute (e.g. <code>brand</code>) is missing from results</td>
+<td>The field isn't included in the configured field list.</td>
+<td>Add it to <code>brxdis:defaultFieldList</code> (global) or <code>discoveryDefaultFieldList</code> (per channel) — see <a href="03-configuration.md#the-product-field-list-fl">Configuration</a>.</td>
+</tr>
+<tr>
+<td>Picker shows blank product names</td>
+<td>The picker's title field doesn't match your catalog's actual field name.</td>
+<td>Set <code>brxdis:pickerTitleField</code> to match your feed — see <a href="03-configuration.md#picker-field-mapping">Picker field mapping</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2><a id="search--category-pages" name="search--category-pages"></a>Search &amp; category pages</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Category page renders nothing</td>
+<td>No category is configured, and no URL parameter/path segment provides one.</td>
+<td>Either pin a category via the document picker, or confirm the page is receiving the expected URL parameter.</td>
+</tr>
+<tr>
+<td>A warning banner appears in Channel Manager preview but the page looks fine to visitors</td>
+<td>This is expected — configuration warnings only render in preview mode; production visitors see a silent empty state instead of an error.</td>
+<td>No action needed unless the underlying configuration issue should be fixed.</td>
+</tr>
+</tbody>
+</table>
+<h2><a id="recommendations" name="recommendations"></a>Recommendations</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Recommendation widget renders empty</td>
+<td>The Discovery widget may have no results yet, or the widget ID doesn't match one on your account.</td>
+<td>Check the widget's status in the Discovery dashboard.</td>
+</tr>
+<tr>
+<td>Recommendations always use v1 even though <code>authKey</code> is set</td>
+<td>The <code>authKey</code> value isn't reaching the plugin — check which precedence layer (environment, system property, JCR, or channel override) you expect it to come from.</td>
+<td>See <a href="03-configuration.md#injecting-credentials">Configuration</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2><a id="visual-search" name="visual-search"></a>Visual search</h2>
+<p>See the dedicated troubleshooting table on <a href="05-recommendations-and-visual-search.md#troubleshooting">Recommendations &amp; Visual Search</a> — visual search has its own mount-placement pitfall that's easy to misconfigure.</p>
+<h2><a id="pixel-tracking" name="pixel-tracking"></a>Pixel tracking</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No pixel events appear in Discovery analytics</td>
+<td>Tracking may be disabled at the deployment or channel level, or consent gating is blocking events.</td>
+<td>Check the deployment kill switch, the channel's Pixel Tracking settings, and any consent cookie/provider configuration — see <a href="07-pixel-tracking.md">Pixel Tracking &amp; Consent</a>.</td>
+</tr>
+<tr>
+<td>All events show the same IP / generic browser in analytics</td>
+<td>Headless front end isn't forwarding the visitor's real IP/User-Agent/locale headers.</td>
+<td>Configure header forwarding in your SPA server layer.</td>
+</tr>
+</tbody>
+</table>
+<h2><a id="still-stuck" name="still-stuck"></a>Still stuck?</h2>
+<p>Check the plugin's log output at DEBUG level for the specific request path and error message — most failures surface a clear cause (a missing credential, a wrong ID, or an unreachable Discovery endpoint) once debug logging is enabled for the plugin's package.</p>

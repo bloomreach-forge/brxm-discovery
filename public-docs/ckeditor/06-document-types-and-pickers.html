@@ -1,0 +1,164 @@
+<h1><a id="cms-document-types--pickers" name="cms-document-types--pickers"></a>CMS Document Types &amp; Pickers</h1>
+<p>The plugin's components are configured by pointing them at small JCR documents — a product, a category, or a recommendation widget — rather than by typing IDs into text fields. Every one of these documents is created and edited through an Open UI picker or wizard embedded directly in the document editor, so editors never need to know a Discovery product ID or category ID by heart.</p>
+<p>All picker and wizard traffic goes through a CMS-side REST endpoint, not directly to the Discovery API — so Discovery credentials are never exposed to the editor's browser.</p>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#document-types">Document types</a></li>
+<li><a href="#product--category-wizards--dynamic-vs-pinned">Product &amp; category wizards — Dynamic vs. Pinned</a></li>
+<li><a href="#the-product-picker">The product picker</a></li>
+<li><a href="#the-category-picker">The category picker</a></li>
+<li><a href="#live-preview-fields">Live preview fields</a></li>
+<li><a href="#adding-a-picker-to-your-own-document-type">Adding a picker to your own document type</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+<hr />
+<h2><a id="document-types" name="document-types"></a>Document types</h2>
+<table>
+<thead>
+<tr>
+<th>Document type</th>
+<th>Used by</th>
+<th>Wizard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product Detail Document (<code>brxdis:productDetailDocument</code>)</td>
+<td>Product Detail, Product Highlight components</td>
+<td>2-step product wizard</td>
+</tr>
+<tr>
+<td>Category Document (<code>brxdis:categoryDocument</code>)</td>
+<td>Category Grid, Category Highlight components</td>
+<td>2-step category wizard</td>
+</tr>
+<tr>
+<td>Product Recommendation Document</td>
+<td>Product Recommendation component</td>
+<td>3-step recommendation wizard</td>
+</tr>
+<tr>
+<td>Category Recommendation Document</td>
+<td>Category Recommendation component</td>
+<td>3-step recommendation wizard</td>
+</tr>
+<tr>
+<td>Global/Personalized Recommendation Document</td>
+<td>Global Recommendation component</td>
+<td>3-step recommendation wizard</td>
+</tr>
+<tr>
+<td>Keyword Recommendation Document</td>
+<td>Keyword Recommendation component</td>
+<td>3-step recommendation wizard</td>
+</tr>
+</tbody>
+</table>
+<p>The recommendation wizard is covered in <a href="05-recommendations-and-visual-search.md#the-3-step-wizard">Recommendations &amp; Visual Search</a>. This page covers the product and category document wizards and the underlying picker components they're built on.</p>
+<hr />
+<h2><a id="product--category-wizards--dynamic-vs-pinned" name="product--category-wizards--dynamic-vs-pinned"></a>Product &amp; category wizards — Dynamic vs. Pinned</h2>
+<p>Both the product wizard and the category wizard present the same two-step flow with the same choice:</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: step 1 of the product wizard, showing the Dynamic/Pinned radio choice with the inline product search revealed under "Pinned".]</strong></p>
+</blockquote>
+<ul>
+<li><strong>Dynamic</strong> — the component reads the ID from the URL at render time (<code>?pid=</code> for products, a <code>/category/{slug}/cid/{id}</code> path segment or <code>?cid=</code> for categories). No specific item is stored in the document. Use this for template pages that render whatever product or category the visitor is currently viewing.</li>
+<li><strong>Pinned</strong> — the editor searches for and selects one specific product or category. That selection is fixed regardless of the URL. Use this for merchandising slots that should always show the same thing.</li>
+</ul>
+<p>Step 2 shows a review screen: a live product/category card for Pinned selections, or a short explanation of the runtime URL behavior for Dynamic mode.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: step 2 review screen showing the selected product card, or the Dynamic-mode explanation text.]</strong></p>
+</blockquote>
+<p><strong>Runtime enforcement:</strong> if a component's document is left unconfigured, it renders nothing and Channel Manager preview shows a configuration prompt. If a Dynamic-mode document finds no matching URL parameter, it also renders nothing, with a preview-only warning — production visitors simply see an empty slot, never an error page.</p>
+<hr />
+<h2><a id="the-product-picker" name="the-product-picker"></a>The product picker</h2>
+<p>The product picker is the search interface used by both the product wizard and the "Pinned" product-recommendation flow.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the full product picker dialog — category sidebar on the left, keyword search bar at top, product grid with thumbnails and prices in the center, and the selection footer bar with Cancel / Select buttons.]</strong></p>
+</blockquote>
+<p>Editors can:</p>
+<ul>
+<li>Browse by category using the sidebar, or filter the category list itself by name or ID</li>
+<li>Search by keyword using the top search bar</li>
+<li>Click a product card to highlight it (its ID and title appear in the footer)</li>
+<li>Confirm with <strong>Select →</strong>, or discard with <strong>Cancel</strong></li>
+</ul>
+<p>The picker only ever stores a single product ID string — never price, stock, or image data — so that information is always fetched fresh at render time rather than going stale in the CMS.</p>
+<hr />
+<h2><a id="the-category-picker" name="the-category-picker"></a>The category picker</h2>
+<p>The category picker is the equivalent search interface for categories, used by the category wizard and by "Pinned" category-recommendation widgets.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the category picker dialog showing the filterable category tree/list.]</strong></p>
+</blockquote>
+<hr />
+<h2><a id="live-preview-fields" name="live-preview-fields"></a>Live preview fields</h2>
+<p>Several document types include a small inline preview field alongside their wizard, so editors can see the effect of their choice without saving the document first:</p>
+<table>
+<thead>
+<tr>
+<th>Preview field</th>
+<th>Shown on</th>
+<th>Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product Detail Preview</td>
+<td>Product Detail Document</td>
+<td>A thumbnail of the currently selected (or Dynamic-mode) product</td>
+</tr>
+<tr>
+<td>Category Product Preview</td>
+<td>Category Document</td>
+<td>A live thumbnail strip, driven by an adjustable "number of previews" control (0–4)</td>
+</tr>
+<tr>
+<td>Recommendation Preview</td>
+<td>Recommendation documents</td>
+<td>A sample thumbnail strip for the configured widget</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Category Document editor showing the category picker field next to its live product-thumbnail preview field, both visible at once.]</strong></p>
+</blockquote>
+<p>These preview fields update immediately when the picker or wizard above them changes selection — there is no need to save the document first to see the result.</p>
+<hr />
+<h2><a id="adding-a-picker-to-your-own-document-type" name="adding-a-picker-to-your-own-document-type"></a>Adding a picker to your own document type</h2>
+<p>If you have a custom document type that should let editors reference a Discovery product, add an Open UI string field pointing at the product picker extension:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">/my-product-ref</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  jcr</span><span class="fu">:primaryType</span><span class="kw">:</span><span class="at"> frontend:plugin</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">caption</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;Featured Product&#39;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">field</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;myns:productId&#39;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">plugin.class</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;org.onehippo.cms7.frontend.plugin.field.OpenUiStringFieldPlugin&#39;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">uiExtension</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;discoveryProductPicker&#39;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">wicket.id</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;${cluster.id}.field&#39;</span></span></code></pre></div>
+<p>The field stores the plain product ID string. Read it in your own HST code and use it however your integration needs — for example, as the <code>contextProductId</code> on a recommendation component, or to look up full product details from your commerce system at render time.</p>
+<hr />
+<h2><a id="troubleshooting" name="troubleshooting"></a>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Picker dialog shows blank or fails to load</td>
+<td>The CMS-side plugin module isn't on the classpath, or hasn't started — see <a href="02-installation.md">Installation</a></td>
+</tr>
+<tr>
+<td>Picker search returns no results</td>
+<td>Discovery credentials are missing or incorrect for this channel — see <a href="03-configuration.md">Configuration</a></td>
+</tr>
+<tr>
+<td>A picked value disappears after reload</td>
+<td>The property backing the field isn't declared in your document type's node type definition</td>
+</tr>
+<tr>
+<td>Product preview shows the wrong category's products</td>
+<td>The picker field and the preview field aren't in the same document — live updates only reach fields within the same open document</td>
+</tr>
+</tbody>
+</table>

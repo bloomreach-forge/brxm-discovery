@@ -1,0 +1,318 @@
+<h1><a id="configuration" name="configuration"></a>Configuration</h1>
+<p>The plugin resolves its configuration from three layers that combine at request time: a <strong>global JCR node</strong> shared by every channel, optional <strong>per-channel overrides</strong>, and <strong>coded defaults</strong> for anything left unset. Nothing needs to be configured to get a working installation beyond three required credential values.</p>
+<p><strong>ON THIS PAGE</strong></p>
+<ul>
+<li><a href="#how-resolution-works">How resolution works</a></li>
+<li><a href="#the-global-configuration-node">The global configuration node</a></li>
+<li><a href="#injecting-credentials">Injecting credentials</a></li>
+<li><a href="#environments-and-staging">Environments and staging</a></li>
+<li><a href="#per-channel-overrides">Per-channel overrides</a></li>
+<li><a href="#the-product-field-list-fl">The product field list (fl)</a></li>
+<li><a href="#sort-options">Sort options</a></li>
+<li><a href="#picker-field-mapping">Picker field mapping</a></li>
+<li><a href="#circuit-breaker-tuning">Circuit breaker tuning</a></li>
+<li><a href="#verifying-configuration">Verifying configuration</a></li>
+</ul>
+<hr />
+<h2><a id="how-resolution-works" name="how-resolution-works"></a>How resolution works</h2>
+<pre><code>Global JCR node            Per-channel hst:channelinfo
+─────────────────────      ───────────────────────────
+accountId                  discoveryAccountId (override)
+domainKey                  discoveryDomainKey (override)
+apiKey                     discoveryApiKeyEnvVar (override)
+authKey                    discoveryAuthKeyEnvVar (override)
+defaultFieldList     ←     discoveryDefaultFieldList (override)
+defaultPageSize
+defaultSort
+sortOptions
+environment</code></pre>
+<ul>
+<li><strong>Global node</strong> — one node shared by all channels. Set here what applies deployment-wide (credentials, default field list, page size, sort).</li>
+<li><strong>Per-channel overrides</strong> — optional, set on <code>hst:channelinfo</code>. Use when different channels connect to different Discovery accounts or catalog schemas.</li>
+<li>At request time: a channel override wins when set; otherwise the global node value applies; otherwise the coded default applies.</li>
+</ul>
+<p>Credentials (<code>accountId</code>, <code>domainKey</code>, <code>apiKey</code>, <code>authKey</code>, <code>environment</code>) additionally resolve <strong>environment variable → system property → JCR</strong>, so secrets never have to live in JCR in production.</p>
+<hr />
+<h2><a id="the-global-configuration-node" name="the-global-configuration-node"></a>The global configuration node</h2>
+<p>The plugin reads a single, fixed JCR node:</p>
+<pre><code>/hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig</code></pre>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the CMS Console (developer perspective) showing the <code>discoveryConfig</code> node and its <code>brxdis:*</code> properties.]</strong></p>
+</blockquote>
+<p>Create it via your project's bootstrap configuration:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">definitions</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">config</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    /hippo:configuration/hippo:modules/brxm-discovery/hippo</span><span class="fu">:moduleconfig/discoveryConfig</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">      jcr</span><span class="fu">:primaryType</span><span class="kw">:</span><span class="at"> brxdis:discoveryConfig</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:accountId</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;your-account-id&#39;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:domainKey</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;your-domain-key&#39;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:apiKey</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;&#39;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:authKey</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;&#39;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:environment</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;PRODUCTION&#39;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:defaultPageSize</span><span class="kw">:</span><span class="at"> </span><span class="dv">12</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">      brxdis</span><span class="fu">:defaultSort</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;&#39;</span></span></code></pre></div>
+<p>Only <code>accountId</code>, <code>domainKey</code>, and <code>apiKey</code> are required. Leave <code>apiKey</code> (and <code>authKey</code>, if used) blank here and inject them via environment variables instead — see <a href="#injecting-credentials">Injecting credentials</a> below. The node itself is optional: if it doesn't exist, the plugin builds its configuration entirely from environment variables, system properties, and coded defaults.</p>
+<hr />
+<h2><a id="injecting-credentials" name="injecting-credentials"></a>Injecting credentials</h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Environment variable</th>
+<th>System property</th>
+<th>JCR property</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Account ID</td>
+<td><code>BRXDIS_ACCOUNT_ID</code></td>
+<td><code>brxdis.accountId</code></td>
+<td><code>brxdis:accountId</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Domain Key</td>
+<td><code>BRXDIS_DOMAIN_KEY</code></td>
+<td><code>brxdis.domainKey</code></td>
+<td><code>brxdis:domainKey</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>API Key</td>
+<td><code>BRXDIS_API_KEY</code></td>
+<td><code>brxdis.apiKey</code></td>
+<td><code>brxdis:apiKey</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Auth Key</td>
+<td><code>BRXDIS_AUTH_KEY</code></td>
+<td><code>brxdis.authKey</code></td>
+<td><code>brxdis:authKey</code></td>
+<td>No — required only for recommendation/visual-search features that use the v2 Pathways API</td>
+</tr>
+<tr>
+<td>Environment</td>
+<td><code>BRXDIS_ENVIRONMENT</code></td>
+<td><code>brxdis.environment</code></td>
+<td><code>brxdis:environment</code></td>
+<td>No — defaults to <code>PRODUCTION</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Production (containers / Kubernetes):</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">env</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> BRXDIS_ACCOUNT_ID</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">valueFrom</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">secretKeyRef</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> discovery-credentials</span><span class="kw">,</span><span class="at"> </span><span class="fu">key</span><span class="kw">:</span><span class="at"> accountId </span><span class="kw">}</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> BRXDIS_DOMAIN_KEY</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">valueFrom</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">secretKeyRef</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> discovery-credentials</span><span class="kw">,</span><span class="at"> </span><span class="fu">key</span><span class="kw">:</span><span class="at"> domainKey </span><span class="kw">}</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> BRXDIS_API_KEY</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">valueFrom</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">secretKeyRef</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> discovery-credentials</span><span class="kw">,</span><span class="at"> </span><span class="fu">key</span><span class="kw">:</span><span class="at"> apiKey </span><span class="kw">}</span><span class="at"> </span><span class="kw">}</span></span></code></pre></div>
+<p><strong>Local development:</strong></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mvn</span> <span class="at">-P</span> cargo.run cargo:run <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-Dbrxdis.accountId</span><span class="op">=</span>YOUR_ACCOUNT_ID <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-Dbrxdis.domainKey</span><span class="op">=</span>YOUR_DOMAIN_KEY <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-Dbrxdis.apiKey</span><span class="op">=</span>YOUR_API_KEY</span></code></pre></div>
+<p><code>accountId</code> and <code>domainKey</code> are identifiers, not secrets — they're safe to store in JCR if convenient. <code>apiKey</code> and <code>authKey</code> should always come from environment variables or system properties in production.</p>
+<hr />
+<h2><a id="environments-and-staging" name="environments-and-staging"></a>Environments and staging</h2>
+<p>Set <code>environment</code> to <code>STAGING</code> to route every Discovery API call to Bloomreach's staging tier instead of production:</p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>Production</th>
+<th>Staging</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search / category</td>
+<td><code>core.dxpapi.com</code></td>
+<td><code>staging-core.dxpapi.com</code></td>
+</tr>
+<tr>
+<td>Recommendations (Pathways)</td>
+<td><code>pathways.dxpapi.com</code></td>
+<td><code>pathways-staging.dxpapi.com</code></td>
+</tr>
+<tr>
+<td>Autosuggest</td>
+<td><code>suggest.dxpapi.com</code></td>
+<td><code>staging-suggest.dxpapi.com</code></td>
+</tr>
+</tbody>
+</table>
+<p>If you set a base URI explicitly (<code>brxdis:baseUri</code>, <code>brxdis:pathwaysBaseUri</code>, <code>brxdis:autosuggestBaseUri</code>), that value always wins over the <code>environment</code>-derived default. A JCR change to <code>environment</code> is picked up on the next request — no restart required.</p>
+<hr />
+<h2><a id="per-channel-overrides" name="per-channel-overrides"></a>Per-channel overrides</h2>
+<p>Use per-channel configuration when a deployment has multiple channels pointing at different Discovery accounts or catalog schemas. This is exposed through the plugin's <code>DiscoveryChannelInfo</code> interface, editable in Channel Manager under <strong>Channel Settings</strong>.</p>
+<blockquote>
+<p><strong>[SCREENSHOT PLACEHOLDER: the Channel Settings panel in Channel Manager, showing the Discovery credential, schema, pixel, and visual search fields.]</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Properties</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Credentials</td>
+<td><code>discoveryAccountId</code>, <code>discoveryDomainKey</code>, <code>discoveryApiKeyEnvVar</code>, <code>discoveryAuthKeyEnvVar</code></td>
+</tr>
+<tr>
+<td>Schema</td>
+<td><code>discoveryDefaultFieldList</code>, <code>discoveryCatalogName</code></td>
+</tr>
+<tr>
+<td>Pixel tracking</td>
+<td><code>discoveryPixelsEnabled</code>, <code>discoveryPixelConsentCookie</code>, <code>discoveryPixelTestData</code>, <code>discoveryPixelDebug</code>, <code>discoveryPixelRegion</code></td>
+</tr>
+<tr>
+<td>Visual search</td>
+<td><code>discoveryVisualSearchEnabled</code>, <code>discoveryVisualSearchWidgetId</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>discoveryApiKeyEnvVar</code> and <code>discoveryAuthKeyEnvVar</code> are <strong>indirection pointers</strong> — they name an environment variable rather than holding a secret directly, so secrets never enter JCR even at the channel level.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">/hst:hst/hst:configurations/&lt;your-site&gt;/hst:workspace/hst:channel/hst</span><span class="fu">:channelinfo</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">  jcr</span><span class="fu">:primaryType</span><span class="kw">:</span><span class="at"> hst:channelinfo</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">discoveryAccountId</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;7291&#39;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">discoveryDomainKey</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;petstore-uk&#39;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">discoveryApiKeyEnvVar</span><span class="kw">:</span><span class="at"> BRXDIS_API_KEY_PETSTORE_UK</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">discoveryDefaultFieldList</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;pid,title,thumb_image,url,price,brand,sale_price,description&#39;</span></span></code></pre></div>
+<p>Enabling channel-level overrides requires wiring <code>hst:channelinfoclass</code> on the channel node to <code>DiscoveryChannelInfo</code> (or a composite interface that also extends your project's existing channel-info type, if you have one):</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">/hst:hst/hst:configurations/&lt;your-site&gt;/hst:workspace/hst</span><span class="fu">:channel</span><span class="kw">:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  jcr</span><span class="fu">:primaryType</span><span class="kw">:</span><span class="at"> hst:channel</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  hst</span><span class="fu">:channelinfoclass</span><span class="kw">:</span><span class="at"> org.bloomreach.forge.discovery.site.component.info.DiscoveryChannelInfo</span></span></code></pre></div>
+<p>Pixel tracking fields are covered in full on <a href="07-pixel-tracking.md">Pixel Tracking &amp; Consent</a>; visual search fields are covered on <a href="05-recommendations-and-visual-search.md">Recommendations &amp; Visual Search</a>.</p>
+<hr />
+<h2><a id="the-product-field-list-fl" name="the-product-field-list-fl"></a>The product field list (<code>fl</code>)</h2>
+<p>The field list controls which product attributes Discovery returns, and therefore which fields appear in <code>ProductSummary.attributes</code> for your templates and the Page Model API.</p>
+<p>The coded default covers every attribute the bundled templates use:</p>
+<pre><code>pid,title,thumb_image,url,price,brand,sale_price,description</code></pre>
+<p>If your catalog has custom attributes (e.g. <code>pet_type</code>, <code>tags</code>), set <code>brxdis:defaultFieldList</code> on the global node — or <code>discoveryDefaultFieldList</code> per channel — to the full list you need. The value <strong>replaces</strong> the default; it does not append to it.</p>
+<hr />
+<h2><a id="sort-options" name="sort-options"></a>Sort options</h2>
+<p>The sort dropdown shown in the component editor and the <code>sortOptions</code> Page Model API key both read from the same source, <code>brxdis:sortOptions</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">brxdis</span><span class="fu">:sortOptions</span><span class="kw">:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="st">&#39;price asc=Price: Low to High&#39;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="st">&#39;price desc=Price: High to Low&#39;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="st">&#39;name asc=Name: A-Z&#39;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="st">&#39;name desc=Name: Z-A&#39;</span></span></code></pre></div>
+<p>Each entry is <code>value=Display label</code>. When absent, the plugin falls back to the four options shown above.</p>
+<hr />
+<h2><a id="picker-field-mapping" name="picker-field-mapping"></a>Picker field mapping</h2>
+<p>The CMS picker (used by the Category and Recommendation document pickers, and the REST endpoints under <code>ws/discovery/picker/</code>) needs to know which fields in your Discovery feed hold a product's ID, title, image, and price so it can render result rows. These are structural settings on the global JCR node only — there is no environment variable, system property, or per-channel override for them, because they describe your catalog schema rather than a deployment secret.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>JCR property</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ID field</td>
+<td><code>brxdis:pickerIdField</code></td>
+<td><code>pid</code></td>
+</tr>
+<tr>
+<td>Title field</td>
+<td><code>brxdis:pickerTitleField</code></td>
+<td><code>title</code></td>
+</tr>
+<tr>
+<td>Image field</td>
+<td><code>brxdis:pickerImageField</code></td>
+<td><code>thumb_image</code></td>
+</tr>
+<tr>
+<td>Price field</td>
+<td><code>brxdis:pickerPriceField</code></td>
+<td><code>price</code></td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">/hippo:configuration/hippo:modules/brxm-discovery/hippo</span><span class="fu">:moduleconfig/discoveryConfig</span><span class="kw">:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">  brxdis</span><span class="fu">:pickerIdField</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;pid&#39;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="at">  brxdis</span><span class="fu">:pickerTitleField</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;title&#39;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="at">  brxdis</span><span class="fu">:pickerImageField</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;thumb_image&#39;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="at">  brxdis</span><span class="fu">:pickerPriceField</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;price&#39;</span></span></code></pre></div>
+<p>Change these only if your feed uses different field names than the four defaults above — for example, if <code>productName</code> is your feed's title attribute, set <code>brxdis:pickerTitleField: 'productName'</code>, otherwise picker rows render with a blank title. Whatever field list you set here should also be present in <a href="#the-product-field-list-fl"><code>fl</code></a>, or the picker request won't retrieve it at all.</p>
+<hr />
+<h2><a id="circuit-breaker-tuning" name="circuit-breaker-tuning"></a>Circuit breaker tuning</h2>
+<p>Every outbound Discovery call goes through a per-host <a href="https://resilience4j.readme.io/">Resilience4j</a> circuit breaker (<code>CircuitBreakerDiscoveryTransport</code>), so a slow or failing Discovery endpoint degrades one API (e.g. recommendations) without also stalling requests to the others (e.g. search). The breaker opens once it sees enough failures within its sliding window, and short-circuits new calls for a cooldown period before probing again.</p>
+<p>These are ops-level tuning knobs, not catalog config, so they resolve <strong>environment variable → system property → coded default</strong> — the same precedence as credentials, and deliberately <strong>not</strong> available in JCR, since they're meant to be tuned per-deployment (e.g. differently in a load-test environment vs. production) without a content release.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Environment variable</th>
+<th>System property</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Failure rate threshold (%)</td>
+<td><code>BRXDIS_CB_FAILURE_RATE_THRESHOLD</code></td>
+<td><code>brxdis.cb.failureRateThreshold</code></td>
+<td><code>50</code></td>
+</tr>
+<tr>
+<td>Sliding window size (calls)</td>
+<td><code>BRXDIS_CB_SLIDING_WINDOW_SIZE</code></td>
+<td><code>brxdis.cb.slidingWindowSize</code></td>
+<td><code>20</code></td>
+</tr>
+<tr>
+<td>Minimum number of calls</td>
+<td><code>BRXDIS_CB_MINIMUM_NUMBER_OF_CALLS</code></td>
+<td><code>brxdis.cb.minimumNumberOfCalls</code></td>
+<td><code>10</code></td>
+</tr>
+<tr>
+<td>Wait duration in open state (seconds)</td>
+<td><code>BRXDIS_CB_WAIT_DURATION_IN_OPEN_STATE_SECONDS</code></td>
+<td><code>brxdis.cb.waitDurationInOpenStateSeconds</code></td>
+<td><code>30</code></td>
+</tr>
+</tbody>
+</table>
+<p>With the defaults: once at least 10 calls have been made in a rolling window of 20, if 50% or more failed, the breaker opens and fails fast (without calling Discovery) for 30 seconds before allowing a trial call through.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mvn</span> <span class="at">-P</span> cargo.run cargo:run <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-Dbrxdis.cb.failureRateThreshold</span><span class="op">=</span>40 <span class="dt">\</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-Dbrxdis.cb.waitDurationInOpenStateSeconds</span><span class="op">=</span>60</span></code></pre></div>
+<hr />
+<h2><a id="verifying-configuration" name="verifying-configuration"></a>Verifying configuration</h2>
+<pre><code>GET http://localhost:8080/cms/ws/discovery/picker/search?q=shirt</code></pre>
+<p>Expected: a JSON array of products, not a 404 or empty error response.</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ConfigurationException: Discovery accountId is required</code></td>
+<td>Credentials not set — check environment variables</td>
+</tr>
+<tr>
+<td>Product grid empty, no error shown</td>
+<td><code>accountId</code> / <code>domainKey</code> don't match your Discovery account</td>
+</tr>
+<tr>
+<td>Custom attribute missing from <code>attributes</code></td>
+<td>Not included in <code>defaultFieldList</code></td>
+</tr>
+</tbody>
+</table>
+<p>More symptoms and fixes are cataloged on <a href="08-troubleshooting.md">Troubleshooting</a>.</p>
