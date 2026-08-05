@@ -36,14 +36,14 @@ The recommendation wizard is covered in [Recommendations & Visual Search](05-rec
 
 Both the product wizard and the category wizard present the same two-step flow with the same choice:
 
-> **[SCREENSHOT PLACEHOLDER: step 1 of the product wizard, showing the Dynamic/Pinned radio choice with the inline product search revealed under "Pinned".]**
+![Step 1 of the product wizard, showing the Dynamic/Pinned radio choice with the inline product search revealed under "Pinned"](images/product/product-wizard-step-1.png)
 
 - **Dynamic** — the component reads the ID from the URL at render time (`?pid=` for products, a `/category/{slug}/cid/{id}` path segment or `?cid=` for categories). No specific item is stored in the document. Use this for template pages that render whatever product or category the visitor is currently viewing.
 - **Pinned** — the editor searches for and selects one specific product or category. That selection is fixed regardless of the URL. Use this for merchandising slots that should always show the same thing.
 
 Step 2 shows a review screen: a live product/category card for Pinned selections, or a short explanation of the runtime URL behavior for Dynamic mode.
 
-> **[SCREENSHOT PLACEHOLDER: step 2 review screen showing the selected product card, or the Dynamic-mode explanation text.]**
+![Step 2 review screen showing the selected product card](images/product/product-wizard-step-2.png)
 
 **Runtime enforcement:** if a component's document is left unconfigured, it renders nothing and Channel Manager preview shows a configuration prompt. If a Dynamic-mode document finds no matching URL parameter, it also renders nothing, with a preview-only warning — production visitors simply see an empty slot, never an error page.
 
@@ -53,7 +53,7 @@ Step 2 shows a review screen: a live product/category card for Pinned selections
 
 The product picker is the search interface used by both the product wizard and the "Pinned" product-recommendation flow.
 
-> **[SCREENSHOT PLACEHOLDER: the full product picker dialog — category sidebar on the left, keyword search bar at top, product grid with thumbnails and prices in the center, and the selection footer bar with Cancel / Select buttons.]**
+![The full product picker dialog — category sidebar on the left, keyword search bar at top, product grid with thumbnails and prices in the center, and the selection footer bar with Cancel / Select buttons](images/product-picker.png)
 
 Editors can:
 

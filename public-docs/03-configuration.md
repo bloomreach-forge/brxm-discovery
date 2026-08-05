@@ -50,7 +50,7 @@ The plugin reads a single, fixed JCR node:
 /hippo:configuration/hippo:modules/brxm-discovery/hippo:moduleconfig/discoveryConfig
 ```
 
-> **[SCREENSHOT PLACEHOLDER: the CMS Console (developer perspective) showing the `discoveryConfig` node and its `brxdis:*` properties.]**
+![CMS Console developer perspective showing the discoveryConfig node and its brxdis:* properties](images/configuration/console-config-node.png)
 
 Create it via your project's bootstrap configuration:
 
@@ -125,7 +125,7 @@ If you set a base URI explicitly (`brxdis:baseUri`, `brxdis:pathwaysBaseUri`, `b
 
 Use per-channel configuration when a deployment has multiple channels pointing at different Discovery accounts or catalog schemas. This is exposed through the plugin's `DiscoveryChannelInfo` interface, editable in Channel Manager under **Channel Settings**.
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Settings panel in Channel Manager, showing the Discovery credential, schema, pixel, and visual search fields.]**
+![Channel Settings panel in Channel Manager showing the Discovery credential, schema, pixel, and visual search fields](images/configuration/channel-configuration.png)
 
 | Group | Properties |
 |---|---|

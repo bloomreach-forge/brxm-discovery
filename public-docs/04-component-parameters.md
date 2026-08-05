@@ -22,7 +22,7 @@ For placement guidance and full page-composition examples, see the [Installation
 
 Keyword search results, including facets, pagination, sort, did-you-mean, auto-correct, keyword redirects, and image (visual) search.
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoverySearchGridComponent, showing the Content, Display, and Advanced parameter groups.]**
+![Channel Manager parameter panel for DiscoverySearchGridComponent, showing the Content, Display, and Advanced parameter groups](images/component/search-grid-experience-manager.png)
 
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|
@@ -49,7 +49,7 @@ Keyword search results, including facets, pagination, sort, did-you-mean, auto-c
 
 Category browse, sharing the same facet/pagination/sort mechanics as search.
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoveryCategoryGridComponent.]**
+![Channel Manager parameter panel for DiscoveryCategoryGridComponent](images/component/category-grid-experience-manager.png)
 
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|
@@ -73,7 +73,7 @@ Category browse, sharing the same facet/pagination/sort mechanics as search.
 
 A standalone search bar with an autosuggest dropdown, placeable in any zone (header, sidebar, inline).
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoverySearchInputComponent.]**
+![Channel Manager parameter panel for DiscoverySearchInputComponent](images/component/search-input-experience-manager.png)
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -94,7 +94,7 @@ The search bar is independent of the results page — it submits to whichever pa
 
 Fetches a single product by ID for a product detail page.
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for DiscoveryProductDetailComponent, with the product document picker field visible.]**
+![Channel Manager parameter panel for DiscoveryProductDetailComponent, with the product document picker field visible](images/component/product-detail-experience-manager.png)
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -109,7 +109,7 @@ Fetches a single product by ID for a product detail page.
 
 Up to four hand-picked products for editorial merchandising slots (not algorithmic recommendations).
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel showing the four product document picker slots.]**
+![Channel Manager parameter panel showing the four product document picker slots](images/component/product-highlight-experience-manager.png)
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -123,7 +123,7 @@ Up to four hand-picked products for editorial merchandising slots (not algorithm
 
 Up to four curated category navigation tiles, each with an optional live product-thumbnail preview.
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel showing the four category document picker slots.]**
+![Channel Manager parameter panel showing the four category document picker slots](images/component/category-highlight-experience-manager.png)
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -144,7 +144,7 @@ Four components share the same base parameters and each targets a different cont
 | `DiscoveryGlobalRecommendationComponent` | Context-free global or personalized recommendations |
 | `DiscoveryKeywordRecommendationComponent` | Recommendations driven by a search keyword |
 
-> **[SCREENSHOT PLACEHOLDER: the Channel Manager parameter panel for a recommendation component, showing the widget document picker and the limit/showPrice/showDescription fields.]**
+![Channel Manager parameter panel for a recommendation component, showing the widget document picker and the limit/showPrice/showDescription fields](images/component/recommendations-picker-experience-manager.png)
 
 | Parameter | Group | Type | Default | Description |
 |---|---|---|---|---|

@@ -48,7 +48,7 @@ mvn -P cargo.run cargo:run -Dbrxdis.pixel.envEnabled=false
 
 Channel Manager exposes checkboxes under **Channel Settings → Pixel Tracking** so a single channel can be tuned without touching the JVM:
 
-> **[SCREENSHOT PLACEHOLDER: the Pixel Tracking section of the Channel Settings panel, showing the enabled/test-data/debug checkboxes and the region dropdown.]**
+![The Pixel Tracking section of the Channel Settings panel, showing the enabled/test-data/debug checkboxes and the region dropdown](images/configuration/channel-pixel-tracking-config.png)
 
 | Channel setting | Default | Effect |
 |---|---|---|

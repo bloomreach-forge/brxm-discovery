@@ -4,7 +4,7 @@ This folder is a draft documentation set for the **brxm-discovery** plugin, writ
 
 It is intended for **public consumers** of the plugin — brXM implementers evaluating or installing it — as distinct from the existing developer walkthrough in [`../user-guides/`](../user-guides/), which stays code-first and is published to this repository's GitHub Pages site.
 
-> **Screenshots:** Every place a real product screenshot belongs is marked with a `[SCREENSHOT PLACEHOLDER]` callout describing exactly what to capture. None have been fabricated — replace each placeholder with an actual annotated screenshot before publishing.
+> **Screenshots:** Most pages now show real annotated screenshots from `images/`. A few places still carry a `[SCREENSHOT PLACEHOLDER]` callout describing exactly what to capture — replace those with an actual screenshot before publishing.
 
 ## Contents
 

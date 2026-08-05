@@ -38,16 +38,16 @@ Each recommendation widget is configured as a JCR document, authored through a p
 
 ### The 3-step wizard
 
-> **[SCREENSHOT PLACEHOLDER: step 1 of the recommendation wizard — the list of available widgets for the channel, filtered to the relevant widget types.]**
+![Step 1 of the recommendation wizard — the list of available widgets for the channel, filtered to the relevant widget types](images/recommendation/recommendation-widget-selection.png)
 
 1. **Widget** — choose from the recommendation widgets configured for your Discovery account. The list is automatically filtered to the widget types relevant to the document type you're editing.
 2. **Context** *(product and category widgets only)* — choose whether the widget is always tied to a specific product/category ("Pinned"), or reads the current page's product/category ID from the URL at render time ("Dynamic"). Global and personalized widgets skip this step.
 
-   > **[SCREENSHOT PLACEHOLDER: step 2 of the recommendation wizard — the Dynamic vs. Pinned choice, with an inline product/category search visible for the Pinned option.]**
+   ![Step 2 of the recommendation wizard — the Dynamic vs. Pinned choice, with an inline product/category search visible for the Pinned option](images/recommendation/recommendation-context-selection.png)
 
 3. **Review** — a summary of the chosen configuration with a live thumbnail preview of what the widget will show.
 
-   > **[SCREENSHOT PLACEHOLDER: step 3 of the recommendation wizard — the review screen with a thumbnail strip of sample products.]**
+   ![Step 3 of the recommendation wizard — the review screen with a thumbnail strip of sample products](images/recommendation/recommendation-review.png)
 
 Editors can test a Dynamic-mode widget during review by entering a sample product or category ID — this test value only drives the preview and is never saved.
 
@@ -65,7 +65,8 @@ See [Component Parameters](04-component-parameters.md#recommendation-components)
 
 Visual search lets a shopper upload a photo instead of typing keywords, and see products that visually match it.
 
-> **[SCREENSHOT PLACEHOLDER: the storefront search bar with the camera/image-search icon visible, and a second screenshot of the resulting visually-matched product grid.]**
+![The storefront search bar with the camera/image-search icon visible](images/search-and-visual/petbase-search-bar.png)
+![The resulting visually-matched product grid](images/search-and-visual/petbase-visual-search-result.png)
 
 ### Enabling it
 
@@ -76,7 +77,7 @@ Visual search is a per-channel setting, configured in Channel Manager under **Ch
 | `discoveryVisualSearchEnabled` | boolean | `false` | Shows the camera button in the search bar and activates the upload endpoint. |
 | `discoveryVisualSearchWidgetId` | String | `""` | The visual search widget ID from your Discovery dashboard. Required when enabled. |
 
-> **[SCREENSHOT PLACEHOLDER: the Visual Search section of the Channel Settings panel.]**
+![The Visual Search section of the Channel Settings panel](images/search-and-visual/visual-search-config.png)
 
 If enabled without a widget ID, the plugin logs a warning and falls back to ordinary keyword search — visitors never see a broken page.
 
